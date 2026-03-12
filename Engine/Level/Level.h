@@ -17,8 +17,8 @@ namespace Engine
 		Level();
 		virtual ~Level();
 
-		virtual void Start();
-		virtual void Update(float deltaTime);
+		virtual void BeginPlay();
+		virtual void Tick(float deltaTime);
 		virtual void Draw();
 
 		void AddNewActor(std::unique_ptr<Actor> actor);

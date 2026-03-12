@@ -17,8 +17,8 @@ namespace Engine
 		Actor();
 		virtual ~Actor();
 
-		virtual void Start();
-		virtual void Update(float deltaTime);
+		virtual void BeginPlay();
+		virtual void Tick(float deltaTime);
 		virtual void Draw();
 
 		void SetPosition(const Vector2& position);

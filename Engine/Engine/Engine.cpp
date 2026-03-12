@@ -53,8 +53,8 @@ namespace Engine
 			if (deltaTime >= oneFrameTime)
 			{
 				// 업데이트 및 그리기 함수 호출.
-				Start();
-				update(deltaTime);
+				BeginPlay();
+				Tick(deltaTime);
 				Draw();
 
 				// 마지막 시간 업데이트.
@@ -133,24 +133,24 @@ namespace Engine
 		}
 	}
 
-	void Engine::Start()
+	void Engine::BeginPlay()
 	{
 		if (!mainLevel)
 		{
 			return;
 		}
 
-		mainLevel->Start();
+		mainLevel->BeginPlay();
 	}
 
-	void Engine::update(float deltaTime)
+	void Engine::Tick(float deltaTime)
 	{
 		if (!mainLevel)
 		{
 			return;
 		}
 
-		mainLevel->Update(deltaTime);
+		mainLevel->Tick(deltaTime);
 	}
 
 	void Engine::Draw()

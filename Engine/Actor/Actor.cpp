@@ -7,12 +7,12 @@ namespace Engine
 	Actor::~Actor()
 	{
 	}
-	void Actor::Start()
+	void Actor::BeginPlay()
 	{
 	}
-	void Actor::Update(float deltaTime)
+	void Actor::Tick(float deltaTime)
 	{
-		
+
 	}
 	void Actor::Draw()
 	{

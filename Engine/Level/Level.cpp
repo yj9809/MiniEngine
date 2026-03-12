@@ -9,23 +9,23 @@ namespace Engine
 	Level::~Level()
 	{
 	}
-	void Level::Start()
+	void Level::BeginPlay()
 	{
 		for (auto& actor : actors)
 		{
 			if (!actor->IsStarted())
 			{
-				actor->Start();
+				actor->BeginPlay();
 				actor->SetStarted();
 			}
 		}
 	}
 
-	void Level::Update(float deltaTime)
+	void Level::Tick(float deltaTime)
 	{
 		for (auto& actor : actors)
 		{
-			actor->Update(deltaTime);
+			actor->Tick(deltaTime);
 		}
 	}
 	void Level::Draw()

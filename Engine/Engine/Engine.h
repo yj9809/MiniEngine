@@ -43,10 +43,10 @@ namespace Engine
 		void LoadSettings();
 
 		// 시작 함수.
-		void Start();
+		void BeginPlay();
 
 		// 업데이트 함수.
-		void update(float deltaTime);
+		void Tick(float deltaTime);
 
 		// 그리기 함수.
 		void Draw();
