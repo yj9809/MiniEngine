@@ -42,9 +42,6 @@ namespace Engine
 		// 엔진 세팅.
 		void LoadSettings();
 
-		// 시작 함수.
-		void BeginPlay();
-
 		// 업데이트 함수.
 		void Tick(float deltaTime);
 

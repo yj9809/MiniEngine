@@ -1,0 +1,56 @@
+# 빌드 결과물
+bin/
+build/
+out/
+x64/
+x86/
+Debug/
+Release/
+*.exe
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.pch
+*.idb
+
+# Visual Studio 관련
+.vs/
+*.vcxproj.user
+*.suo
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+*.vcxproj.filters
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# 로그 및 임시 파일
+*.log
+*.tmp
+*.temp
+Saved/
+Intermediate/
+
+# 설정 파일 (민감 정보 포함 가능)
+# Setting/Settings.txt  ← 필요하면 주석 해제
+
+# 에셋 바이너리 (텍스트 분석 불필요)
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tga
+*.wav
+*.mp3
+*.ogg
+
+# 패키지 매니저
+node_modules/
+.npm/

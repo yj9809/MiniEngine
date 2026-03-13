@@ -53,7 +53,6 @@ namespace Engine
 			if (deltaTime >= oneFrameTime)
 			{
 				// 업데이트 및 그리기 함수 호출.
-				BeginPlay();
 				Tick(deltaTime);
 				Draw();
 
@@ -75,8 +74,8 @@ namespace Engine
 
 	void Engine::SetNewLevel(std::unique_ptr<Level> level)
 	{
-
 		mainLevel = std::move(level);
+		mainLevel->BeginPlay();
 	}
 
 	void Engine::Initialize()
@@ -131,16 +130,6 @@ namespace Engine
 				file.close();
 			}
 		}
-	}
-
-	void Engine::BeginPlay()
-	{
-		if (!mainLevel)
-		{
-			return;
-		}
-
-		mainLevel->BeginPlay();
 	}
 
 	void Engine::Tick(float deltaTime)
