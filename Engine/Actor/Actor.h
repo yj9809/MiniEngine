@@ -29,15 +29,10 @@ namespace Engine
 		inline void SetOwner(Level* newOwner) { owner = newOwner; }
 		inline Level* GetOwner() const { return owner; }
 
-		inline void SetStarted() { isStarted = true; }
-		inline bool IsStarted() const { return isStarted; }
-
 		inline void Destroy() { isDestroyed = true; }
 		inline bool IsDestroyed() const { return isDestroyed; }
 
 	protected:
-		bool isStarted = false;
-
 		bool isDestroyed = false;
 
 		std::string image;

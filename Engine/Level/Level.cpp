@@ -11,14 +11,6 @@ namespace Engine
 	}
 	void Level::BeginPlay()
 	{
-		for (auto& actor : actors)
-		{
-			if (!actor->IsStarted())
-			{
-				actor->BeginPlay();
-				actor->SetStarted();
-			}
-		}
 	}
 
 	void Level::Tick(float deltaTime)
@@ -56,6 +48,7 @@ namespace Engine
 		// 새 액터 추가.
 		for (auto& actor : actorsToAdd)
 		{
+			actor->BeginPlay();
 			actors.emplace_back(std::move(actor));
 		}
 

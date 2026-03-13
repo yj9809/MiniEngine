@@ -11,8 +11,6 @@ namespace Engine
 		~ScreenBuffer();
 
 		void Clear();
-
-		void Draw(CHAR_INFO)
 	};
 }
 
