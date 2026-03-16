@@ -41,14 +41,14 @@ Engine/
 
 ## 진행 현황
 
-### ✅ 1단계 — 코어 정리
+### 🔄 1단계 — 코어 정리
 
 엔진의 뼈대와 라이프사이클을 올바르게 정립한 단계.
 
-**네이밍 통일**
+**1-1. 네이밍 통일** ✅
 - `Start()` → `BeginPlay()`, `update()` → `Tick()` (언리얼 스타일)
 
-**BeginPlay 라이프사이클 재설계**
+**1-1. BeginPlay 라이프사이클 재설계** ✅
 
 초기에는 `hasBeginPlay` 플래그를 Actor에 두고 게임 루프에서 매 프레임 체크하는 방식을 검토했으나,
 "월드에 진입하는 시점에 1회 호출"이라는 의미를 더 명확히 표현하는 구조로 재설계했다.
@@ -77,18 +77,51 @@ void Engine::SetNewLevel(std::unique_ptr<Level> level)
 }
 ```
 
+**1-2. Actor 상태 분리** ✅
+
+기존 `isDestroyed` 단일 플래그를 `isActive` + `destroyRequested` 두 플래그로 분리했다.
+"비활성화 상태"와 "삭제 예약 상태"의 의미를 명확히 구분하기 위함이다.
+
+- `isActive` — 현재 Tick/Draw에 참여하는지 여부
+- `destroyRequested` — 이번 프레임 말에 제거 예약 여부
+- `OnDestroy()` — `virtual` 콜백으로 추가, 파생 클래스에서 오버라이드 가능
+
+```cpp
+void Actor::OnDestroy()
+{
+    isActive = false;
+    destroyRequested = true;
+}
+```
+
+**1-2. 엔진 종료 구조 개선** ✅
+
+Actor에서 엔진 종료를 요청하는 구조를 설계하는 과정에서, `Actor::QuitGame()` 래퍼를 두면
+Actor(엔진 레이어)가 Engine을 역참조하는 의존성이 생기는 문제가 있었다.
+`QuitEngine()`을 `static`으로 전환해 인스턴스 없이 호출 가능하게 하고,
+래퍼 없이 게임 코드에서 직접 호출하는 방식으로 의존성 방향(게임 → 엔진)을 지켰다.
+
+```cpp
+// Engine.h
+inline static bool isQuit = false;  // 선언 + 정의 통합 (C++17)
+static void QuitEngine();
+
+// 게임 코드에서 직접 호출
+Engine::Engine::QuitEngine();
+```
+
 ---
 
 ## 로드맵
 
 | 단계 | 내용 | 상태 |
 |------|------|------|
-| 1단계 | 코어 정리 (네이밍, 라이프사이클) | ✅ 완료 |
-| 2단계 | Renderer (더블 버퍼링, RenderCommand) | 🔲 예정 |
-| 3단계 | Input (Pressed / Held / Released) | 🔲 예정 |
-| 4단계 | Component 시스템 (`AddComponent<T>()`) | 🔲 예정 |
-| 5단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
-| 6단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
-| 7단계 | 리소스 관리 (캐싱) | 🔲 예정 |
-| 8단계 | Level 고도화 (전환, 스택) | 🔲 예정 |
-| 9단계 | 메모리 관리 (Object Pool, Custom Allocator) | 🔲 예정 |
+| 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | 🔄 진행 중 |
+| 2단계 | Input (Pressed / Held / Released) | 🔲 예정 |
+| 3단계 | Component 시스템 (`AddComponent<T>()`) | 🔲 예정 |
+| 4단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
+| 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
+| 6단계 | 리소스 관리 (캐싱) | 🔲 예정 |
+| 7단계 | Level 고도화 (전환, 스택) | 🔲 예정 |
+| 8단계 | 메모리 관리 (Object Pool, Custom Allocator) | 🔲 예정 |
+| 9단계 | Renderer (DirectX 11) | 🔲 예정 |
