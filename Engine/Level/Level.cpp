@@ -57,4 +57,9 @@ namespace Engine
 
 		actorsToAdd.clear();
 	}
+	void Level::EndLevel()
+	{
+		actors.clear();
+		actorsToAdd.clear();
+	}
 }

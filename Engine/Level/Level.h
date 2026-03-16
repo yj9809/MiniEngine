@@ -25,6 +25,8 @@ namespace Engine
 
 		void ProcessAddAndDestroyActor();
 
+		virtual void EndLevel();
+
 	protected:
 		std::vector<std::unique_ptr<Actor>> actors;
 

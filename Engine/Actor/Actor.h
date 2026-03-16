@@ -32,15 +32,13 @@ namespace Engine
 		inline void SetOwner(Level* newOwner) { owner = newOwner; }
 		inline Level* GetOwner() const { return owner; }
 
-	protected:
-		bool isDestroyed = false;
 		inline bool IsActive() const { return isActive; }
 		inline bool IsDestroyRequested() const { return destroyRequested; }
 
 	protected:
 		bool isActive = true;
 
-		bool destroyRequested = false;
+		bool destroyRequested = false;	
 
 		std::string image;
 

@@ -1,4 +1,5 @@
 ﻿#include "Engine.h"
+#include "Core/Input.h"
 #include "Level/Level.h"
 
 #include <fstream>
@@ -74,12 +75,18 @@ namespace Engine
 
 	void Engine::SetNewLevel(std::unique_ptr<Level> level)
 	{
+		if (mainLevel)
+		{
+			mainLevel->EndLevel();
+		}
+
 		mainLevel = std::move(level);
 		mainLevel->BeginPlay();
 	}
 
 	void Engine::Initialize()
 	{
+		input = Input::Get();
 		LoadSettings();
 	}
 
@@ -139,6 +146,7 @@ namespace Engine
 			return;
 		}
 
+		input.Update();
 		mainLevel->Tick(deltaTime);
 	}
 

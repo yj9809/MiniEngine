@@ -8,6 +8,7 @@
 namespace Engine
 {
 	class Level;
+	class Input;
 
 	class ENGINE_API Engine
 	{
@@ -54,6 +55,8 @@ namespace Engine
 
 		// 엔진 설정.
 		Settings settings;
+
+		Input input;
 
 		// 메인 레벨.
 		std::unique_ptr<Level> mainLevel;
