@@ -5,6 +5,7 @@
 
 # Includes 폴더 제외
 Includes
+.claude
 
 # User-specific files
 *.rsuser
