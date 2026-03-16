@@ -14,7 +14,7 @@ namespace Engine
 		struct Settings
 		{
 			// 프레임.
-			int frameRate = 120;
+			float frameRate = 120;
 
 			// 화면 너비.
 			int width = 1280;
@@ -31,7 +31,7 @@ namespace Engine
 		void Run();
 
 		// 엔진 종료.
-		void QuitEngine();
+		static void QuitEngine();
 
 		void SetNewLevel(std::unique_ptr<Level> level);
 
@@ -50,7 +50,7 @@ namespace Engine
 
 	protected:
 		// 엔진 종료 플래그.
-		bool isQuit = false;
+		inline static bool isQuit = false;
 
 		// 엔진 설정.
 		Settings settings;
