@@ -17,6 +17,9 @@ namespace Engine
 	{
 		for (auto& actor : actors)
 		{
+			if (!actor->IsActive())
+				continue;
+
 			actor->Tick(deltaTime);
 		}
 	}
@@ -35,7 +38,7 @@ namespace Engine
 		// Todo: 액터 제거 기능 추가.
 		for (int i = 0; i < actors.size();)
 		{
-			if (actors[i]->IsDestroyed())
+			if (actors[i]->IsDestroyRequested())
 			{
 				actors.erase(actors.begin() + i);
 			}

@@ -21,6 +21,9 @@ namespace Engine
 		virtual void Tick(float deltaTime);
 		virtual void Draw();
 
+		virtual void OnDestroy();
+
+		// Getter/Setter.
 		void SetPosition(const Vector2& position);
 
 		Vector2 GetPositionI() const;
@@ -29,11 +32,15 @@ namespace Engine
 		inline void SetOwner(Level* newOwner) { owner = newOwner; }
 		inline Level* GetOwner() const { return owner; }
 
-		inline void Destroy() { isDestroyed = true; }
-		inline bool IsDestroyed() const { return isDestroyed; }
-
 	protected:
 		bool isDestroyed = false;
+		inline bool IsActive() const { return isActive; }
+		inline bool IsDestroyRequested() const { return destroyRequested; }
+
+	protected:
+		bool isActive = true;
+
+		bool destroyRequested = false;
 
 		std::string image;
 

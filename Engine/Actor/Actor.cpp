@@ -1,21 +1,33 @@
 #include "Actor.h"
+#include "Level/Level.h"
+
 namespace Engine
 {
 	Actor::Actor()
 	{
 	}
+
 	Actor::~Actor()
 	{
 	}
+
 	void Actor::BeginPlay()
 	{
 	}
+
 	void Actor::Tick(float deltaTime)
 	{
 
 	}
+
 	void Actor::Draw()
 	{
+	}
+
+	void Actor::OnDestroy()
+	{
+		isActive = false;
+		destroyRequested = true;
 	}
 
 	void Actor::SetPosition(const Vector2& position)

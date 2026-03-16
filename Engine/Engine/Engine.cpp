@@ -56,13 +56,13 @@ namespace Engine
 				Tick(deltaTime);
 				Draw();
 
-				// 마지막 시간 업데이트.
-				lastTime = currentTime;
-
 				if (mainLevel)
 				{
 					mainLevel->ProcessAddAndDestroyActor();
 				}
+
+				// 마지막 시간 업데이트.
+				lastTime = currentTime;				
 			}
 		}
 	}
