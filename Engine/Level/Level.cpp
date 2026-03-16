@@ -40,7 +40,8 @@ namespace Engine
 		{
 			if (actors[i]->IsDestroyRequested())
 			{
-				actors.erase(actors.begin() + i);
+				std::swap(actors[i], actors.back());
+				actors.pop_back();
 			}
 			else
 			{

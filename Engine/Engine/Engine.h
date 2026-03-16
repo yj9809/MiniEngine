@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common/Common.h"
+#include "Core/Input.h"
 
 #include <memory>
 
@@ -8,7 +9,6 @@
 namespace Engine
 {
 	class Level;
-	class Input;
 
 	class ENGINE_API Engine
 	{

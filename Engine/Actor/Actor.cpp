@@ -37,7 +37,7 @@ namespace Engine
 
 	Vector2 Actor::GetPositionI() const
 	{
-		return {static_cast<int>(position.x), static_cast<int>(position.y)};
+		return Vector2(static_cast<float>(static_cast<int>(position.x)), static_cast<float>(static_cast<int>(position.y)));
 	}
 
 	Vector2 Actor::GetPositionF() const

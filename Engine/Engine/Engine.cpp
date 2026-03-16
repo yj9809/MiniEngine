@@ -123,7 +123,7 @@ namespace Engine
 				{
 					if (line.find("FrameRate:") == 0)
 					{
-						settings.frameRate = std::stoi(line.substr(10));
+						settings.frameRate = static_cast<float>(std::stoi(line.substr(10)));
 					}
 					else if (line.find("Width:") == 0)
 					{

@@ -17,6 +17,9 @@ namespace Engine
 		Level();
 		virtual ~Level();
 
+		Level(const Level&) = delete;
+		Level& operator=(const Level&) = delete;
+
 		virtual void BeginPlay();
 		virtual void Tick(float deltaTime);
 		virtual void Draw();
