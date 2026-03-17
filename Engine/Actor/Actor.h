@@ -2,8 +2,11 @@
 
 #include "Common/RTTI.h"
 #include "Math/Vector2.h"
+#include "Component/Component.h"
 
 #include <string>
+#include <memory>
+#include <vector>
 
 namespace Engine
 {
@@ -22,6 +25,16 @@ namespace Engine
 		virtual void Draw();
 
 		virtual void OnDestroy();
+
+		template <typename T>
+		T* AddComponent()
+		{
+			auto newComponent = std::make_unique<T>();
+			T* ptr = newComponent.get();
+			ptr->owner = this;
+			components.emplace_back(std::move(newComponent));
+			return ptr;
+		}
 
 		// Getter/Setter.
 		void SetPosition(const Vector2& position);
@@ -49,6 +62,9 @@ namespace Engine
 		Level* owner = nullptr;
 
 		Vector2 position;
+
+	private:
+		std::vector<std::unique_ptr<Component>> components;
 	};
 }
 

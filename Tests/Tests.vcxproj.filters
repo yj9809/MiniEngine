@@ -21,7 +21,7 @@
     <ClCompile Include="Vector2Test.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="ActorTest.cpp">
+    <ClCompile Include="LevelTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
