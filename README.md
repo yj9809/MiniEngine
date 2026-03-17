@@ -37,11 +37,19 @@ Tests/
 
 | 항목 | 내용 |
 |------|------|
-| 메모리 관리 | `unique_ptr` 우선 사용. raw pointer는 소유권 없는 참조에만 허용 |
-| 네이밍 | 언리얼 스타일: `BeginPlay`, `Tick`, `OnDestroy` |
-| 설정 파일 | `std::ifstream` 사용 |
+| 메모리 관리 | `unique_ptr` 우선 사용. raw pointer는 소유권 없는 참조에만 허용. `new`/`delete` 직접 사용 금지 |
+| 설정 파일 | `std::ifstream` 사용 (C 스타일 `fopen_s` 금지) |
 | 싱글턴 | `Input`, `Renderer`에만 제한적으로 허용 |
 | 의존성 방향 | 게임 → 엔진 단방향. 엔진 코드는 게임 코드에 의존하지 않는다 |
+
+### 네이밍 컨벤션 (언리얼 스타일)
+
+| 항목 | 규칙 | 예시 |
+|------|------|------|
+| 클래스/구조체 | PascalCase | `Actor`, `ScreenBuffer` |
+| 함수 | PascalCase | `BeginPlay()`, `Tick()` |
+| 멤버 변수 | camelCase | `isActive`, `mainLevel` |
+| 생명주기 함수 | 언리얼 명칭 사용 | `BeginPlay`, `Tick`, `OnDestroy`, `OnCollision` |
 
 ---
 
@@ -71,7 +79,7 @@ Tests/
 **1-1. 네이밍 통일** ✅
 - `Start()` → `BeginPlay()`, `update()` → `Tick()` (언리얼 스타일)
 
-**1-1. BeginPlay 라이프사이클 재설계** ✅
+**1-2. BeginPlay 라이프사이클 재설계** ✅
 
 초기에는 `hasBeginPlay` 플래그를 Actor에 두고 게임 루프에서 매 프레임 체크하는 방식을 검토했으나,
 "월드에 진입하는 시점에 1회 호출"이라는 의미를 더 명확히 표현하는 구조로 재설계했다.
@@ -100,7 +108,7 @@ void Engine::SetNewLevel(std::unique_ptr<Level> level)
 }
 ```
 
-**1-2. Actor 상태 분리** ✅
+**1-3. Actor 상태 분리** ✅
 
 기존 `isDestroyed` 단일 플래그를 `isActive` + `destroyRequested` 두 플래그로 분리했다.
 "비활성화 상태"와 "삭제 예약 상태"의 의미를 명확히 구분하기 위함이다.
@@ -117,7 +125,7 @@ void Actor::OnDestroy()
 }
 ```
 
-**1-2. 엔진 종료 구조 개선** ✅
+**1-4. 엔진 종료 구조 개선** ✅
 
 Actor에서 엔진 종료를 요청하는 구조를 설계하는 과정에서, `Actor::QuitGame()` 래퍼를 두면
 Actor(엔진 레이어)가 Engine을 역참조하는 의존성이 생기는 문제가 있었다.
@@ -133,7 +141,7 @@ static void QuitEngine();
 Engine::Engine::QuitEngine();
 ```
 
-**1-3. Actor 삭제 성능 개선** ✅
+**1-5. Actor 삭제 성능 개선** ✅
 
 `Level::ProcessAddAndDestroyActor()`의 `vector::erase()` 반복 호출 O(n²) 문제를 swap-and-pop으로 교체.
 
@@ -159,7 +167,24 @@ for (int i = 0; i < (int)actors.size();)
 
 ### ✅ 2단계 — Input 시스템
 
-`GetKeyDown` / `GetKey` / `GetKeyUp` 세 가지 상태를 `KeyState` 구조체(current + previous)로 구분.
+`GetKeyDown` / `GetKey` / `GetKeyUp` 세 가지 키 상태를 `KeyState` 구조체(current + previous 프레임 상태)로 구분.
+
+- `GetKeyDown(key)` — 이번 프레임에 처음 눌린 경우 (`Pressed`)
+- `GetKey(key)` — 누르고 있는 동안 (`Held`)
+- `GetKeyUp(key)` — 이번 프레임에 뗀 경우 (`Released`)
+
+```cpp
+struct KeyState
+{
+    bool current  = false;  // 현재 프레임
+    bool previous = false;  // 이전 프레임
+};
+
+// 매 프레임 이전 상태를 저장한 뒤 현재 상태 갱신
+bool Input::GetKeyDown(int key) const { return  state.current && !state.previous; }
+bool Input::GetKey(int key)     const { return  state.current; }
+bool Input::GetKeyUp(int key)   const { return !state.current &&  state.previous; }
+```
 
 ---
 
