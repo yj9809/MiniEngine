@@ -18,11 +18,17 @@ C++ 기반 학습용 미니 게임 엔진.
 Engine/
 ├── Actor/          # 게임 오브젝트 베이스 클래스
 ├── Common/         # 공통 매크로, RTTI
+├── Core/           # Input 시스템
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
 ├── Math/           # Vector2 등 수학 유틸리티
 ├── Renderer/       # 화면 버퍼 (콘솔 기반)
 └── Setting/        # 엔진 설정 파일
+Tests/
+├── Main.cpp        # Google Test 진입점
+├── Vector2Test.cpp # Vector2 단위 테스트
+├── ActorTest.cpp   # Actor 단위 테스트
+└── LevelTest.cpp   # Level 단위 테스트 (기능 + 성능)
 ```
 
 ---
@@ -39,9 +45,26 @@ Engine/
 
 ---
 
+## 단위 테스트
+
+[Google Test](https://github.com/google/googletest) 기반. `Tests` 프로젝트를 시작 프로젝트로 설정 후 실행.
+
+```
+[==========] Running 22 tests from 3 test suites.
+[  PASSED  ] 22 tests.
+```
+
+| 테스트 파일 | 테스트 수 | 검증 항목 |
+|---|---|---|
+| `Vector2Test.cpp` | 2 | 덧셈, 동등 비교 |
+| `ActorTest.cpp` | 8 | 생성/초기값/위치/OnDestroy/unique_ptr |
+| `LevelTest.cpp` | 12 | Actor 추가/제거/owner/EndLevel/성능 |
+
+---
+
 ## 진행 현황
 
-### 🔄 1단계 — 코어 정리
+### ✅ 1단계 — 코어 정리
 
 엔진의 뼈대와 라이프사이클을 올바르게 정립한 단계.
 
@@ -110,14 +133,42 @@ static void QuitEngine();
 Engine::Engine::QuitEngine();
 ```
 
+**1-3. Actor 삭제 성능 개선** ✅
+
+`Level::ProcessAddAndDestroyActor()`의 `vector::erase()` 반복 호출 O(n²) 문제를 swap-and-pop으로 교체.
+
+```cpp
+// 수정 전: erase — 삭제마다 뒤 요소 전체 이동 O(n²)
+// 수정 후: swap-and-pop — O(n)
+for (int i = 0; i < (int)actors.size();)
+{
+    if (actors[i]->IsDestroyRequested())
+    {
+        std::swap(actors[i], actors.back());
+        actors.pop_back();
+    }
+    else { i++; }
+}
+```
+
+| 조건 | 수정 전 | 수정 후 |
+|---|---|---|
+| 10,000개 전체 삭제 | 1046ms | 12ms |
+
+---
+
+### ✅ 2단계 — Input 시스템
+
+`GetKeyDown` / `GetKey` / `GetKeyUp` 세 가지 상태를 `KeyState` 구조체(current + previous)로 구분.
+
 ---
 
 ## 로드맵
 
 | 단계 | 내용 | 상태 |
 |------|------|------|
-| 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | 🔄 진행 중 |
-| 2단계 | Input (Pressed / Held / Released) | 🔲 예정 |
+| 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | ✅ 완료 |
+| 2단계 | Input (Pressed / Held / Released) | ✅ 완료 |
 | 3단계 | Component 시스템 (`AddComponent<T>()`) | 🔲 예정 |
 | 4단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
 | 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
