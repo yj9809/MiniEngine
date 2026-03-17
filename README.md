@@ -18,6 +18,7 @@ C++ 기반 학습용 미니 게임 엔진.
 Engine/
 ├── Actor/          # 게임 오브젝트 베이스 클래스
 ├── Common/         # 공통 매크로, RTTI
+├── Component/      # 컴포넌트 베이스 클래스
 ├── Core/           # Input 시스템
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
@@ -27,7 +28,6 @@ Engine/
 Tests/
 ├── Main.cpp        # Google Test 진입점
 ├── Vector2Test.cpp # Vector2 단위 테스트
-├── ActorTest.cpp   # Actor 단위 테스트
 └── LevelTest.cpp   # Level 단위 테스트 (기능 + 성능)
 ```
 
@@ -65,7 +65,6 @@ Tests/
 | 테스트 파일 | 테스트 수 | 검증 항목 |
 |---|---|---|
 | `Vector2Test.cpp` | 2 | 덧셈, 동등 비교 |
-| `ActorTest.cpp` | 8 | 생성/초기값/위치/OnDestroy/unique_ptr |
 | `LevelTest.cpp` | 12 | Actor 추가/제거/owner/EndLevel/성능 |
 
 ---
@@ -188,13 +187,56 @@ bool Input::GetKeyUp(int key)   const { return !state.current &&  state.previous
 
 ---
 
+### 🔄 3단계 — Component 시스템
+
+컴포넌트를 Actor에 붙여 기능을 조합하는 구조.
+
+**3-1. Component 베이스 클래스** 🔄
+
+인터페이스(pure virtual) 대신 추상 부모 클래스로 설계했다.
+라이프사이클 메서드에 기본 빈 구현을 두어, 필요한 컴포넌트만 오버라이드하도록 한다.
+`friend class Actor`로 `owner` 주입을 Actor 내부로 캡슐화했다.
+
+```cpp
+class Component
+{
+    friend class Actor;
+
+public:
+    virtual void OnAdd();
+    virtual void OnRemove();
+
+    Actor& GetOwner() const { return *owner; }
+
+private:
+    Actor* owner = nullptr;
+};
+```
+
+**Actor::AddComponent\<T\>()** — `make_unique`로 생성 후, `move` 전에 raw pointer를 확보해 반환.
+소유권은 `unique_ptr`, 참조는 raw pointer.
+
+```cpp
+template <typename T>
+T* AddComponent()
+{
+    auto newComponent = std::make_unique<T>();
+    T* ptr = newComponent.get();
+    ptr->owner = this;
+    components.emplace_back(std::move(newComponent));
+    return ptr;
+}
+```
+
+---
+
 ## 로드맵
 
 | 단계 | 내용 | 상태 |
 |------|------|------|
 | 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | ✅ 완료 |
 | 2단계 | Input (Pressed / Held / Released) | ✅ 완료 |
-| 3단계 | Component 시스템 (`AddComponent<T>()`) | 🔲 예정 |
+| 3단계 | Component 시스템 (`AddComponent<T>()`) | 🔄 진행 중 |
 | 4단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
 | 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
 | 6단계 | 리소스 관리 (캐싱) | 🔲 예정 |
