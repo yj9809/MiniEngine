@@ -1,7 +1,5 @@
 #include "Input.h"
 
-#include <Windows.h>
-
 namespace Engine
 {
 	Input* Input::instance = nullptr;
@@ -15,27 +13,32 @@ namespace Engine
 	{
 	}
 
-	void Input::Update()
+	bool Input::GetKeyDown(int vkCode)
 	{
-		for (int i = 0; i < 256; i++)
+		return keyInput[vkCode].isKeyDown;
+	}
+
+	bool Input::GetKeyUp(int vkCode)
+	{
+		return keyInput[vkCode].isKeyUp;
+	}
+
+	bool Input::GetKey(int vkCode)
+	{
+		return keyInput[vkCode].isKey;
+	}
+
+	void Input::ResetKeyState()
+	{
+		for (KeyState& keyState : keyInput)
 		{
-			keyInput[i].previous = keyInput[i].current;
-			keyInput[i].current = (GetAsyncKeyState(i) & 0x8000) != 0;
+			keyState.isKeyUp = false;
+			keyState.isKeyDown = false;
 		}
 	}
 
-	bool Input::GetKeyDown(int key) const
+	void Input::ProcessInputMessage(int vkCode, bool isKeyUp, bool isKeyDown)
 	{
-		return keyInput[key].current && !keyInput[key].previous;
-	}
-
-	bool Input::GetKey(int key) const
-	{
-		return keyInput[key].current && keyInput[key].previous;
-	}
-
-	bool Input::GetKeyUp(int key) const
-	{
-		return !keyInput[key].current && keyInput[key].previous;
+		keyInput[vkCode].SetKeyUpDown(isKeyUp, isKeyDown);
 	}
 }

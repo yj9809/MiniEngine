@@ -19,12 +19,14 @@ Engine/
 ├── Actor/          # 게임 오브젝트 베이스 클래스
 ├── Common/         # 공통 매크로, RTTI
 ├── Component/      # 컴포넌트 베이스 클래스
-├── Core/           # Input 시스템
+├── Core/           # Input 시스템, Win32Window
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
 ├── Math/           # Vector2 등 수학 유틸리티
 ├── Renderer/       # 화면 버퍼 (콘솔 기반)
 └── Setting/        # 엔진 설정 파일
+Game/
+└── Main.cpp        # 게임 진입점 (main)
 Tests/
 ├── Main.cpp        # Google Test 진입점
 ├── Vector2Test.cpp # Vector2 단위 테스트
@@ -187,6 +189,51 @@ bool Input::GetKeyUp(int key)   const { return !state.current &&  state.previous
 
 ---
 
+### ✅ Win32 창 시스템
+
+콘솔 기반에서 Win32 창 기반으로 전환. `Win32Window` 클래스가 창 생성과 메시지 처리를 담당하고, Engine이 `unique_ptr`로 소유한다.
+
+**Win32Window** — `Core/Win32Window.h`
+
+- `WNDCLASSEX` 등록 → `CreateWindowEx`로 `HWND` 생성 → `ShowWindow` / `UpdateWindow`
+- `WndProc`: `WM_DESTROY`에서 `PostQuitMessage`, `WM_KEYDOWN/UP`에서 `Input::ProcessInputMessage` 연결
+
+**Engine 게임 루프 통합**
+
+- `PeekMessage`를 매 루프마다 비블로킹으로 소진 → `WndProc` 호출
+- `WM_QUIT` 감지 시 `isQuit = true`로 루프 종료
+- 메시지 처리와 Tick/Draw는 독립적으로 동작 (메시지가 많아도 게임 루프 굶지 않음)
+
+```cpp
+while (!isQuit)
+{
+    MSG msg = {};
+    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+    {
+        if (msg.message == WM_QUIT) isQuit = true;
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    if (deltaTime >= oneFrameTime)
+    {
+        Tick(deltaTime);
+        Draw();
+        input.ResetKeyState();
+    }
+}
+```
+
+**Input 시스템 메시지 기반 전환**
+
+- `GetKeyState` 폴링 방식 → `WndProc`에서 메시지 수신 방식으로 전환
+- `GetKeyDown(key)` — 이번 프레임에 처음 눌림
+- `GetKey(key)` — 누르고 있는 동안
+- `GetKeyUp(key)` — 이번 프레임에 뗌
+- `ResetKeyState()` — 프레임 끝에 `isKeyDown` / `isKeyUp` 초기화
+
+---
+
 ### 🔄 3단계 — Component 시스템
 
 컴포넌트를 Actor에 붙여 기능을 조합하는 구조.
@@ -270,6 +317,7 @@ namespace Engine
 |------|------|------|
 | 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | ✅ 완료 |
 | 2단계 | Input (Pressed / Held / Released) | ✅ 완료 |
+| Win32 | Win32 창 시스템, 메시지 루프 통합 | ✅ 완료 |
 | 3단계 | Component 시스템 (`AddComponent<T>()`) | 🔄 진행 중 |
 | 4단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
 | 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |

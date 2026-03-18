@@ -17,9 +17,12 @@ namespace Engine
 
 	void Actor::Tick(float deltaTime)
 	{
-		for (auto& component : components)
+		if (!components.empty())
 		{
-			component->Tick(deltaTime);
+			for (auto& component : components)
+			{
+				component->Tick(deltaTime);
+			}
 		}
 	}
 
@@ -29,6 +32,7 @@ namespace Engine
 
 	void Actor::OnDestroy()
 	{
+		// Tick/Draw에서 즉시 제외하고, 다음 ProcessAddAndDestroyActor()에서 메모리 해제.
 		isActive = false;
 		destroyRequested = true;
 	}
@@ -40,6 +44,8 @@ namespace Engine
 
 	Vector2 Actor::GetPositionI() const
 	{
+		// 콘솔 렌더러는 정수 좌표를 요구하므로 float를 int로 잘라낸다(반올림 아님).
+		// Vector2의 멤버가 float이므로, int로 truncate한 뒤 다시 float로 변환해 담는다.
 		return Vector2(static_cast<float>(static_cast<int>(position.x)), static_cast<float>(static_cast<int>(position.y)));
 	}
 
