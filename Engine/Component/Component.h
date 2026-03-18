@@ -9,8 +9,11 @@ namespace Engine
 		friend class Actor;
 
 	public:
+		virtual ~Component() = default;
+
 		virtual void OnAdd();
 		virtual void OnRemove();
+		virtual void Tick(float deltaTime);
 
 		Actor& GetOwner() const { return *owner; }
 

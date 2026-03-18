@@ -17,7 +17,10 @@ namespace Engine
 
 	void Actor::Tick(float deltaTime)
 	{
-
+		for (auto& component : components)
+		{
+			component->Tick(deltaTime);
+		}
 	}
 
 	void Actor::Draw()

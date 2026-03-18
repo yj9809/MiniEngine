@@ -11,4 +11,9 @@ namespace Engine
 	{
 
 	}
+
+	void Component::Tick(float deltaTime)
+	{
+
+	}
 }

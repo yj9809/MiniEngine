@@ -191,7 +191,7 @@ bool Input::GetKeyUp(int key)   const { return !state.current &&  state.previous
 
 컴포넌트를 Actor에 붙여 기능을 조합하는 구조.
 
-**3-1. Component 베이스 클래스** 🔄
+**3-1. Component 베이스 클래스** ✅
 
 인터페이스(pure virtual) 대신 추상 부모 클래스로 설계했다.
 라이프사이클 메서드에 기본 빈 구현을 두어, 필요한 컴포넌트만 오버라이드하도록 한다.
@@ -203,8 +203,11 @@ class Component
     friend class Actor;
 
 public:
+    virtual ~Component() = default;
+
     virtual void OnAdd();
     virtual void OnRemove();
+    virtual void Tick(float deltaTime);
 
     Actor& GetOwner() const { return *owner; }
 
@@ -214,7 +217,7 @@ private:
 ```
 
 **Actor::AddComponent\<T\>()** — `make_unique`로 생성 후, `move` 전에 raw pointer를 확보해 반환.
-소유권은 `unique_ptr`, 참조는 raw pointer.
+소유권은 `unique_ptr`, 참조는 raw pointer. 컴포넌트가 리스트에 편입된 직후 `OnAdd()`를 호출한다.
 
 ```cpp
 template <typename T>
@@ -224,7 +227,38 @@ T* AddComponent()
     T* ptr = newComponent.get();
     ptr->owner = this;
     components.emplace_back(std::move(newComponent));
+    ptr->OnAdd();  // 편입 시 1회 호출
     return ptr;
+}
+```
+
+**3-2. Component::Tick + Actor::Tick 위임** ✅
+
+`Component`에 `Tick(float deltaTime)`을 추가하고, `Actor::Tick()`에서 보유 컴포넌트를 순차적으로 호출한다.
+
+```cpp
+void Actor::Tick(float deltaTime)
+{
+    for (auto& component : components)
+    {
+        component->Tick(deltaTime);
+    }
+}
+```
+
+**3-3. ICommand 인터페이스** ✅
+
+커맨드 패턴 기반 입력 처리를 위한 인터페이스. `InputComponent`에서 키 바인딩에 사용된다.
+
+```cpp
+namespace Engine
+{
+    class ICommand
+    {
+    public:
+        virtual ~ICommand() = default;
+        virtual void Execute() = 0;
+    };
 }
 ```
 

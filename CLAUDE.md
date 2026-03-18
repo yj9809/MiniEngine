@@ -94,10 +94,18 @@ Engine/
 - Color 지원
 
 ### 3단계 — Input 시스템
-- `Pressed` / `Held` / `Released` 상태 구분
+- `Pressed` / `Held` / `Released` 상태 구분 ✅
 
 ### 4단계 — Component 시스템
-- `AddComponent<T>()` 템플릿
+- `AddComponent<T>()` 템플릿 ✅
+- `Component::Tick(float deltaTime)` 추가
+- `Actor::Tick()`에서 보유 컴포넌트의 `Tick()` 순차 호출
+- `ICommand` 인터페이스 추가 (`Execute()`)
+- `InputComponent` 구현 — 커맨드 패턴 기반 입력 처리
+  - `BindKeyDown(int key, unique_ptr<ICommand>)`
+  - `BindKey(int key, unique_ptr<ICommand>)`
+  - `BindKeyUp(int key, unique_ptr<ICommand>)`
+  - `Tick()`에서 `Input`의 키 상태 확인 후 커맨드 `Execute()` 호출
 
 ### 5단계 — 충돌 시스템
 - AABB

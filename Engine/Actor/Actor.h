@@ -33,6 +33,7 @@ namespace Engine
 			T* ptr = newComponent.get();
 			ptr->owner = this;
 			components.emplace_back(std::move(newComponent));
+			ptr->OnAdd();
 			return ptr;
 		}
 
