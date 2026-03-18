@@ -4,6 +4,9 @@
 
 namespace Engine
 {
+	// 2D 부동소수점 벡터.
+	// 위치, 방향, 속도 등 화면 공간 연산에 사용된다.
+	// 렌더러가 정수 좌표를 요구하는 경우 Actor::GetPositionI()로 변환해 사용한다.
 	class ENGINE_API Vector2
 	{
 	public:
@@ -22,4 +25,5 @@ namespace Engine
 		float y = 0;
 	};
 }
+
 
