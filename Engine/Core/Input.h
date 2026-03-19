@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common/Common.h"
+#include "Math/Vector2.h"
 
 #include <Windows.h>
 
@@ -17,7 +18,7 @@ namespace Engine
 		// 두 값의 조합으로 Pressed(↑→↓), Held(↓→↓), Released(↓→↑)를 판별한다.
 		struct KeyState
 		{
-			bool isKeyDown = false; 
+			bool isKeyDown = false;
 			bool isKeyUp = false;
 			bool isKey = false;
 
@@ -28,6 +29,27 @@ namespace Engine
 
 				this->isKey = isKeyDown && !isKeyUp;
 			}
+		};
+
+		struct MouseState
+		{
+			bool isButtonDown = false;
+			bool isButtonUp = false;
+			bool isButton = false;
+
+			void SetButtonUpDown(bool isButtonDown, bool isButtonUp)
+			{
+				this->isButtonDown = isButtonDown;
+				this->isButtonUp = isButtonUp;
+
+				this->isButton = isButtonDown && !isButtonUp;
+			}
+		};
+
+		struct MousePosition
+		{
+			Vector2 currentPosition;
+			Vector2 previousPosition;
 		};
 
 	public:
@@ -42,11 +64,35 @@ namespace Engine
 
 		void ProcessInputMessage(int vkCode, bool isKeyUp, bool isKeyDown);
 
+		// Setter.
+		void SetMousePosition(const Vector2& position);
+		void SetPreviousMousePosition();
+		
+		void SetMouseButtonState(int idx, bool down, bool up);
+
+		void SetIsMouseClamped(bool isClamped);
+
+		// Getter.
+		Vector2 GetMousePosition() const;
+		Vector2 GetMouseDeltaPosition() const;
+
+		bool GetMouseButtonDown(int idx) const;
+		bool GetMouseButtonUp(int idx) const;
+		bool GetMouseButton(int idx) const;
+
+		inline bool GetIsMouseClamped() const { return isMouseClamped; }
+
 		static inline Input& Get() { return *instance; }
 
 	private:
 		// Windows 가상 키 코드는 0x00~0xFF(256개)이므로 배열 크기를 256으로 고정.
 		KeyState keyInput[256] = { KeyState{false, false} };
+
+		MouseState mouseInput[3] = { MouseState{false, false} };
+
+		MousePosition mousePosition;
+
+		bool isMouseClamped = false;
 
 		static Input* instance;
 	};

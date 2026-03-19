@@ -14,6 +14,9 @@ namespace Engine
 		bool Init();
 
 		static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+		// Getter.
+		RECT GetWindowRect() const;
 	private:
 		std::wstring title;
 

@@ -2,6 +2,8 @@
 
 #include "Input.h"
 
+#include <windowsx.h>
+
 namespace Engine
 {
 	Win32Window::Win32Window(uint32_t width, uint32_t height, const std::wstring& title)
@@ -88,10 +90,73 @@ namespace Engine
 				Input::Get().ProcessInputMessage(static_cast<int>(wParam), isKeyUp, isKeyDown);
 			}
 		}
-			return 0;
+		return 0;
+
+		case WM_MOUSEMOVE:
+		{
+			int x = GET_X_LPARAM(lParam);
+			int y = GET_Y_LPARAM(lParam);
+			Input::Get().SetMousePosition(Vector2(static_cast<float>(x), static_cast<float>(y)));
+		}
+		return 0;
+
+		case WM_LBUTTONDOWN:
+		{
+			Input::Get().SetMouseButtonState(0, true, false);
+		}
+		return 0;
+
+		case WM_LBUTTONUP:
+		{
+			Input::Get().SetMouseButtonState(0, false, true);
+		}
+		return 0;
+
+		case WM_RBUTTONDOWN:
+		{
+			Input::Get().SetMouseButtonState(1, true, false);
+		}
+		return 0;
+
+		case WM_RBUTTONUP:
+		{
+			Input::Get().SetMouseButtonState(1, false, true);
+		}
+		return 0;
+
+		case WM_MBUTTONDOWN:
+		{
+			Input::Get().SetMouseButtonState(2, true, false);
+		}
+		return 0;
+
+		case WM_MBUTTONUP:
+		{
+			Input::Get().SetMouseButtonState(2, false, true);
+		}
+		return 0;
 
 		default:
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		}
-		}
 	}
+
+	RECT Win32Window::GetWindowRect() const
+	{
+		RECT r = {};
+		if (GetClientRect(hwnd, &r))
+		{
+			POINT topLeft = { r.left, r.top };
+			POINT bottomRight = { r.right, r.bottom };
+			ClientToScreen(hwnd, &topLeft);
+			ClientToScreen(hwnd, &bottomRight);
+			r.left = topLeft.x;
+			r.top = topLeft.y;
+			r.right = bottomRight.x;
+			r.bottom = bottomRight.y;
+			return r;
+		}
+
+		return r;
+	}
+}

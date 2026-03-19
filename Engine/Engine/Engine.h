@@ -57,6 +57,11 @@ namespace Engine
 		// 현재 레벨의 Draw를 호출한다. (미구현)
 		void Draw();
 
+	private:
+		void ClampCursor(RECT* windowRect);
+
+		void CenterCursor(RECT* windowRect);
+
 	protected:
 		// true가 되면 Run()의 루프가 종료된다. static으로 선언해 어디서든 QuitEngine()으로 설정 가능.
 		inline static bool isQuit = false;

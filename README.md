@@ -22,7 +22,7 @@ Engine/
 ├── Core/           # Input 시스템, Win32Window
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
-├── Math/           # Vector2 등 수학 유틸리티
+├── Math/           # Vector2 등 수학 유틸리티 (zero, one, up, down, left, right 상수 포함)
 ├── Renderer/       # 화면 버퍼 (콘솔 기반)
 └── Setting/        # 엔진 설정 파일
 Game/
@@ -231,6 +231,12 @@ while (!isQuit)
 - `GetKey(key)` — 누르고 있는 동안
 - `GetKeyUp(key)` — 이번 프레임에 뗌
 - `ResetKeyState()` — 프레임 끝에 `isKeyDown` / `isKeyUp` 초기화
+- `WM_MOUSEMOVE` — 절대 좌표 저장, `GetMousePosition()` / `GetMouseDeltaPosition()` 제공
+- 마우스 delta — 프레임 단위 계산 (`SetPreviousMousePosition()`을 프레임 끝에 호출)
+- `WM_LBUTTONDOWN/UP`, `WM_RBUTTONDOWN/UP`, `WM_MBUTTONDOWN/UP` — 버튼 상태 3종 구분 (`GetMouseButtonDown` / `GetMouseButton` / `GetMouseButtonUp`)
+- 커서 잠금 / 상대 이동 모드 — `SetIsMouseClamped(bool)`으로 게임 코드에서 제어
+  - 잠금 시 `ClipCursor` + `ShowCursor(false)`, 매 프레임 `SetCursorPos`로 중앙 리셋
+  - `Win32Window::GetWindowRect()` — `GetClientRect` + `ClientToScreen`으로 화면 절대 좌표 반환
 
 ---
 

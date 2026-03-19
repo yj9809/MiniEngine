@@ -83,6 +83,14 @@ namespace Engine
 					mainLevel->ProcessAddAndDestroyActor();
 				}
 
+				if (input.GetIsMouseClamped())
+				{
+					RECT windowRect = window->GetWindowRect();
+					ClampCursor(&windowRect);
+					CenterCursor(&windowRect);
+				}
+
+				input.SetPreviousMousePosition();
 				input.ResetKeyState();
 
 				// 마지막 시간 업데이트.
@@ -175,11 +183,31 @@ namespace Engine
 			return;
 		}
 
-		input.Update();
 		mainLevel->Tick(deltaTime);
 	}
 
 	void Engine::Draw()
 	{
+	}
+
+	void Engine::ClampCursor(RECT* windowRect)
+	{
+		ClipCursor(windowRect);
+
+		ShowCursor(windowRect == nullptr);
+	}
+
+	void Engine::CenterCursor(RECT* windowRect)
+	{
+		if (windowRect)
+		{
+			Vector2 centerPosition;
+			centerPosition.x = (windowRect->left + windowRect->right) / 2.0f;
+			centerPosition.y = (windowRect->top + windowRect->bottom) / 2.0f;
+
+			SetCursorPos(static_cast<int>(centerPosition.x), static_cast<int>(centerPosition.y));
+
+			input.SetMousePosition(centerPosition);
+		}
 	}
 }
