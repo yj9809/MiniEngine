@@ -87,22 +87,27 @@
     <ClInclude Include="Component\Component.h" />
     <ClInclude Include="Component\ICommand.h" />
     <ClInclude Include="Component\InputSystem\InputComponent.h" />
+    <ClInclude Include="Component\Physics\BoxCollider.h" />
+    <ClInclude Include="Component\Physics\Collider.h" />
     <ClInclude Include="Core\Input.h" />
     <ClInclude Include="Core\Win32Window.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Level\Level.h" />
     <ClInclude Include="Math\Vector2.h" />
+    <ClInclude Include="Math\Vector3.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Actor\Actor.cpp" />
     <ClCompile Include="Component\Component.cpp" />
     <ClCompile Include="Component\InputSystem\InputComponent.cpp" />
+    <ClCompile Include="Component\Physics\BoxCollider.cpp" />
     <ClCompile Include="Core\Input.cpp" />
     <ClCompile Include="Core\Win32Window.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Level\Level.cpp" />
     <ClCompile Include="Math\Vector2.cpp" />
+    <ClCompile Include="Math\Vector3.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

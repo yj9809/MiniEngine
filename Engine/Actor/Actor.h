@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common/RTTI.h"
-#include "Math/Vector2.h"
+#include "Math/Vector3.h"
 #include "Component/Component.h"
 
 #include <string>
@@ -68,13 +68,13 @@ namespace Engine
 		}
 
 		// Getter/Setter.
-		void SetPosition(const Vector2& position);
+		void SetPosition(const Vector3& position);
 
 		// 렌더러용 정수 좌표 반환. float → int 후 다시 float로 포장해 반환한다.
-		Vector2 GetPositionI() const;
+		Vector3 GetPositionI() const;
 
 		// 물리/로직용 부동소수점 좌표 반환.
-		Vector2 GetPositionF() const;
+		Vector3 GetPositionF() const;
 
 		inline void SetOwner(Level* newOwner) { owner = newOwner; }
 		inline Level* GetOwner() const { return owner; }
@@ -101,7 +101,7 @@ namespace Engine
 		// 이 액터를 소유한 Level. 소유권은 Level에 있으므로 raw pointer 사용.
 		Level* owner = nullptr;
 
-		Vector2 position;
+		Vector3 position;
 
 	private:
 		// 이 액터에 부착된 컴포넌트 목록. Actor가 unique_ptr로 소유권 관리.

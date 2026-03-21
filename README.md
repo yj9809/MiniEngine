@@ -19,10 +19,11 @@ Engine/
 ├── Actor/          # 게임 오브젝트 베이스 클래스
 ├── Common/         # 공통 매크로, RTTI
 ├── Component/      # 컴포넌트 베이스 클래스
+│   └── Physics/    # BoxCollider 등 물리 컴포넌트
 ├── Core/           # Input 시스템, Win32Window
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
-├── Math/           # Vector2 등 수학 유틸리티 (zero, one, up, down, left, right 상수 포함)
+├── Math/           # Vector2, Vector3 등 수학 유틸리티 (zero, one, up, down, left, right 상수 포함)
 ├── Renderer/       # 화면 버퍼 (콘솔 기반)
 └── Setting/        # 엔진 설정 파일
 Game/
@@ -377,6 +378,66 @@ input->BindKey(VK_LEFT, std::make_unique<MoveLeftCommand>(this));
 
 ---
 
+### 🔄 4단계 — 충돌 시스템
+
+AABB 기반 3D 충돌 처리. 먼저 Brute Force로 완성하고, 이후 BVH로 최적화한다.
+
+**4-1. Vector3** ✅
+
+3D 물리 연산을 위한 수학 클래스.
+
+- `float x, y, z` 기반
+- `operator+`, `operator-`, `operator==`, `operator!=`
+- `Vector2`와의 혼합 연산 지원
+
+**4-2. Collider 추상 클래스** ✅
+
+`Component`를 상속하는 추상 기반 클래스. `BoxCollider`, `SphereCollider` 등 모든 콜라이더의 공통 인터페이스를 정의한다.
+
+```cpp
+class Collider : public Component
+{
+    RTTI_DECLARATIONS(Collider, Component)
+public:
+    virtual bool Overlap(const Collider& other) const = 0;
+
+protected:
+    Vector3 center;
+    Vector3 worldMin;
+    Vector3 worldMax;
+    bool isTrigger = false;
+};
+```
+
+**4-3. BoxCollider** ✅
+
+AABB 방식의 박스 콜라이더. `Tick()`에서 매 프레임 Owner의 월드 좌표로 `worldMin` / `worldMax`를 갱신하고, `Overlap()`에서 세 축을 비교해 충돌을 판정한다.
+
+```cpp
+void BoxCollider::Tick(float deltaTime)
+{
+    Vector3 actorPos = GetOwner().GetPositionF();
+    worldMin = actorPos + center - halfSize;
+    worldMax = actorPos + center + halfSize;
+}
+
+bool BoxCollider::Overlap(const Collider& other) const
+{
+    Vector3 min = other.GetWorldMin();
+    Vector3 max = other.GetWorldMax();
+
+    return worldMin.x <= max.x && worldMax.x >= min.x
+        && worldMin.y <= max.y && worldMax.y >= min.y
+        && worldMin.z <= max.z && worldMax.z >= min.z;
+}
+```
+
+- 타입 확인은 `dynamic_cast` 대신 커스텀 RTTI의 `As<T>()` 사용
+- `isTrigger` 플래그 — 물리 반응 없이 감지만 하는 트리거 모드 지원 예정
+- 디버그 시각화용 꼭짓점 8개(`boxVertices`) — Renderer 붙을 때 활성화 예정
+
+---
+
 ## 로드맵
 
 | 단계 | 내용 | 상태 |
@@ -385,7 +446,7 @@ input->BindKey(VK_LEFT, std::make_unique<MoveLeftCommand>(this));
 | 2단계 | Input (Pressed / Held / Released) | ✅ 완료 |
 | Win32 | Win32 창 시스템, 메시지 루프 통합 | ✅ 완료 |
 | 3단계 | Component 시스템 (`AddComponent<T>()`, `InputComponent`) | ✅ 완료 |
-| 4단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
+| 4단계 | 충돌 시스템 (AABB, BVH) | 🔄 진행 중 |
 | 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
 | 6단계 | 리소스 관리 (캐싱) | 🔲 예정 |
 | 7단계 | Level 고도화 (전환, 스택) | 🔲 예정 |

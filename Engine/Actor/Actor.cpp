@@ -37,19 +37,19 @@ namespace Engine
 		destroyRequested = true;
 	}
 
-	void Actor::SetPosition(const Vector2& position)
+	void Actor::SetPosition(const Vector3& position)
 	{
 		this->position = position;
 	}
 
-	Vector2 Actor::GetPositionI() const
+	Vector3 Actor::GetPositionI() const
 	{
 		// 콘솔 렌더러는 정수 좌표를 요구하므로 float를 int로 잘라낸다(반올림 아님).
 		// Vector2의 멤버가 float이므로, int로 truncate한 뒤 다시 float로 변환해 담는다.
-		return Vector2(static_cast<float>(static_cast<int>(position.x)), static_cast<float>(static_cast<int>(position.y)));
+		return Vector3(static_cast<float>(static_cast<int>(position.x)), static_cast<float>(static_cast<int>(position.y)), static_cast<float>(static_cast<int>(position.z)));
 	}
 
-	Vector2 Actor::GetPositionF() const
+	Vector3 Actor::GetPositionF() const
 	{
 		return position;
 	}
