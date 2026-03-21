@@ -1,11 +1,14 @@
 #pragma once
 
+#include "Common/RTTI.h"
+
 namespace Engine
 {
 	class Actor;
 
-	class Component
+	class Component : public RTTI
 	{
+		RTTI_DECLARATIONS(Component, RTTI)
 		friend class Actor;
 
 	public:

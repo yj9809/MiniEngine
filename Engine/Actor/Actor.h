@@ -53,6 +53,20 @@ namespace Engine
 			return ptr;
 		}
 
+		template<typename T>
+		T* GetComponent()
+		{
+			for (auto& com : components)
+			{
+				if (com->IsTypeOf<T>())
+				{
+					return com->As<T>();
+				}
+			}
+
+			return nullptr;
+		}
+
 		// Getter/Setter.
 		void SetPosition(const Vector2& position);
 

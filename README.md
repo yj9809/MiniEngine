@@ -315,6 +315,66 @@ namespace Engine
 }
 ```
 
+**3-4. Component RTTI 상속 + GetComponent\<T\>()** ✅
+
+`GetComponent<T>()`에서 타입 조회를 위해 `Component`가 `RTTI`를 상속하도록 변경했다.
+`Actor::GetComponent<T>()`는 보유 컴포넌트를 순회해 타입이 일치하는 첫 번째 컴포넌트를 반환한다.
+
+```cpp
+template<typename T>
+T* GetComponent()
+{
+    for (auto& com : components)
+    {
+        if (com->IsTypeOf<T>())
+            return com->As<T>();
+    }
+    return nullptr;
+}
+```
+
+**3-5. InputComponent 완성** ✅
+
+커맨드 패턴 기반 입력 처리 컴포넌트. 키별로 `ICommand`를 바인딩하고, `Tick()`에서 `Input` 싱글턴의 키 상태를 확인해 `Execute()`를 호출한다.
+
+- `BindKeyDown(int key, unique_ptr<ICommand>)` — 키를 누른 순간
+- `BindKey(int key, unique_ptr<ICommand>)` — 키를 누르는 동안
+- `BindKeyUp(int key, unique_ptr<ICommand>)` — 키를 뗀 순간
+
+```cpp
+void InputComponent::Tick(float deltaTime)
+{
+    Input& input = Input::Get();
+
+    for (auto& [key, command] : keyDownBindings)
+        if (input.GetKeyDown(key)) command->Execute();
+
+    for (auto& [key, command] : keyBindings)
+        if (input.GetKey(key)) command->Execute();
+
+    for (auto& [key, command] : keyUpBindings)
+        if (input.GetKeyUp(key)) command->Execute();
+}
+```
+
+게임 코드에서 구체 커맨드 클래스를 작성해 바인딩한다. 엔진은 `ICommand` 인터페이스만 알면 되므로 의존성 방향(게임 → 엔진)이 유지된다.
+
+```cpp
+// Game 코드
+class MoveLeftCommand : public Engine::ICommand
+{
+public:
+    MoveLeftCommand(Player* player) : player(player) {}
+    void Execute() override { player->Move(-1, 0); }
+private:
+    Player* player;
+};
+
+// Player::BeginPlay()
+auto* input = AddComponent<Engine::InputComponent>();
+input->BindKey(VK_LEFT, std::make_unique<MoveLeftCommand>(this));
+```
+
 ---
 
 ## 로드맵
@@ -324,7 +384,7 @@ namespace Engine
 | 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | ✅ 완료 |
 | 2단계 | Input (Pressed / Held / Released) | ✅ 완료 |
 | Win32 | Win32 창 시스템, 메시지 루프 통합 | ✅ 완료 |
-| 3단계 | Component 시스템 (`AddComponent<T>()`) | 🔄 진행 중 |
+| 3단계 | Component 시스템 (`AddComponent<T>()`, `InputComponent`) | ✅ 완료 |
 | 4단계 | 충돌 시스템 (AABB, BVH) | 🔲 예정 |
 | 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
 | 6단계 | 리소스 관리 (캐싱) | 🔲 예정 |
