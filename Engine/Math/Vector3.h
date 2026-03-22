@@ -10,7 +10,7 @@ namespace Engine
 	{
 	public:
 		Vector3() = default;
-		Vector3(int x, int y, int z);
+		Vector3(float x, float y, float z);
 		~Vector3();
 
 		Vector3 operator+(const Vector3& other) const;

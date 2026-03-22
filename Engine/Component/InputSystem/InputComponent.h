@@ -16,6 +16,10 @@ namespace Engine
 		RTTI_DECLARATIONS(InputComponent, Component)
 
 	public:
+		InputComponent() = default;
+		InputComponent(const InputComponent&) = delete;
+		InputComponent& operator=(const InputComponent&) = delete;
+
 		void BindKeyDown(int key, std::unique_ptr<ICommand> command);
 		void BindKeyUp(int key, std::unique_ptr<ICommand> command);
 		void BindKey(int key, std::unique_ptr<ICommand> command);

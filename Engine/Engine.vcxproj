@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -89,6 +89,7 @@
     <ClInclude Include="Component\InputSystem\InputComponent.h" />
     <ClInclude Include="Component\Physics\BoxCollider.h" />
     <ClInclude Include="Component\Physics\Collider.h" />
+    <ClInclude Include="Core\CollisionSystem.h" />
     <ClInclude Include="Core\Input.h" />
     <ClInclude Include="Core\Win32Window.h" />
     <ClInclude Include="Engine\Engine.h" />
@@ -102,6 +103,7 @@
     <ClCompile Include="Component\Component.cpp" />
     <ClCompile Include="Component\InputSystem\InputComponent.cpp" />
     <ClCompile Include="Component\Physics\BoxCollider.cpp" />
+    <ClCompile Include="Core\CollisionSystem.cpp" />
     <ClCompile Include="Core\Input.cpp" />
     <ClCompile Include="Core\Win32Window.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
