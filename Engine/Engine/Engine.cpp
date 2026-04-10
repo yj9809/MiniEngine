@@ -2,6 +2,7 @@
 
 #include "Core/Input.h"
 #include "Core/Win32Window.h"
+#include "Renderer/D3D11Renderer.h"
 
 #include "Level/Level.h"
 
@@ -20,7 +21,7 @@ namespace Engine
 
 	Engine::~Engine()
 	{
-
+		renderer->GPUShutdown();
 	}
 
 	void Engine::Run()
@@ -121,7 +122,13 @@ namespace Engine
 		input = Input::Get();
 		LoadSettings();
 
+		// 출력 창 생성 및 초기화.
 		window = std::make_unique<Win32Window>(settings.width, settings.height, L"Mini Engine");
+
+		// 렌더러 생성 및 초기화.
+		// 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
+		renderer = std::make_unique<D3D11Renderer>();
+		renderer->GPUInit(window->GetHwnd(), settings.height, settings.height);
 	}
 
 	void Engine::LoadSettings()
@@ -188,6 +195,17 @@ namespace Engine
 
 	void Engine::Draw()
 	{
+		if (!renderer)
+		{
+			return;
+		}
+
+		// 출력 창 배경색 지정.
+		renderer->BeginFrame(1.0f, 0.5f, 0.0f);
+
+		// todo: 이후 오브젝트 렌더링 명령어가 들어올 위치.
+
+		renderer->EndFrame();
 	}
 
 	void Engine::ClampCursor(RECT* windowRect)

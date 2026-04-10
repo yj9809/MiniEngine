@@ -20,7 +20,7 @@ Engine/
 ├── Common/         # 공통 매크로, RTTI
 ├── Component/      # 컴포넌트 베이스 클래스
 │   └── Physics/    # BoxCollider 등 물리 컴포넌트
-├── Core/           # Input 시스템, Win32Window
+├── Core/           # Input 시스템, Win32Window, CollisionSystem
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
 ├── Math/           # Vector2, Vector3 등 수학 유틸리티 (zero, one, up, down, left, right 상수 포함)
@@ -378,7 +378,23 @@ input->BindKey(VK_LEFT, std::make_unique<MoveLeftCommand>(this));
 
 ---
 
-### 🔄 4단계 — 충돌 시스템
+### 🔄 4단계 — DX11 렌더러 기초
+
+Win32 창이 이미 있어 HWND를 바로 넘겨 D3D11 초기화 가능한 상태.
+
+**IRenderer 추상 인터페이스** — `GPUInit` / `BeginFrame` / `EndFrame` / `GPUShutdown`
+
+**D3D11Renderer** — `IDXGIFactory2` + `CreateSwapChainForHwnd` + `ComPtr` 기반 구현
+
+- Device + DeviceContext 생성 (Debug 빌드에서 `D3D11_CREATE_DEVICE_DEBUG` 활성화)
+- `IDXGIDevice` → `IDXGIAdapter` → `IDXGIFactory2` 경유로 SwapChain 생성 (`CreateSwapChain` 구버전 대신 `CreateSwapChainForHwnd` 사용)
+- `RenderTargetView` 생성 및 `OMSetRenderTargets` 바인딩
+- Viewport 설정 (`RSSetViewports`)
+- `Engine::Draw()`에서 `BeginFrame` / `EndFrame` 호출
+
+---
+
+### 🔄 6단계 — 충돌 시스템
 
 AABB 기반 3D 충돌 처리. 먼저 Brute Force로 완성하고, 이후 BVH로 최적화한다.
 
@@ -436,6 +452,27 @@ bool BoxCollider::Overlap(const Collider& other) const
 - `isTrigger` 플래그 — 물리 반응 없이 감지만 하는 트리거 모드 지원 예정
 - 디버그 시각화용 꼭짓점 8개(`boxVertices`) — Renderer 붙을 때 활성화 예정
 
+**4-4. CollisionSystem** 🔄
+
+Collider가 직접 CollisionSystem에 Register/Unregister하는 구조. Actor 순회 없이 등록된 Collider만 검사한다.
+
+- `Level`이 `unique_ptr`로 소유 (싱글턴 남용 방지)
+- `Register(Collider*)` / `UnRegister(Collider*)` — `Collider::BeginPlay()` / `OnDestroy()`에서 호출 예정
+- `UnRegister`는 swap_and_pop 패턴으로 O(1) 처리
+- `Tick()` — 충돌 검사 로직 추후 추가 예정
+
+```cpp
+void CollisionSystem::UnRegister(Collider* collider)
+{
+    auto it = std::find(colliders.begin(), colliders.end(), collider);
+    if (it != colliders.end())
+    {
+        std::iter_swap(it, colliders.end() - 1);
+        colliders.pop_back();
+    }
+}
+```
+
 ---
 
 ## 로드맵
@@ -446,9 +483,10 @@ bool BoxCollider::Overlap(const Collider& other) const
 | 2단계 | Input (Pressed / Held / Released) | ✅ 완료 |
 | Win32 | Win32 창 시스템, 메시지 루프 통합 | ✅ 완료 |
 | 3단계 | Component 시스템 (`AddComponent<T>()`, `InputComponent`) | ✅ 완료 |
-| 4단계 | 충돌 시스템 (AABB, BVH) | 🔄 진행 중 |
+| 4단계 | DX11 렌더러 기초 (IRenderer, D3D11Renderer, SwapChain) | 🔄 진행 중 |
 | 5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
-| 6단계 | 리소스 관리 (캐싱) | 🔲 예정 |
-| 7단계 | Level 고도화 (전환, 스택) | 🔲 예정 |
-| 8단계 | 메모리 관리 (Object Pool, Custom Allocator) | 🔲 예정 |
-| 9단계 | Renderer (DirectX 11) | 🔲 예정 |
+| 6단계 | 충돌 시스템 (AABB, BVH) | 🔄 진행 중 |
+| 7단계 | DX11 렌더러 심화 (카메라, 메시, 머티리얼) | 🔲 예정 |
+| 8단계 | 리소스 관리 (캐싱) | 🔲 예정 |
+| 9단계 | Level 고도화 (전환, 스택) | 🔲 예정 |
+| 10단계 | 메모리 관리 (Object Pool, Custom Allocator) | 🔲 예정 |

@@ -17,6 +17,9 @@ namespace Engine
 
 		// Getter.
 		RECT GetWindowRect() const;
+
+		inline HWND GetHwnd() const { return hwnd; };
+		
 	private:
 		std::wstring title;
 

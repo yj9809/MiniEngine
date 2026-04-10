@@ -63,6 +63,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -78,6 +79,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -96,6 +98,8 @@
     <ClInclude Include="Level\Level.h" />
     <ClInclude Include="Math\Vector2.h" />
     <ClInclude Include="Math\Vector3.h" />
+    <ClInclude Include="Renderer\D3D11Renderer.h" />
+    <ClInclude Include="Renderer\IRenderer.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -110,6 +114,7 @@
     <ClCompile Include="Level\Level.cpp" />
     <ClCompile Include="Math\Vector2.cpp" />
     <ClCompile Include="Math\Vector3.cpp" />
+    <ClCompile Include="Renderer\D3D11Renderer.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

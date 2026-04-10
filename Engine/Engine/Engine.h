@@ -10,6 +10,7 @@ namespace Engine
 {
 	class Level;
 	class Win32Window;
+	class IRenderer;
 
 	// 엔진의 진입점이자 최상위 관리자 클래스.
 	// 게임 루프(Run), 설정 로드(LoadSettings), 레벨 전환(SetNewLevel)을 담당한다.
@@ -66,7 +67,11 @@ namespace Engine
 		// true가 되면 Run()의 루프가 종료된다. static으로 선언해 어디서든 QuitEngine()으로 설정 가능.
 		inline static bool isQuit = false;
 
+		// 출력 창.
 		std::unique_ptr<Win32Window> window;
+		
+		// 렌더러.
+		std::unique_ptr<IRenderer> renderer;
 
 		// Settings.txt에서 로드된 설정값.
 		Settings settings;
