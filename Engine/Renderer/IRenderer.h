@@ -20,5 +20,8 @@ namespace Engine
 
 		// GPU 해제.
 		virtual void GPUShutdown() = 0;
+
+		// 렌더링 명령 실행 함수.
+		virtual void Render() = 0;
 	};
 }

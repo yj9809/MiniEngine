@@ -5,6 +5,7 @@
 
 #include <d3d11.h>
 #include <dxgi1_2.h>
+#include <d3dcompiler.h>
 #include <wrl/client.h>
 
 using namespace Microsoft::WRL;
@@ -33,6 +34,8 @@ namespace Engine
 
 		virtual void GPUShutdown() override;
 
+		virtual void Render() override;
+
 	private:
 		// GPU와 연결되는 기본 디바이스 객체.
 		ComPtr<ID3D11Device> device;
@@ -46,6 +49,18 @@ namespace Engine
 
 		// Render Target View 생성.
 		ComPtr<ID3D11RenderTargetView> renderTargetView;
+
+		// 셰이더 객체.
+		// VS: 정점 셰이더, PS: 픽셀 셰이더.
+		ComPtr<ID3D11VertexShader> vertexShader;
+		ComPtr<ID3D11PixelShader> pixelShader;
+
+		// vertex 버퍼 구조를 셰이더에 알려주는 객체.
+		// 버퍼의 float3은 POSITION이다를 GPU에 정의.
+		ComPtr<ID3D11InputLayout> inputLayout;
+
+		// 정점 데이터를 담는 버퍼.
+		ComPtr<ID3D11Buffer> vertexBuffer;
 	};
 }
 

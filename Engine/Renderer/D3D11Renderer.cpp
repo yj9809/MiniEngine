@@ -118,11 +118,57 @@ namespace Engine
 		// 그래픽스 파이프라인 Rasterizer 단계를 진행할 ViewPort 설정.
 		context->RSSetViewports(1, &vp);
 
+		// .cso: 빌드 시 컴파일한 셰이더 바이너리. 셰이더 객체 생성에 사용.
+		ComPtr<ID3DBlob> vsBlod;
+		ComPtr<ID3DBlob> psBlod;
+
+		// 셰이더 .cso 파일 로드.
+		hr = D3DReadFileToBlob(L"Shader/VertexShader.cso", &vsBlod);
+		FAILCHECK(hr, L"Failed to read VertexShader.cso");
+		hr = D3DReadFileToBlob(L"Shader/PixelShader.cso", &psBlod);
+		FAILCHECK(hr, L"Failed to read PixelShader.cso");
+
+		// 셰이더 객체 생성.
+		hr = device->CreateVertexShader(vsBlod->GetBufferPointer(), vsBlod->GetBufferSize(), nullptr, &vertexShader);
+		FAILCHECK(hr, L"Failed to create vertex shader");
+		hr = device->CreatePixelShader(psBlod->GetBufferPointer(), psBlod->GetBufferSize(), nullptr, &pixelShader);
+		FAILCHECK(hr, L"Failed to create pixel shader");
+
+		// 정점 버퍼 구조 정의.
+		D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
+		{
+			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		};
+		hr = device->CreateInputLayout(layoutDesc, 1, vsBlod->GetBufferPointer(), vsBlod->GetBufferSize(), &inputLayout);
+		FAILCHECK(hr, L"Failed to create input layout");
+
+		// NDC 좌표 기준 삼각형 버텍스. 변환 행렬 없이 화면에 직접 매핑.
+		struct Vertex { float x, y, z; };
+		Vertex vertices[] =
+		{
+			{0.0f, 0.5f, 0.0f},
+			{0.5f, -0.5f, 0.0f},
+			{-0.5f, -0.5f, 0.0f}
+		};
+
+		// CPU 메모리의 버텍스 데이터를 GPU 메모리(VRAM)에 올림.
+		D3D11_BUFFER_DESC vbDesc = {};
+		vbDesc.ByteWidth = sizeof(vertices);
+		vbDesc.Usage = D3D11_USAGE_DEFAULT;
+		vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		D3D11_SUBRESOURCE_DATA vbData = {};
+		vbData.pSysMem = vertices;
+		hr = device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
+		FAILCHECK(hr, L"Failed to create vertex buffer");
+
 		return true;
 	}
 
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
 	{
+		// FILP_DISCARD 방식은 Present() 후 렌더 타겟 바인딩이 해제되므로 매 프레임 재바인딩 필요.
+		context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+
 		// 매 프레임 시작 시 back buffer를 지정한 색으로 초기화.
 		// 안 지우면 이전 프레임 내용이 남아있음.
 		float color[4] = { r, g, b, 1.0f };
@@ -145,5 +191,21 @@ namespace Engine
 		swapChain.Reset();
 		context.Reset();
 		device.Reset();
+	}
+	void D3D11Renderer::Render()
+	{
+		// IA 단계: 버텍스 데이터를 파이프라인에 공급.
+		UINT stride = sizeof(float) * 3;
+		UINT offset = 0;
+		context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 버텍스 3개 = 삼각형 1개.
+		context->IASetInputLayout(inputLayout.Get());
+
+		// 셰이더 바인딩: 이후 Draw 호출에서 이 셰이더로 처리.
+		context->VSSetShader(vertexShader.Get(), nullptr, 0);
+		context->PSSetShader(pixelShader.Get(), nullptr, 0);
+
+		// 버텍스 3개, 0번부터 그리기.
+		context->Draw(3, 0);
 	}
 }

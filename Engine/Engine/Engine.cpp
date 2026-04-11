@@ -128,7 +128,7 @@ namespace Engine
 		// 렌더러 생성 및 초기화.
 		// 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
 		renderer = std::make_unique<D3D11Renderer>();
-		renderer->GPUInit(window->GetHwnd(), settings.height, settings.height);
+		renderer->GPUInit(window->GetHwnd(), settings.width, settings.height);
 	}
 
 	void Engine::LoadSettings()
@@ -201,9 +201,10 @@ namespace Engine
 		}
 
 		// 출력 창 배경색 지정.
-		renderer->BeginFrame(1.0f, 0.5f, 0.0f);
+		renderer->BeginFrame(0.8f, 0.8f, 0.8f);
 
-		// todo: 이후 오브젝트 렌더링 명령어가 들어올 위치.
+		// 오브젝트 렌더링.
+		renderer->Render();
 
 		renderer->EndFrame();
 	}
