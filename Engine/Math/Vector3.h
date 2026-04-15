@@ -14,13 +14,32 @@ namespace Engine
 		~Vector3();
 
 		Vector3 operator+(const Vector3& other) const;
-		Vector3 operator+(const Vector2& other) const;
-
 		Vector3 operator-(const Vector3& other) const;
-		Vector3 operator-(const Vector2& other) const;
+		Vector3 operator*(float scalar) const;
+		Vector3 operator/(float scalar) const;
 
-		bool operator==(const Vector3& other);
-		bool operator!=(const Vector3& other);
+		bool operator==(const Vector3& other) const;
+		bool operator!=(const Vector3& other) const;
+
+		// 내적.
+		float Dot(const Vector3& other) const;
+
+		// 외적.
+		Vector3 Cross(const Vector3& other) const;
+
+		// 제곱 길이.
+		float LengthSquared() const;
+		// Vector3 길이.
+		float Length() const;
+		// 정규화.
+		Vector3 Normalize() const;
+
+		// Vector3 상수.
+		static const Vector3 zero;
+		static const Vector3 one;
+		static const Vector3 unitX;
+		static const Vector3 unitY;
+		static const Vector3 unitZ;
 
 	public:
 		float x = 0;

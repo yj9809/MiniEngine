@@ -5,7 +5,11 @@
       "mcp__github__get_file_contents",
       "Bash(find /c/Users/dkrkt/OneDrive/Desktop/MiniEngine -type f \\\\\\( -name \"*.h\" -o -name \"*.cpp\" -o -name \"*.vcxproj\" -o -name \"*.sln\" \\\\\\) 2>/dev/null | head -50)",
       "mcp__notion__notion-fetch",
-      "mcp__notion__notion-update-page"
+      "mcp__notion__notion-update-page",
+      "WebSearch",
+      "WebFetch(domain:unrealstack.com)",
+      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-fetch",
+      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-update-page"
     ]
   }
 }

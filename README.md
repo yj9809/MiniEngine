@@ -23,7 +23,7 @@ Engine/
 ├── Core/           # Input 시스템, Win32Window, CollisionSystem
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
-├── Math/           # Vector2, Vector3 등 수학 유틸리티 (zero, one, up, down, left, right 상수 포함)
+├── Math/           # Vector2, Vector3, Vector4 수학 유틸리티 (내적, 외적, 정규화, 상수 포함)
 ├── Renderer/       # IRenderer, D3D11Renderer
 ├── Shader/         # HLSL 셰이더 파일 (VertexShader, PixelShader)
 └── Setting/        # 엔진 설정 파일
@@ -413,8 +413,10 @@ AABB 기반 3D 충돌 처리. 먼저 Brute Force로 완성하고, 이후 BVH로 
 3D 물리 연산을 위한 수학 클래스.
 
 - `float x, y, z` 기반
-- `operator+`, `operator-`, `operator==`, `operator!=`
-- `Vector2`와의 혼합 연산 지원
+- 산술: `operator+`, `-`, `*(scalar)`, `/(scalar)`, `==`, `!=`
+- `Dot()` (내적), `Cross()` (외적)
+- `LengthSquared()`, `Length()`, `Normalize()`
+- 정적 상수: `zero`, `one`, `unitX/Y/Z`
 
 **4-2. Collider 추상 클래스** ✅
 
