@@ -46,11 +46,25 @@ namespace Engine
 		return (x * other.x) + (y * other.y) + (z * other.z);
 	}
 
+	float Vector3::Dot(const Vector3& left, const Vector3& right)
+	{
+		return (left.x * right.x) + (left.y * right.y) + (left.z * right.z);
+	}
+
 	Vector3 Vector3::Cross(const Vector3& other) const
 	{
 		float newX = (y * other.z) - (z * other.y);
 		float newY = (z * other.x) - (x * other.z);
 		float newZ = (x * other.y) - (y * other.x);
+
+		return Vector3(newX, newY, newZ);
+	}
+
+	Vector3 Vector3::Cross(const Vector3& left, const Vector3& right)
+	{
+		float newX = (left.y * right.z) - (left.z * right.y);
+		float newY = (left.z * right.x) - (left.x * right.z);
+		float newZ = (left.x * right.y) - (left.y * right.x);
 
 		return Vector3(newX, newY, newZ);
 	}

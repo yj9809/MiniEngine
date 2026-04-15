@@ -23,9 +23,11 @@ namespace Engine
 
 		// 내적.
 		float Dot(const Vector3& other) const;
+		static float Dot(const Vector3& left, const Vector3& right);
 
 		// 외적.
 		Vector3 Cross(const Vector3& other) const;
+		static Vector3 Cross(const Vector3& left, const Vector3& right);
 
 		// 제곱 길이.
 		float LengthSquared() const;

@@ -51,6 +51,11 @@ namespace Engine
 		return (x * other.x) + (y * other.y) + (z * other.z) + (w * other.w);
 	}
 
+	float Vector4::Dot(const Vector4& left, const Vector4& right)
+	{
+		return (left.x * right.x) + (left.y * right.y) + (left.z * right.z) + (left.w * right.w);
+	}
+
 	float Vector4::LengthSquared() const
 	{
 		return (x * x) + (y * y) + (z * z) + (w * w);

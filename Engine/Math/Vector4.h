@@ -24,8 +24,9 @@ namespace Engine
 
 		// 내적.
 		float Dot(const Vector4& other) const;
+		static float Dot(const Vector4& left, const Vector4& right);
 
-		// 제곱 길이.
+		// 제곱 길이 (단순 비교에선 제곱근 값을 사용하지 않아도 괜찮기에 sqrt 연산을 제외).
 		float LengthSquared() const;
 		// Vector4 길이.
 		float Length() const;
