@@ -9,7 +9,9 @@
       "WebSearch",
       "WebFetch(domain:unrealstack.com)",
       "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-fetch",
-      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-update-page"
+      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-update-page",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)"
     ]
   }
 }

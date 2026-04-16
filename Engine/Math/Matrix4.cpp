@@ -46,10 +46,10 @@ namespace Engine
 	{
 		Vector4 result;
 
-		result.x = m00 * other.x + m01 * other.y + m02 * other.z + m03 * other.w;
-		result.y = m10 * other.x + m11 * other.y + m12 * other.z + m13 * other.w;
-		result.z = m20 * other.x + m21 * other.y + m22 * other.z + m23 * other.w;
-		result.w = m30 * other.x + m31 * other.y + m32 * other.z + m33 * other.w;
+		result.x = m00 * other.x + m10 * other.y + m20 * other.z + m30 * other.w;
+		result.y = m01 * other.x + m11 * other.y + m21 * other.z + m31 * other.w;
+		result.z = m02 * other.x + m12 * other.y + m22 * other.z + m32 * other.w;
+		result.w = m03 * other.x + m13 * other.y + m23 * other.z + m33 * other.w;
 
 		return result;
 	}
@@ -161,62 +161,183 @@ namespace Engine
 
 	Matrix4 Matrix4::Translation(float x, float y, float z)
 	{
-		return Matrix4();
+		// 1 0 0 0
+		// 0 1 0 0
+		// 0 0 1 0
+		// x y z 1
+
+		Matrix4 result;
+
+		result.m30 = x;
+
+		result.m31 = y;
+
+		result.m32 = z;
+
+		return result;
 	}
 
 	Matrix4 Matrix4::Translation(const Vector3& position)
 	{
-		return Matrix4();
+		return Translation(position.x, position.y, position.z);
 	}
 
 	Matrix4 Matrix4::Scale(float scale)
 	{
-		return Matrix4();
+		return Scale(scale, scale, scale);
 	}
 
 	Matrix4 Matrix4::Scale(float x, float y, float z)
 	{
-		return Matrix4();
+		Matrix4 result;
+
+		result.m00 = x;
+		result.m11 = y;
+		result.m22 = z;
+
+		return result;
 	}
 
 	Matrix4 Matrix4::Scale(const Vector3& scale)
 	{
-		return Matrix4();
+		return Scale(scale.x, scale. y, scale.z);
 	}
 
 	Matrix4 Matrix4::RotationX(float radians)
 	{
-		return Matrix4();
+		Matrix4 result;
+
+		// 1	0		0		0
+		// 0	cos		-sin	0
+		// 0	sin		cos		0
+		// 0	0		0		1
+
+		result.m11 = cos(radians);
+		result.m12 = -sin(radians);
+
+		result.m21 = sin(radians);
+		result.m22 = cos(radians);
+
+		return result;
 	}
 
 	Matrix4 Matrix4::RotationY(float radians)
 	{
-		return Matrix4();
+		Matrix4 result;
+
+		// cos	0	-sin	0
+		// 0	1	0		0
+		// sin	0	cos		0
+		// 0	0	0		1
+
+		result.m00 = cos(radians);
+		result.m02 = -sin(radians);
+
+		result.m20 = sin(radians);
+		result.m22 = cos(radians);
+		
+		return result;
 	}
 
 	Matrix4 Matrix4::RotationZ(float radians)
 	{
-		return Matrix4();
+		Matrix4 result;
+
+		// cos		sin		0	0
+		// -sin		cos		0	0
+		// 0		0		1	0
+		// 0		0		0	1
+
+		result.m00 = cos(radians);
+		result.m01 = sin(radians);
+
+		result.m10 = -sin(radians);
+		result.m11 = cos(radians);
+
+		return result;
 	}
 
+	// 곱하는 순서에 따라 결과가 달라진다.
+	// zxy 순서로 회전 행렬이라면 z * x * y 순서로 곱해야 한다.
 	Matrix4 Matrix4::Rotation(float x, float y, float z)
 	{
-		return Matrix4();
+		return RotationZ(z) * RotationX(x) * RotationY(y);
 	}
 
 	Matrix4 Matrix4::Rotation(const Vector3& rotation)
 	{
-		return Matrix4();
+		return Rotation(rotation.x, rotation.y, rotation.z);
 	}
 
+	// 카메라 뷰 변환 시 기존 열벡터가 역행렬로 인해 행벡터로 바뀌는 것을 고려해야 함.
 	Matrix4 Matrix4::LookAt(const Vector3& eye, const Vector3& at, const Vector3& up)
 	{
-		return Matrix4();
+		Matrix4 result;
+
+		// 카메라 기준 깊이 방향.
+		Vector3 forward = (at - eye).Normalize();
+		// 카메라 기준 가로 방향.
+		Vector3 right = up.Cross(forward).Normalize();
+		// 카메라 기준 세로 방향.
+		Vector3 upVector = forward.Cross(right);
+
+		// rigth.x				upVector.x				forward.x		0
+		// rigth.y				upVector.y				forward.y		0
+		// rigth.z				upVector.z				forward.z		0
+		// -right.Dot(eye)		-upVector.Dot(eye)		-forward.Dot	0 
+
+		// X Vector.
+		result.m00 = right.x;
+		result.m01 = upVector.x;
+		result.m02 = forward.x;
+
+		// Y Vector.
+		result.m10 = right.y;
+		result.m11 = upVector.y;
+		result.m12 = forward.y;
+
+		// Z Vector.
+		result.m20 = right.z;
+		result.m21 = upVector.z;
+		result.m22 = forward.z;
+
+		// W Vector.
+		result.m30 = -right.Dot(eye);
+		result.m31 = -upVector.Dot(eye);
+		result.m32 = -forward.Dot(eye);
+
+		return result;
 	}
 
-	Matrix4 Matrix4::PerspectiveFOV(float fovY, float aspect, float nearZ, float farZ)
+	Matrix4 Matrix4::PerspectiveFOV(float fovY, float width, float height, float nearZ, float farZ)
 	{
-		return Matrix4();
+		// 화면 비율 (aspect ratio).
+		float aspect = width / height;
+		// fovY는 수직 시야각이므로 절반으로 나누고 tan을 취해 y 스케일을 구한다.
+		float halfFovY = fovY * 0.5f;
+		// 1 / tan(halfFovY) = cot(halfFovY) = y 스케일.
+		float yScale = 1.0f / tan(halfFovY * (3.141592f / 180.0f));
+		// x 스케일은 y 스케일을 화면 비율로 나눈 값.
+		float xScale = yScale / aspect;
+
+		float zNorm = farZ / (farZ - nearZ);
+
+		Matrix4 result;
+
+		// xScale		0			0					0
+		// 0			yScale		0					0
+		// 0			0			zNorm				1
+		// 0			0			zNorm * -nearZ		0
+
+
+		result.m00 = xScale;
+		result.m11 = yScale;
+		result.m22 = zNorm;
+		result.m23 = 1.0f;
+		result.m32 = -result.m22 * nearZ;
+		result.m33 = 0.0f;
+
+		return result;
 	}
 
 	float Matrix4::det3x3(float a, float b, float c, float d, float e, float f, float g, float h, float i)
@@ -227,4 +348,7 @@ namespace Engine
 
 		return a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
 	}
+
+	const Matrix4 Matrix4::identity = Matrix4();
+	const Matrix4 Matrix4::zero = ZeroMatrix();
 }

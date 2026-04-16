@@ -44,7 +44,7 @@ namespace Engine
 		static Matrix4 LookAt(const Vector3& eye, const Vector3& at, const Vector3& up);
 		// 투영 행렬.
 		// 왼손 좌표계.
-		static Matrix4 PerspectiveFOV(float fovY, float aspect, float nearZ, float farZ);
+		static Matrix4 PerspectiveFOV(float fovY, float width, float height, float nearZ, float farZ);
 
 		static const Matrix4 identity;
 		static const Matrix4 zero;
@@ -52,6 +52,14 @@ namespace Engine
 	private:
 		// 소행렬식.
 		static float det3x3(float a, float b, float c, float d, float e, float f, float g, float h, float i);
+
+		// Zero 초기화.
+		static inline Matrix4 ZeroMatrix()
+		{
+			Matrix4 result;
+			memset(result.elements, 0, sizeof(float) * 16);
+			return result;
+		}
 
 	private:
 		// 공용체로 지정.
