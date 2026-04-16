@@ -27,7 +27,7 @@ namespace Engine
 		~D3D11Renderer() = default;
 
 		virtual bool GPUInit(HWND hwnd, int width, int height) override;
-
+			
 		virtual void BeginFrame(float r, float g, float b) override;
 
 		virtual void EndFrame() override;
@@ -36,6 +36,24 @@ namespace Engine
 
 		virtual void Render() override;
 
+	private:
+		// Step.1 Device + DeviceContext 생성.
+		bool InitDevice();
+		
+		// Step.2 SwapChain 생성.
+		bool InitSwapChain(HWND hwnd, int width, int height);
+		
+		// Step.3 Render Target View 생성.
+		bool InitRenderTargetView();
+		
+		// Step.4 Viewport 설정.
+		void InitViewport(int width, int height) const;
+		
+		bool CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer);
+		
+		// Step.5 Shader 생성.
+		bool InitShaders();
+		
 	private:
 		// GPU와 연결되는 기본 디바이스 객체.
 		ComPtr<ID3D11Device> device;
@@ -50,6 +68,9 @@ namespace Engine
 		// Render Target View 생성.
 		ComPtr<ID3D11RenderTargetView> renderTargetView;
 
+		// World View Projaction 행렬을 담는 상수 버퍼.
+		ComPtr<ID3D11Buffer> wvpConstantBuffer;
+		
 		// 셰이더 객체.
 		// VS: 정점 셰이더, PS: 픽셀 셰이더.
 		ComPtr<ID3D11VertexShader> vertexShader;
@@ -61,6 +82,9 @@ namespace Engine
 
 		// 정점 데이터를 담는 버퍼.
 		ComPtr<ID3D11Buffer> vertexBuffer;
+		
+		// 정점 데이터 순서를 담는 버퍼.
+		ComPtr<ID3D11Buffer> indexBuffer;
 	};
 }
 

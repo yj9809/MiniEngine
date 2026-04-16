@@ -3,10 +3,49 @@
 #include <d3d11.h>
 
 #include "Common/Common.h"
+#include "Math/Matrix4.h"
 
 namespace Engine
 {
 	bool D3D11Renderer::GPUInit(HWND hwnd, int width, int height)
+	{		
+		// Step.1 Device + DeviceContext 생성.
+		if (!InitDevice())
+		{
+			return false;
+		}
+		
+		// Step.2 SwapChain 생성.
+		if (!InitSwapChain(hwnd, width, height))
+		{
+			return false;
+		}
+		
+		// Step.3 RenderTargetView 생성.
+		if (!InitRenderTargetView())
+		{
+			return false;
+		}
+		
+		// Step.4 Viewport 설정.
+		InitViewport(width, height);
+
+		// Step.5 상수 버퍼 생성.
+		if (!CreateConstantBuffer(sizeof(Matrix4), wvpConstantBuffer))
+		{
+			return false;
+		}
+		
+		// Step.6 Shader 생성.
+		if (!InitShaders())
+		{
+			return false;
+		}
+		
+		return true;
+	}
+
+	bool D3D11Renderer::InitDevice()
 	{
 		UINT debugFlag = 0;
 
@@ -28,19 +67,24 @@ namespace Engine
 			&context						// DeviceContext 반환.
 		);
 
-		FAILCHECK(hr, L"Failed create D3D11 Device");
+		FAILCHECK(hr, L"Failed create D3D11 Device", false)
 
+		return true;
+	}
+
+	bool D3D11Renderer::InitSwapChain(HWND hwnd, int width, int height)
+	{
 		// Step.2 DXGI Factory 꺼내기.
 		// Device에서 IDXGIDevice 꺼내기.
 		// 같은 GPU를 공유하는 것을 보장하기 위해 새로 만들지 않고 꺼내옴.
 		ComPtr<IDXGIDevice> dxgiDevice;
-		hr = device->QueryInterface(__uuidof(IDXGIDevice), &dxgiDevice);
-		FAILCHECK(hr, L"Failed dxgi device");
+		HRESULT hr = device->QueryInterface(__uuidof(IDXGIDevice), &dxgiDevice);
+		FAILCHECK(hr, L"Failed dxgi device", false);
 
 		// IDXGIDevice ->IDXGIAdapter (실제 GPU 어댑터).
 		ComPtr<IDXGIAdapter> dxgiAdapter;
 		hr = dxgiDevice->GetAdapter(&dxgiAdapter);
-		FAILCHECK(hr, L"Failed get dxgi adapter");
+		FAILCHECK(hr, L"Failed get dxgi adapter", false)
 
 		// DX11.1부터 CreateSwapChain 방식을 사용하지 않는 관계로 CreateSwapChainForHwnd를 사용할 예정.
 		// IDXGFactory도 2버전으로 사용.
@@ -65,7 +109,7 @@ namespace Engine
 
 		ComPtr<IDXGIFactory2> dxgiFactpory;
 		hr = dxgiAdapter->GetParent(__uuidof(IDXGIFactory2), &dxgiFactpory);
-		FAILCHECK(hr, L"Failed get dxgi factory");
+		FAILCHECK(hr, L"Failed get dxgi factory", false)
 
 		// Step.3 SwapChain 생성.
 		DXGI_SWAP_CHAIN_DESC1 scDesc = {};
@@ -87,24 +131,34 @@ namespace Engine
 			nullptr,		// 출력 모니터 지정 (nullptr일 경우 기본).
 			&swapChain		// IDXGISwapChain1 반환.
 		);
-		FAILCHECK(hr, L"Failed create swap chain");
+		FAILCHECK(hr, L"Failed create swap chain", false)
+		
+		return true;
+	}
 
+	bool D3D11Renderer::InitRenderTargetView()
+	{
 		// Step.4 Render Target View 생성.
 		// SwapChain의 back buffer 텍스처를 꺼내오기.
 		// 0 = 첫 번째 back buffer.
 		ComPtr<ID3D11Texture2D> backBuffer;
-		hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer);
-		FAILCHECK(hr, L"Failed get back buffer");
+		HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer);
+		FAILCHECK(hr, L"Failed get back buffer", false)
 
 		// back buffer 텍스처를 Render Target View로 감싸기.
 		// Device한테 Render Target View 알림.
 		hr = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView);
-		FAILCHECK(hr, L"Failed create render target view");
+		FAILCHECK(hr, L"Failed create render target view", false)
 
 		// Render Target View를 Output Merger 단계(그래픽스 파이프라인의 마지막 단계)에 바인딩.
 		// 이후 모든 Draw 명령이 이 back buffer에 그려짐.
 		context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+		
+		return true;
+	}
 
+	void D3D11Renderer::InitViewport(int width, int height) const
+	{
 		// Step.5 ViewPort 설정.
 		// GPU에 픽셀 좌표를 해당 범위에 매핑하도록 알림.
 		D3D11_VIEWPORT vp = {};
@@ -117,38 +171,78 @@ namespace Engine
 		vp.MaxDepth = 1.0f; // 깊이 범위 최댓값 (항상 1).
 		// 그래픽스 파이프라인 Rasterizer 단계를 진행할 ViewPort 설정.
 		context->RSSetViewports(1, &vp);
+	}
 
+	bool D3D11Renderer::CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer)
+	{
+		D3D11_BUFFER_DESC cbDesc = {};
+		cbDesc.ByteWidth = byteWidth;
+		cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+		cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+
+		HRESULT hr = device->CreateBuffer(&cbDesc, nullptr, &buffer);
+		
+		FAILCHECK(hr, L"Failed to create constant buffer", false)
+		
+		return true;
+	}
+
+	bool D3D11Renderer::InitShaders()
+	{
 		// .cso: 빌드 시 컴파일한 셰이더 바이너리. 셰이더 객체 생성에 사용.
 		ComPtr<ID3DBlob> vsBlod;
 		ComPtr<ID3DBlob> psBlod;
 
 		// 셰이더 .cso 파일 로드.
-		hr = D3DReadFileToBlob(L"Shader/VertexShader.cso", &vsBlod);
-		FAILCHECK(hr, L"Failed to read VertexShader.cso");
+		HRESULT hr = D3DReadFileToBlob(L"Shader/VertexShader.cso", &vsBlod);
+		FAILCHECK(hr, L"Failed to read VertexShader.cso", false)
 		hr = D3DReadFileToBlob(L"Shader/PixelShader.cso", &psBlod);
-		FAILCHECK(hr, L"Failed to read PixelShader.cso");
+		FAILCHECK(hr, L"Failed to read PixelShader.cso", false)
 
 		// 셰이더 객체 생성.
 		hr = device->CreateVertexShader(vsBlod->GetBufferPointer(), vsBlod->GetBufferSize(), nullptr, &vertexShader);
-		FAILCHECK(hr, L"Failed to create vertex shader");
+		FAILCHECK(hr, L"Failed to create vertex shader", false)
 		hr = device->CreatePixelShader(psBlod->GetBufferPointer(), psBlod->GetBufferSize(), nullptr, &pixelShader);
-		FAILCHECK(hr, L"Failed to create pixel shader");
+		FAILCHECK(hr, L"Failed to create pixel shader", false)
 
 		// 정점 버퍼 구조 정의.
 		D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
 		{
-			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0}
+			{"POSITION", 
+				0, 
+				DXGI_FORMAT_R32G32B32_FLOAT, 
+				0, 
+				0, 
+				D3D11_INPUT_PER_VERTEX_DATA, 
+				0
+			},
+			{ "COLOR",
+				0,
+				DXGI_FORMAT_R32G32B32A32_FLOAT,
+				0,
+				D3D11_APPEND_ALIGNED_ELEMENT,
+				D3D11_INPUT_PER_VERTEX_DATA,
+				0
+			}
 		};
-		hr = device->CreateInputLayout(layoutDesc, 1, vsBlod->GetBufferPointer(), vsBlod->GetBufferSize(), &inputLayout);
-		FAILCHECK(hr, L"Failed to create input layout");
+		// Input 레이아웃 추가시 NumElements 값도 추가해주어야 한다.
+		hr = device->CreateInputLayout(layoutDesc, 2, vsBlod->GetBufferPointer(), vsBlod->GetBufferSize(), &inputLayout);
+		FAILCHECK(hr, L"Failed to create input layout", false)
 
+		// Todo: 나중에 제거해야함.
 		// NDC 좌표 기준 삼각형 버텍스. 변환 행렬 없이 화면에 직접 매핑.
-		struct Vertex { float x, y, z; };
+		struct Vertex
+		{
+			float x, y, z;
+			float r, g, b, a;
+		};
 		Vertex vertices[] =
 		{
-			{0.0f, 0.5f, 0.0f},
-			{0.5f, -0.5f, 0.0f},
-			{-0.5f, -0.5f, 0.0f}
+			{-0.5f,  0.5f, 0.0f,  1.0f, 0.5f, 0.5f, 1.0f},  // 0 좌상 빨강
+			{ 0.5f,  0.5f, 0.0f,  0.5f, 1.0f, 0.5f, 1.0f},  // 1 우상 초록
+			{ 0.5f, -0.5f, 0.0f,  0.5f, 0.5f, 1.0f, 1.0f},  // 2 우하 파랑
+			{-0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.5f, 1.0f},  // 3 좌하 노랑
 		};
 
 		// CPU 메모리의 버텍스 데이터를 GPU 메모리(VRAM)에 올림.
@@ -159,7 +253,18 @@ namespace Engine
 		D3D11_SUBRESOURCE_DATA vbData = {};
 		vbData.pSysMem = vertices;
 		hr = device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
-		FAILCHECK(hr, L"Failed to create vertex buffer");
+		FAILCHECK(hr, L"Failed to create vertex buffer", false)
+		
+		UINT indices[] = { 0, 1, 2, 0, 2, 3 };
+		
+		D3D11_BUFFER_DESC idxDesc = {};
+		idxDesc.ByteWidth = sizeof(indices);
+		idxDesc.Usage = D3D11_USAGE_DEFAULT;
+		idxDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		D3D11_SUBRESOURCE_DATA idxData = {};
+		idxData.pSysMem = indices;
+		hr = device->CreateBuffer(&idxDesc, &idxData, &indexBuffer);
+		FAILCHECK(hr, L"Failed to create index buffer", false)
 
 		return true;
 	}
@@ -187,18 +292,52 @@ namespace Engine
 	{
 		// 생성 역순으로 해제.
 		// ComPtr이라 스마트 포인터로 자동 해제가 되지만 명시적 해제가 필요할 경우 사용.
+		wvpConstantBuffer.Reset();
 		renderTargetView.Reset();
 		swapChain.Reset();
 		context.Reset();
 		device.Reset();
 	}
+	
 	void D3D11Renderer::Render()
 	{
+		// WVPMatrix4에 담을 데이터를 얻기 위해 Map으로 버퍼 접근 권한 받아오기.
+		D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+		HRESULT hr = context->Map(
+			wvpConstantBuffer.Get(),
+			0,
+			D3D11_MAP_WRITE_DISCARD,
+			0,
+			&mappedResource
+			);
+		
+		FAILCHECK(hr, L"Failed to map resource", )
+		
+		// 받아온 버퍼 데이터를 WorldViewProjection 행렬로 채우기.
+		Matrix4 wvpMatrix;
+		memcpy(mappedResource.pData, &wvpMatrix, sizeof(Matrix4));
+		
+		// 행렬 채운 후 버퍼 접근 권한 돌려주기.
+		context->Unmap(wvpConstantBuffer.Get(), 0);
+		
+		// 셰이더에 버퍼 등록.
+		context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
+		
 		// IA 단계: 버텍스 데이터를 파이프라인에 공급.
-		UINT stride = sizeof(float) * 3;
+		// 트러블슈팅: RGBA 코드를 정점 버퍼에 추가했지만 Size를 늘리지 않아 읽지 못하는 문제 발생.
+		UINT stride = sizeof(float) * 7;
 		UINT offset = 0;
-		context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+		context->IASetVertexBuffers(
+			0, 
+			1, 
+			vertexBuffer.GetAddressOf(), 
+			&stride, 
+			&offset);
+		
+		context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+		
 		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 버텍스 3개 = 삼각형 1개.
+		
 		context->IASetInputLayout(inputLayout.Get());
 
 		// 셰이더 바인딩: 이후 Draw 호출에서 이 셰이더로 처리.
@@ -206,6 +345,6 @@ namespace Engine
 		context->PSSetShader(pixelShader.Get(), nullptr, 0);
 
 		// 버텍스 3개, 0번부터 그리기.
-		context->Draw(3, 0);
+		context->DrawIndexed(6, 0, 0);
 	}
 }

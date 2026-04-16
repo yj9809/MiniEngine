@@ -35,12 +35,12 @@ inline void HandleD3DError(HRESULT hr, const wchar_t* message, const wchar_t* fi
 }
 
 // FAILCHECK: HRESULT 실패 시 에러 출력 후 false 반환.
-#define FAILCHECK(result, message)          \
+#define FAILCHECK(result, message, retval)  \
     if (FAILED(result))                     \
     {                                       \
         HandleD3DError(result, message,     \
             TEXT(__FILE__), __LINE__,       \
             TEXT(__FUNCTION__));            \
-        return false;                       \
+        return retval;                      \
     }
 

@@ -1,6 +1,7 @@
 #include "Matrix4.h"
 
 #include <cmath>
+#include <string>
 
 namespace Engine
 {
@@ -281,9 +282,9 @@ namespace Engine
 		// 카메라 기준 세로 방향.
 		Vector3 upVector = forward.Cross(right);
 
-		// rigth.x				upVector.x				forward.x		0
-		// rigth.y				upVector.y				forward.y		0
-		// rigth.z				upVector.z				forward.z		0
+		// right.x				upVector.x				forward.x		0
+		// right.y				upVector.y				forward.y		0
+		// right.z				upVector.z				forward.z		0
 		// -right.Dot(eye)		-upVector.Dot(eye)		-forward.Dot	0 
 
 		// X Vector.
