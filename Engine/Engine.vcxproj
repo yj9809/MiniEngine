@@ -102,6 +102,7 @@
     <ClInclude Include="Math\Vector4.h" />
     <ClInclude Include="Renderer\D3D11Renderer.h" />
     <ClInclude Include="Renderer\IRenderer.h" />
+    <ClInclude Include="Renderer\RenderCommand.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
   </ItemGroup>
   <ItemGroup>

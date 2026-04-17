@@ -173,7 +173,7 @@ namespace Engine
 		context->RSSetViewports(1, &vp);
 	}
 
-	bool D3D11Renderer::CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer)
+	bool D3D11Renderer::CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer) const
 	{
 		D3D11_BUFFER_DESC cbDesc = {};
 		cbDesc.ByteWidth = byteWidth;
@@ -206,7 +206,7 @@ namespace Engine
 		hr = device->CreatePixelShader(psBlod->GetBufferPointer(), psBlod->GetBufferSize(), nullptr, &pixelShader);
 		FAILCHECK(hr, L"Failed to create pixel shader", false)
 
-		// 정점 버퍼 구조 정의.
+		// Input Layout 생성.
 		D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
 		{
 			{"POSITION", 
@@ -230,43 +230,49 @@ namespace Engine
 		hr = device->CreateInputLayout(layoutDesc, 2, vsBlod->GetBufferPointer(), vsBlod->GetBufferSize(), &inputLayout);
 		FAILCHECK(hr, L"Failed to create input layout", false)
 
-		// Todo: 나중에 제거해야함.
-		// NDC 좌표 기준 삼각형 버텍스. 변환 행렬 없이 화면에 직접 매핑.
-		struct Vertex
-		{
-			float x, y, z;
-			float r, g, b, a;
-		};
-		Vertex vertices[] =
-		{
-			{-0.5f,  0.5f, 0.0f,  1.0f, 0.5f, 0.5f, 1.0f},  // 0 좌상 빨강
-			{ 0.5f,  0.5f, 0.0f,  0.5f, 1.0f, 0.5f, 1.0f},  // 1 우상 초록
-			{ 0.5f, -0.5f, 0.0f,  0.5f, 0.5f, 1.0f, 1.0f},  // 2 우하 파랑
-			{-0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.5f, 1.0f},  // 3 좌하 노랑
-		};
+		return true;
+	}
 
-		// CPU 메모리의 버텍스 데이터를 GPU 메모리(VRAM)에 올림.
+	BufferHandle D3D11Renderer::CreateVertexBuffer(const void* vertexData, UINT vertexDataSize)
+	{
+		// 정점 버퍼 생성을 위한 설명서.
 		D3D11_BUFFER_DESC vbDesc = {};
-		vbDesc.ByteWidth = sizeof(vertices);
+		vbDesc.ByteWidth = vertexDataSize;
 		vbDesc.Usage = D3D11_USAGE_DEFAULT;
 		vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		D3D11_SUBRESOURCE_DATA vbData = {};
-		vbData.pSysMem = vertices;
-		hr = device->CreateBuffer(&vbDesc, &vbData, &vertexBuffer);
-		FAILCHECK(hr, L"Failed to create vertex buffer", false)
 		
-		UINT indices[] = { 0, 1, 2, 0, 2, 3 };
+		// 정점 버퍼에 들어갈 데이터 설명서.
+		D3D11_SUBRESOURCE_DATA initData = {};
+		initData.pSysMem = vertexData;
 		
-		D3D11_BUFFER_DESC idxDesc = {};
-		idxDesc.ByteWidth = sizeof(indices);
-		idxDesc.Usage = D3D11_USAGE_DEFAULT;
-		idxDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		D3D11_SUBRESOURCE_DATA idxData = {};
-		idxData.pSysMem = indices;
-		hr = device->CreateBuffer(&idxDesc, &idxData, &indexBuffer);
-		FAILCHECK(hr, L"Failed to create index buffer", false)
+		ComPtr<ID3D11Buffer> vertexBuffer;
+		HRESULT hr = device->CreateBuffer(&vbDesc, &initData, &vertexBuffer);
+		FAILCHECK(hr, L"Failed to create vertex buffer", NULL_BUFFER)
+		
+		BufferHandle count = nextBufferHandle++;
+		bufferMap.emplace(count, vertexBuffer);
+		return count;
+	}
 
-		return true;
+	BufferHandle D3D11Renderer::CreateIndexBuffer(const void* indexData, UINT indexDataSize)
+	{
+		// 인덱스 버퍼 생성을 위한 설명서.
+		D3D11_BUFFER_DESC ibDesc = {};
+		ibDesc.ByteWidth = indexDataSize;
+		ibDesc.Usage = D3D11_USAGE_DEFAULT;
+		ibDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		
+		// 인덱스 버퍼에 들어갈 데이터 설명서.
+		D3D11_SUBRESOURCE_DATA initData = {};
+		initData.pSysMem = indexData;
+		
+		ComPtr<ID3D11Buffer> indexBuffer;
+		HRESULT hr = device->CreateBuffer(&ibDesc, &initData, &indexBuffer);
+		FAILCHECK(hr, L"Failed to create index buffer", NULL_BUFFER)
+		
+		BufferHandle count = nextBufferHandle++;
+		bufferMap.emplace(count, indexBuffer);
+		return count;
 	}
 
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
@@ -292,6 +298,7 @@ namespace Engine
 	{
 		// 생성 역순으로 해제.
 		// ComPtr이라 스마트 포인터로 자동 해제가 되지만 명시적 해제가 필요할 경우 사용.
+		bufferMap.clear();
 		wvpConstantBuffer.Reset();
 		renderTargetView.Reset();
 		swapChain.Reset();
@@ -323,28 +330,43 @@ namespace Engine
 		// 셰이더에 버퍼 등록.
 		context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
 		
-		// IA 단계: 버텍스 데이터를 파이프라인에 공급.
-		// 트러블슈팅: RGBA 코드를 정점 버퍼에 추가했지만 Size를 늘리지 않아 읽지 못하는 문제 발생.
-		UINT stride = sizeof(float) * 7;
-		UINT offset = 0;
-		context->IASetVertexBuffers(
-			0, 
-			1, 
-			vertexBuffer.GetAddressOf(), 
-			&stride, 
-			&offset);
-		
-		context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-		
-		context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // 버텍스 3개 = 삼각형 1개.
-		
+		// InputLayout 등록.
 		context->IASetInputLayout(inputLayout.Get());
 
 		// 셰이더 바인딩: 이후 Draw 호출에서 이 셰이더로 처리.
 		context->VSSetShader(vertexShader.Get(), nullptr, 0);
 		context->PSSetShader(pixelShader.Get(), nullptr, 0);
+				
+		UINT offset = 0;
+		
+		// RenderCommand 리스트를 순회하며 Draw를 실행.
+		for (const RenderCommand& command : renderCommands)
+		{
+			// 버퍼 맵에서 각 버퍼 이터레이터 찾기.
+			auto vbIt = bufferMap.find(command.vertexBuffer);
+			auto ibIt = bufferMap.find(command.indexBuffer);
+			
+			// 버퍼 핸들이 유효한지 확인. 
+			// 하나라도 유효하지 않으면 해당 명령은 건너뛰기.
+			if (vbIt == bufferMap.end() || ibIt == bufferMap.end())
+			{
+				continue;
+			}
+			
+			// 버퍼가 유효하면 GPU에 버퍼 바인딩, 프리미티브 토폴로지 설정, Draw 호출.
+			ID3D11Buffer* vb = vbIt->second.Get();
+			context->IASetVertexBuffers(0, 1, &vb, &command.stride, &offset);		
+			context->IASetIndexBuffer(ibIt->second.Get(), DXGI_FORMAT_R32_UINT, 0);		
+			context->IASetPrimitiveTopology(command.topology);
+			
+			context->DrawIndexed(command.indexCount, 0, 0);
+		}
+		
+		renderCommands.clear();
+	}
 
-		// 버텍스 3개, 0번부터 그리기.
-		context->DrawIndexed(6, 0, 0);
+	void D3D11Renderer::Submit(const RenderCommand& command)
+	{
+		renderCommands.emplace_back(command);
 	}
 }

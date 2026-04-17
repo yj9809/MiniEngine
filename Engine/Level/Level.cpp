@@ -25,6 +25,13 @@ namespace Engine
 	}
 	void Level::Draw()
 	{
+		for (auto& actor : actors)
+		{
+			if (actor->IsActive())
+			{
+				actor->Draw();
+			}
+		}
 	}
 
 	void Level::AddNewActor(std::unique_ptr<Actor> actor)

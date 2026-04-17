@@ -202,7 +202,12 @@ namespace Engine
 
 		// 출력 창 배경색 지정.
 		renderer->BeginFrame(0.8f, 0.8f, 0.8f);
-
+		
+		if (mainLevel)
+		{
+			mainLevel->Draw();
+		}
+		
 		// 오브젝트 렌더링.
 		renderer->Render();
 

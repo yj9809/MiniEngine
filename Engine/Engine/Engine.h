@@ -43,6 +43,10 @@ namespace Engine
 		// 현재 레벨을 종료하고 새 레벨로 교체한다.
 		// 이전 레벨의 EndLevel()을 호출해 정리한 뒤, 새 레벨의 BeginPlay()를 호출한다.
 		void SetNewLevel(std::unique_ptr<Level> level);
+		
+		// Todo: RenderCommand 확인을 위해 임시 테스트용 함수.
+		inline IRenderer* GetRenderer() const { return renderer.get(); }
+		inline Level* GetMainLevel() const { return mainLevel.get(); }
 
 	protected:
 		// 엔진 초기화. 생성자에서 호출된다.
@@ -55,7 +59,7 @@ namespace Engine
 		// 입력 갱신 및 현재 레벨의 Tick을 호출한다.
 		void Tick(float deltaTime);
 
-		// 현재 레벨의 Draw를 호출한다. (미구현)
+		// 현재 레벨의 Draw를 호출한다.
 		void Draw();
 
 	private:

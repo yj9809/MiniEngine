@@ -6,6 +6,8 @@
 #include <d3d11.h>
 #include <dxgi1_2.h>
 #include <d3dcompiler.h>
+#include <vector>
+#include <unordered_map>
 #include <wrl/client.h>
 
 using namespace Microsoft::WRL;
@@ -27,7 +29,7 @@ namespace Engine
 		~D3D11Renderer() = default;
 
 		virtual bool GPUInit(HWND hwnd, int width, int height) override;
-			
+		
 		virtual void BeginFrame(float r, float g, float b) override;
 
 		virtual void EndFrame() override;
@@ -35,6 +37,12 @@ namespace Engine
 		virtual void GPUShutdown() override;
 
 		virtual void Render() override;
+			
+		virtual void Submit(const RenderCommand& command) override;
+		
+		// 외부에서 정점/인덱스 버퍼를 생성하기 위한 함수.
+		virtual BufferHandle CreateVertexBuffer(const void* vertexData, UINT vertexDataSize) override;
+		virtual BufferHandle CreateIndexBuffer(const void* indexData, UINT indexDataSize) override;
 
 	private:
 		// Step.1 Device + DeviceContext 생성.
@@ -49,9 +57,10 @@ namespace Engine
 		// Step.4 Viewport 설정.
 		void InitViewport(int width, int height) const;
 		
-		bool CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer);
+		// Step.5 상수 버퍼 생성.
+		bool CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer) const;
 		
-		// Step.5 Shader 생성.
+		// Step.6 Shader 생성.
 		bool InitShaders();
 		
 	private:
@@ -71,20 +80,23 @@ namespace Engine
 		// World View Projaction 행렬을 담는 상수 버퍼.
 		ComPtr<ID3D11Buffer> wvpConstantBuffer;
 		
-		// 셰이더 객체.
-		// VS: 정점 셰이더, PS: 픽셀 셰이더.
-		ComPtr<ID3D11VertexShader> vertexShader;
-		ComPtr<ID3D11PixelShader> pixelShader;
-
 		// vertex 버퍼 구조를 셰이더에 알려주는 객체.
 		// 버퍼의 float3은 POSITION이다를 GPU에 정의.
 		ComPtr<ID3D11InputLayout> inputLayout;
 
-		// 정점 데이터를 담는 버퍼.
-		ComPtr<ID3D11Buffer> vertexBuffer;
+		// 셰이더 객체.
+		// VS: 정점 셰이더, PS: 픽셀 셰이더.
+		ComPtr<ID3D11VertexShader> vertexShader;
+		ComPtr<ID3D11PixelShader> pixelShader;
 		
-		// 정점 데이터 순서를 담는 버퍼.
-		ComPtr<ID3D11Buffer> indexBuffer;
+		// Rendering 목록을 담당하는 컨테이너.
+		std::vector<RenderCommand> renderCommands;
+		
+		// 버퍼를 담아놓는 컨테이너.
+		std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>> bufferMap;
+		
+		// 버퍼 핸들 생성용 카운터.
+		BufferHandle nextBufferHandle = 1;
 	};
 }
 
