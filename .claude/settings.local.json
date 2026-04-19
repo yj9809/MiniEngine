@@ -11,7 +11,21 @@
       "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-fetch",
       "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-update-page",
       "Bash(git add:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-search",
+      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-create-pages",
+      "Bash(MSBuild.exe MiniEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Tests /m)",
+      "Read(//mnt/c/workspace/**)",
+      "Bash(\"/mnt/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" MiniEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Tests /m)",
+      "Bash(cmd.exe /c \"\\\\\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\\\\\" MiniEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Tests /m 2>&1\")",
+      "Bash(cmd.exe /c \"\\\\\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\\\\\" MiniEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Tests /m\")",
+      "Bash(cmd.exe /c \"\\\\\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\\\\\" MiniEngine.sln /p:Configuration=Debug /p:Platform=x64 /t:Tests /m > build_output.txt 2>&1 && type build_output.txt\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\workspace\\\\MiniEngine\\\\MiniEngine.sln' /p:Configuration=Debug /p:Platform=x64 /t:Tests /m 2>&1\")",
+      "Bash(powershell.exe -Command \"Get-ChildItem -Path 'C:\\\\workspace\\\\MiniEngine' -Recurse -Filter '*.sln' | Select-Object FullName\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\workspace\\\\MiniEngine\\\\Tests\\\\Tests.vcxproj' /p:Configuration=Debug /p:Platform=x64 /m 2>&1\")",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe' 'C:\\\\workspace\\\\MiniEngine\\\\Tests\\\\Tests.vcxproj' /p:Configuration=Debug /p:Platform=x64 /p:PlatformToolset=v143 /m 2>&1\")",
+      "mcp__c23eecd9-17ae-49e6-a1c5-460f6642ec6f__notion-update-data-source"
     ]
   }
 }
