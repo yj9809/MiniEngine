@@ -2,6 +2,7 @@
 
 #include "Core/Input.h"
 #include "Core/Win32Window.h"
+#include "Core/Time.h"
 #include "Renderer/D3D11Renderer.h"
 
 #include "Level/Level.h"
@@ -45,6 +46,9 @@ namespace Engine
 		// frameRate가 0이면 기본값 120으로 보정.
 		settings.frameRate = settings.frameRate == 0.0f ? 120.0f : settings.frameRate;
 		float oneFrameTime = 1.0f / settings.frameRate;
+		
+		// Time에 하드 클램프 값 설정.
+		Time::SetMaxDeltaTime(oneFrameTime * 10);
 
 		// 고정 프레임레이트 루프.
 		// deltaTime이 목표 프레임 시간(oneFrameTime)을 넘었을 때만 Tick/Draw를 실행한다.
@@ -73,8 +77,12 @@ namespace Engine
 
 			if (deltaTime >= oneFrameTime)
 			{
+				// 시간 업데이트.
+				Time::Update(deltaTime);
+				
 				// 업데이트 및 그리기 함수 호출.
-				Tick(deltaTime);
+				// TimeScale이 적용된 시간으로 Tick 업데이트.
+				Tick(Time::GetDeltaTime());
 				Draw();
 
 				// Tick/Draw 완료 후 액터 추가·제거를 일괄 처리한다.

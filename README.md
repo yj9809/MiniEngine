@@ -492,6 +492,43 @@ renderer->Submit(command);
 
 ---
 
+### ✅ 4.5단계 — Time 시스템
+
+프레임레이트에 독립적인 시간 기반 게임 루프를 위한 시스템.
+
+**Time 클래스 (Static 방식)**
+
+`Time::Get~()` 형식으로 어디서든 접근 가능. 싱글턴 인스턴스 없이 static 멤버로 구현.
+
+- `GetDeltaTime()` — TimeScale이 적용된 deltaTime
+- `GetUnscaledDeltaTime()` — TimeScale 무관한 순수 deltaTime
+- `GetTotalTime()` — 엔진 시작 후 누적 시간
+- `SetTimeScale(float)` / `GetTimeScale()` — 시간 배율 (0.5 = 슬로우모션, 0.0 = 정지)
+
+**프레임 델타 스무딩**
+
+spike(디버거 재개, 포커스 복귀 등) 방지를 위해 두 단계로 처리.
+
+1. **Max clamp** — `SetMaxDeltaTime(oneFrameTime * 10)`으로 극단적 spike 차단. `Engine::Run()`에서 루프 진입 전 설정.
+2. **이동 평균** — 최근 10프레임 deltaTime 평균으로 부드럽게 반영.
+
+**일시정지**
+
+- `Pause()` — 현재 TimeScale 저장 후 0으로 설정
+- `Resume()` — 저장된 TimeScale 복원
+- 슬로우모션 중 `Pause()` 후 `Resume()` 해도 이전 배율로 복원
+
+```cpp
+// Engine::Run()
+Time::SetMaxDeltaTime(oneFrameTime * 10);  // 루프 전 1회
+
+// 매 프레임
+Time::Update(deltaTime);
+Tick(Time::GetDeltaTime());  // TimeScale 적용된 값으로 Tick
+```
+
+---
+
 ### 🔄 6단계 — 충돌 시스템
 
 AABB 기반 3D 충돌 처리. 먼저 Brute Force로 완성하고, 이후 BVH로 최적화한다.
@@ -574,7 +611,7 @@ void CollisionSystem::UnRegister(Collider* collider)
 | Win32 | Win32 창 시스템, 메시지 루프 통합 | ✅ 완료 |
 | 3단계 | Component 시스템 (`AddComponent<T>()`, `InputComponent`) | ✅ 완료 |
 | 4단계 | DX11 렌더러 기초 (IRenderer, D3D11Renderer, SwapChain) | 🔄 진행 중 |
-| 4.5단계 | Time 시스템 (DeltaTime, TimeScale) | 🔲 예정 |
+| 4.5단계 | Time 시스템 (DeltaTime, TimeScale) | ✅ 완료 |
 | 4.8단계 | 경량 Pass Scheduler | 🔲 예정 |
 | 5단계 | DX11 렌더러 심화 (TransformComponent, 카메라, 메시, 머티리얼, 기본 Phong 조명) | 🔲 예정 |
 | 5.5단계 | 중간 데모 | 🔲 예정 |
