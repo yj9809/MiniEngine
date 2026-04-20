@@ -24,7 +24,7 @@ void QuadActor::Init(Engine::IRenderer* renderer)
         {-0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.5f, 1.0f},
     };
     
-    UINT indices[] = {0, 1, 2, 1, 3, 0};
+    UINT indices[] = {0, 1, 2, 2, 3, 0};
     
     vertexBuffer = renderer->CreateVertexBuffer(vertices, sizeof(vertices));
     indexBuffer = renderer->CreateIndexBuffer(indices, sizeof(indices));
@@ -35,13 +35,12 @@ void QuadActor::Tick(float deltaTime)
     Actor::Tick(deltaTime);
     
     // 초당 2도 회전하도록 각도 업데이트.
-    angle += deltaTime * 2.0f;
+     angle += deltaTime * 2.0f;
 }
 
 void QuadActor::Draw()
 {
     Actor::Draw();
-    
     Engine::RenderCommand command;
     command.vertexBuffer = vertexBuffer;
     command.indexBuffer = indexBuffer;
