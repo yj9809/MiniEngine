@@ -28,6 +28,9 @@ namespace Engine
         // 하드 클램프 값 설정 함수.
         inline static void SetMaxDeltaTime(float oneFrame) { maxDeltaTime = oneFrame; }
 
+        // 모든 정적 상태를 초기값으로 되돌린다. 테스트 전용.
+        static void Reset();
+
     private:
         static float deltaTime;
         static float unscaledDeltaTime;

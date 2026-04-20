@@ -172,6 +172,7 @@
     </ClCompile>
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Matrix4Test.cpp" />
+    <ClCompile Include="TimeTest.cpp" />
     <ClCompile Include="Vector2Test.cpp" />
     <ClCompile Include="Vector3Test.cpp" />
     <ClCompile Include="Vector4Test.cpp" />

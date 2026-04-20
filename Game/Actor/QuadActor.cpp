@@ -17,13 +17,13 @@ void QuadActor::Init(Engine::IRenderer* renderer)
     
     Vertex vertices[] = 
     {
-        {-0.5f,  0.5f, 0.0f,  0.5f, 0.5f, 0.5f, 1.0f},  // 0 좌상 (빨강)
+        {-0.5f,  0.5f, 0.0f,  0.5f, 1.0f, 0.5f, 1.0f},  // 0 좌상 (빨강)
         { 0.5f,  0.5f, 0.0f,  0.5f, 1.0f, 0.5f, 1.0f},  // 1 우상 (초록)
         { 0.5f, -0.5f, 0.0f,  0.5f, 0.5f, 1.0f, 1.0f},  // 2 우하 (파랑)
         {-0.5f, -0.5f, 0.0f,  1.0f, 1.0f, 0.5f, 1.0f},
     };
     
-    UINT indices[] = {0, 1, 2, 2, 3, 0};
+    UINT indices[] = {0, 1, 2, 1, 3, 0};
     
     vertexBuffer = renderer->CreateVertexBuffer(vertices, sizeof(vertices));
     indexBuffer = renderer->CreateIndexBuffer(indices, sizeof(indices));

@@ -44,6 +44,20 @@ namespace Engine
         totalTime += newDeltaTime;
     }
 
+    void Time::Reset()
+    {
+        deltaTime        = 0.0f;
+        unscaledDeltaTime = 0.0f;
+        totalTime        = 0.0f;
+        timeScale        = 1.0f;
+        maxDeltaTime     = FLT_MAX;
+        sampleFrameCount = 0;
+        sampleFrameIndex = 0;
+        isPaused         = false;
+        savedTimeScale   = 1.0f;
+        memset(sampleFrame, 0, sizeof(sampleFrame));
+    }
+
     void Time::Pause()
     {
         if (isPaused)

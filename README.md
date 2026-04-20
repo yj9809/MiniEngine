@@ -71,6 +71,7 @@ Tests/
 |---|---|---|
 | `Vector2Test.cpp` | 2 | 덧셈, 동등 비교 |
 | `LevelTest.cpp` | 12 | Actor 추가/제거/owner/EndLevel/성능 |
+| `TimeTest.cpp` | 17 | Update 스무딩/클램프/TotalTime, Pause/Resume |
 
 ---
 
