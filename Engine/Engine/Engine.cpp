@@ -92,15 +92,15 @@ namespace Engine
 					mainLevel->ProcessAddAndDestroyActor();
 				}
 
-				if (input.GetIsMouseClamped())
+				if (Input::GetIsMouseClamped())
 				{
 					RECT windowRect = window->GetWindowRect();
 					ClampCursor(&windowRect);
 					CenterCursor(&windowRect);
 				}
 
-				input.SetPreviousMousePosition();
-				input.ResetKeyState();
+				Input::SetPreviousMousePosition();
+				Input::ResetKeyState();
 
 				// 마지막 시간 업데이트.
 				lastTime = currentTime;
@@ -127,7 +127,6 @@ namespace Engine
 
 	void Engine::Initialize()
 	{
-		input = Input::Get();
 		LoadSettings();
 
 		// 출력 창 생성 및 초기화.
@@ -239,7 +238,7 @@ namespace Engine
 
 			SetCursorPos(static_cast<int>(centerPosition.x), static_cast<int>(centerPosition.y));
 
-			input.SetMousePosition(centerPosition);
+			Input::SetMousePosition(centerPosition);
 		}
 	}
 }

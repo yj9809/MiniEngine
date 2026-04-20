@@ -308,25 +308,6 @@ namespace Engine
 	
 	void D3D11Renderer::Render()
 	{
-		// WVPMatrix4에 담을 데이터를 얻기 위해 Map으로 버퍼 접근 권한 받아오기.
-		D3D11_MAPPED_SUBRESOURCE mappedResource = {};
-		HRESULT hr = context->Map(
-			wvpConstantBuffer.Get(),
-			0,
-			D3D11_MAP_WRITE_DISCARD,
-			0,
-			&mappedResource
-			);
-		
-		FAILCHECK(hr, L"Failed to map resource", )
-		
-		// 받아온 버퍼 데이터를 WorldViewProjection 행렬로 채우기.
-		Matrix4 wvpMatrix;
-		memcpy(mappedResource.pData, &wvpMatrix, sizeof(Matrix4));
-		
-		// 행렬 채운 후 버퍼 접근 권한 돌려주기.
-		context->Unmap(wvpConstantBuffer.Get(), 0);
-		
 		// 셰이더에 버퍼 등록.
 		context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
 		
@@ -342,6 +323,26 @@ namespace Engine
 		// RenderCommand 리스트를 순회하며 Draw를 실행.
 		for (const RenderCommand& command : renderCommands)
 		{
+			// 커맨드마다 worldMatrix를 WVP 행렬로 변환하여 상수 버퍼에 업데이트.
+			// WVPMatrix4에 담을 데이터를 얻기 위해 Map으로 버퍼 접근 권한 받아오기.
+			D3D11_MAPPED_SUBRESOURCE mappedResource = {};
+			HRESULT hr = context->Map(
+				wvpConstantBuffer.Get(),
+				0,
+				D3D11_MAP_WRITE_DISCARD,
+				0,
+				&mappedResource
+				);
+		
+			FAILCHECK(hr, L"Failed to map resource", )
+		
+			// 받아온 버퍼 데이터를 WorldViewProjection 행렬로 채우기.
+			Matrix4 wvpMatrix = command.worldMatrix;
+			memcpy(mappedResource.pData, &wvpMatrix, sizeof(Matrix4));
+		
+			// 행렬 채운 후 버퍼 접근 권한 돌려주기.
+			context->Unmap(wvpConstantBuffer.Get(), 0);
+			
 			// 버퍼 맵에서 각 버퍼 이터레이터 찾기.
 			auto vbIt = bufferMap.find(command.vertexBuffer);
 			auto ibIt = bufferMap.find(command.indexBuffer);

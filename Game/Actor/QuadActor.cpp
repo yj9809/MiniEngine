@@ -1,6 +1,7 @@
 ﻿#include "QuadActor.h"
 
 #include "Renderer/RenderCommand.h"
+#include "Core/Time.h"
 
 #include <vector>
 
@@ -29,6 +30,14 @@ void QuadActor::Init(Engine::IRenderer* renderer)
     indexBuffer = renderer->CreateIndexBuffer(indices, sizeof(indices));
 }
 
+void QuadActor::Tick(float deltaTime)
+{
+    Actor::Tick(deltaTime);
+    
+    // 초당 2도 회전하도록 각도 업데이트.
+    angle += deltaTime * 2.0f;
+}
+
 void QuadActor::Draw()
 {
     Actor::Draw();
@@ -39,6 +48,7 @@ void QuadActor::Draw()
     command.indexCount = 6;
     command.stride = sizeof(float) * 7; // x, y, z, r, g, b, a
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    command.worldMatrix = Engine::Matrix4::RotationZ(angle);
     
     renderer->Submit(command);
 }

@@ -80,9 +80,6 @@ namespace Engine
 		// Settings.txt에서 로드된 설정값.
 		Settings settings;
 
-		// 키보드 입력 시스템. Engine이 소유하며 Tick()마다 Update()를 호출한다.
-		Input input;
-
 		// 현재 활성 레벨. unique_ptr로 소유권 관리. SetNewLevel()로 교체한다.
 		std::unique_ptr<Level> mainLevel;
 	};

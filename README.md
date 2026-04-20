@@ -44,7 +44,6 @@ Tests/
 |------|------|
 | 메모리 관리 | `unique_ptr` 우선 사용. raw pointer는 소유권 없는 참조에만 허용. `new`/`delete` 직접 사용 금지 |
 | 설정 파일 | `std::ifstream` 사용 (C 스타일 `fopen_s` 금지) |
-| 싱글턴 | `Input`, `Renderer`에만 제한적으로 허용 |
 | 의존성 방향 | 게임 → 엔진 단방향. 엔진 코드는 게임 코드에 의존하지 않는다 |
 
 ### 네이밍 컨벤션 (언리얼 스타일)
@@ -223,7 +222,7 @@ while (!isQuit)
     {
         Tick(deltaTime);
         Draw();
-        input.ResetKeyState();
+        Input::ResetKeyState();
     }
 }
 ```
@@ -348,16 +347,14 @@ T* GetComponent()
 ```cpp
 void InputComponent::Tick(float deltaTime)
 {
-    Input& input = Input::Get();
-
     for (auto& [key, command] : keyDownBindings)
-        if (input.GetKeyDown(key)) command->Execute();
+        if (Input::GetKeyDown(key)) command->Execute();
 
     for (auto& [key, command] : keyBindings)
-        if (input.GetKey(key)) command->Execute();
+        if (Input::GetKey(key)) command->Execute();
 
     for (auto& [key, command] : keyUpBindings)
-        if (input.GetKeyUp(key)) command->Execute();
+        if (Input::GetKeyUp(key)) command->Execute();
 }
 ```
 

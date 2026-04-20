@@ -15,8 +15,26 @@ Engine/
 │   ├── Actor.h
 │   └── Actor.cpp
 ├── Common/
-│   ├── Common.h
+│   ├── Common.h       # ENGINE_API 매크로, FAILCHECK, HandleD3DError
 │   └── RTTI.h
+├── Component/
+│   ├── Component.h
+│   ├── Component.cpp
+│   ├── ICommand.h
+│   ├── InputSystem/
+│   │   ├── InputComponent.h
+│   │   └── InputComponent.cpp
+│   └── Physics/
+│       ├── Collider.h
+│       ├── BoxCollider.h
+│       └── BoxCollider.cpp
+├── Core/
+│   ├── Input.h
+│   ├── Input.cpp
+│   ├── Win32Window.h
+│   ├── Win32Window.cpp
+│   ├── CollisionSystem.h
+│   └── CollisionSystem.cpp
 ├── Engine/
 │   ├── Engine.h
 │   └── Engine.cpp
@@ -24,11 +42,17 @@ Engine/
 │   ├── Level.h
 │   └── Level.cpp
 ├── Math/
-│   ├── Vector2.h
-│   └── Vector2.cpp
+│   ├── Vector2.h / .cpp
+│   ├── Vector3.h / .cpp
+│   ├── Vector4.h / .cpp
+│   └── Matrix4.h / .cpp
 ├── Renderer/
-│   ├── ScreenBuffer.h
-│   └── ScreenBuffer.cpp
+│   ├── IRenderer.h
+│   ├── D3D11Renderer.h
+│   └── D3D11Renderer.cpp
+├── Shader/
+│   ├── VertexShader.hlsl
+│   └── PixelShader.hlsl
 └── Setting/
     └── Settings.txt
 ```
@@ -65,65 +89,41 @@ Engine/
 
 ---
 
-## 현재 알려진 버그 및 미완성 항목
-
-### 치명적 버그
-- [ ] `Engine.cpp` 게임 루프에서 `Start()`를 매 프레임 호출하고 있음
-  - 수정 방향: `BeginPlay()` + `hasBeganPlay` 플래그로 교체
-
-### 네이밍 불일치
-- [ ] `update()` → `Update()` / `Tick()`으로 통일
-
-### 미완성 코드
-- [ ] `ScreenBuffer.h` — `Draw(CHAR_INFO)` 세미콜론 누락, 매개변수 이름 없음
-- [ ] `Engine::Draw()` — 구현 비어있음
-
----
-
 ## 개발 로드맵
 
-### 1단계 — 코어 정리 (현재)
-- `BeginPlay()` / `hasBeganPlay` 플래그 도입
-- `isActive` / `destroyRequested` 플래그 분리
-- `OnDestroy()` 콜백 추가
+> 상세 내용은 Notion 로드맵 참고. 여기선 현재 진행 상태만 기록.
 
-### 2단계 — Renderer
-- 더블 버퍼링
-- `RenderCommand` 큐
-- `Submit()` / `Draw()` 구조 분리
-- Color 지원
+| 단계 | 내용 | 상태 |
+|------|------|------|
+| 1단계 | 코어 정리 (네이밍, 라이프사이클, Actor 상태) | ✅ 완료 |
+| 2단계 | Win32 창 생성 + Input 시스템 | ✅ 완료 |
+| 3단계 | Component 시스템 (AddComponent, InputComponent) | ✅ 완료 |
+| **4단계** | **DX11 렌더러 기초** | **🔄 진행 중** |
+| 4.5단계 | Time 시스템 (DeltaTime, TimeScale) | ✅ 완료 |
+| 4.8단계 | 경량 Pass Scheduler | ⬜ 예정 |
+| 5단계 | DX11 렌더러 심화 (TransformComponent, 카메라, 메시, 머티리얼, Phong) | ⬜ 예정 |
+| 5.5단계 | 중간 데모 체크포인트 | ⬜ 예정 |
+| 6단계 | Deferred Rendering | ⬜ 예정 |
+| 7단계 | PBR | ⬜ 예정 |
+| 8단계 (취업 후) | 충돌 시스템 (AABB, BVH) | ⬜ 예정 |
+| 9단계 | 리소스 관리 | ⬜ 예정 |
+| 10단계 | Level 고도화 | ⬜ 예정 |
+| 11단계 | 메모리 관리 (Object Pool, Custom Allocator) | ⬜ 예정 |
+| 12단계 | 직렬화 | ⬜ 예정 |
+| 13단계 | 데모 게임 | ⬜ 예정 |
 
-### 3단계 — Input 시스템
-- `Pressed` / `Held` / `Released` 상태 구분 ✅
-
-### 4단계 — Component 시스템
-- `AddComponent<T>()` 템플릿 ✅
-- `Component::Tick(float deltaTime)` 추가
-- `Actor::Tick()`에서 보유 컴포넌트의 `Tick()` 순차 호출
-- `ICommand` 인터페이스 추가 (`Execute()`)
-- `InputComponent` 구현 — 커맨드 패턴 기반 입력 처리
-  - `BindKeyDown(int key, unique_ptr<ICommand>)`
-  - `BindKey(int key, unique_ptr<ICommand>)`
-  - `BindKeyUp(int key, unique_ptr<ICommand>)`
-  - `Tick()`에서 `Input`의 키 상태 확인 후 커맨드 `Execute()` 호출
-
-### 5단계 — 충돌 시스템
-- AABB
-- `CollisionSystem`
-- `OnCollision()` 콜백
-
-### 6단계 — Time 시스템
-- `TimeScale`, `ElapsedTime`
-
-### 7단계 — 리소스 관리
-- 캐싱 기반
-
-### 8단계 — Level 고도화
-- Level 전환 / 스택
-
-### 9단계 — 메모리 관리
-- Object Pool
-- Custom Allocator
+### 4단계 현재 진행 상황
+- [x] D3D11 초기화 (Device, SwapChain, RTV, Viewport)
+- [x] IRenderer 추상 인터페이스
+- [x] 삼각형 NDC 출력
+- [x] Vector3 / Vector4 / Matrix4 구현
+- [x] GPUInit 리팩토링 (Init 함수 분리)
+- [x] Constant Buffer 구조 설계 (WVP 행렬 GPU 전달)
+- [x] Vertex Color (VSInput/VSOutput 구조체, InputLayout COLOR)
+- [x] IndexBuffer 도입 (사각형, DrawIndexed)
+- [ ] Constant Buffer — 실제 WVP 행렬 적용 (카메라 시스템 이후)
+- [x] RenderCommand 시스템
+- [x] DeltaTime 회전 데모 (QuadActor, worldMatrix per command)
 
 ---
 

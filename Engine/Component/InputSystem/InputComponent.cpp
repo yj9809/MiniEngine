@@ -21,11 +21,9 @@ namespace Engine
 
 	void InputComponent::Tick(float deltaTime)
 	{
-		Input& input = Input::Get();
-
 		for (auto& [key, command] : keyDownBinding)
 		{
-			if (input.GetKeyDown(key))
+			if (Input::GetKeyDown(key))
 			{
 				command->Execute();
 			}
@@ -33,7 +31,7 @@ namespace Engine
 
 		for (auto& [key, command] : keyUpBinding)
 		{
-			if (input.GetKeyUp(key))
+			if (Input::GetKeyUp(key))
 			{
 				command->Execute();
 			}
@@ -41,7 +39,7 @@ namespace Engine
 
 		for (auto& [key, command] : keyBinding)
 		{
-			if (input.GetKey(key))
+			if (Input::GetKey(key))
 			{
 				command->Execute();
 			}

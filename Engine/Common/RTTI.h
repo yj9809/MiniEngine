@@ -12,7 +12,7 @@ namespace Engine
     {
     public:
         // 클래스 고유 타입 ID를 반환한다. 파생 클래스에서 override 필수.
-        virtual const size_t& GetType() const = 0;
+        virtual size_t GetType() const = 0;
 
         // 포인터 기반 타입 비교. 기본 구현은 false를 반환하며 파생 클래스에서 override된다.
         virtual bool Is(RTTI* const rtti) const
@@ -73,7 +73,7 @@ protected:																				\
         return reinterpret_cast<size_t>(&runTimeTypeId);								\
     }																					\
 public:																					\
-    virtual const size_t& GetType() const override { return Type::TypeIdClass(); }		\
+    virtual size_t GetType() const override { return Type::TypeIdClass(); }		\
     using super = ParentType;															\
     virtual bool Is(const size_t id) const override										\
     {																					\

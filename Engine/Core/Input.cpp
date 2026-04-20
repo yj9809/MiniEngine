@@ -2,17 +2,11 @@
 
 namespace Engine
 {
-	Input* Input::instance = nullptr;
-
-	Input::Input()
-	{
-		instance = this;
-	}
-
-	Input::~Input()
-	{
-	}
-
+	Input::KeyState Input::keyInput[256] = { KeyState{false, false} };
+	Input::MouseState Input::mouseInput[3] = { MouseState{false, false} };
+	Input::MousePosition Input::mousePosition = MousePosition{ };
+	bool Input::isMouseClamped = false;
+	
 	bool Input::GetKeyDown(int vkCode)
 	{
 		return keyInput[vkCode].isKeyDown;
@@ -72,30 +66,5 @@ namespace Engine
 			ClipCursor(nullptr);
 			ShowCursor(true);
 		}
-	}
-
-	Vector2 Input::GetMousePosition() const
-	{
-		return mousePosition.currentPosition;
-	}
-
-	Vector2 Input::GetMouseDeltaPosition() const
-	{
-		return mousePosition.currentPosition - mousePosition.previousPosition;
-	}
-
-	bool Input::GetMouseButtonDown(int idx) const
-	{
-		return mouseInput[idx].isButtonDown;
-	}
-
-	bool Input::GetMouseButtonUp(int idx) const
-	{
-		return mouseInput[idx].isButtonUp;
-	}
-
-	bool Input::GetMouseButton(int idx) const
-	{
-		return mouseInput[idx].isButton;
 	}
 }

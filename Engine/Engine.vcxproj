@@ -91,6 +91,7 @@
     <ClInclude Include="Component\InputSystem\InputComponent.h" />
     <ClInclude Include="Component\Physics\BoxCollider.h" />
     <ClInclude Include="Component\Physics\Collider.h" />
+    <ClInclude Include="Component\Transform\TransformComponent.h" />
     <ClInclude Include="Core\CollisionSystem.h" />
     <ClInclude Include="Core\Input.h" />
     <ClInclude Include="Core\Time.h" />
@@ -111,6 +112,7 @@
     <ClCompile Include="Component\Component.cpp" />
     <ClCompile Include="Component\InputSystem\InputComponent.cpp" />
     <ClCompile Include="Component\Physics\BoxCollider.cpp" />
+    <ClCompile Include="Component\Transform\TransformComponent.cpp" />
     <ClCompile Include="Core\CollisionSystem.cpp" />
     <ClCompile Include="Core\Input.cpp" />
     <ClCompile Include="Core\Time.cpp" />

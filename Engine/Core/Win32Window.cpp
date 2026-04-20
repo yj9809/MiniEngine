@@ -87,7 +87,7 @@ namespace Engine
 
 			if (isKeyDown != isKeyUp)
 			{
-				Input::Get().ProcessInputMessage(static_cast<int>(wParam), isKeyUp, isKeyDown);
+				Input::ProcessInputMessage(static_cast<int>(wParam), isKeyUp, isKeyDown);
 			}
 		}
 		return 0;
@@ -96,43 +96,43 @@ namespace Engine
 		{
 			int x = GET_X_LPARAM(lParam);
 			int y = GET_Y_LPARAM(lParam);
-			Input::Get().SetMousePosition(Vector2(static_cast<float>(x), static_cast<float>(y)));
+			Input::SetMousePosition(Vector2(static_cast<float>(x), static_cast<float>(y)));
 		}
 		return 0;
 
 		case WM_LBUTTONDOWN:
 		{
-			Input::Get().SetMouseButtonState(0, true, false);
+			Input::SetMouseButtonState(0, true, false);
 		}
 		return 0;
 
 		case WM_LBUTTONUP:
 		{
-			Input::Get().SetMouseButtonState(0, false, true);
+			Input::SetMouseButtonState(0, false, true);
 		}
 		return 0;
 
 		case WM_RBUTTONDOWN:
 		{
-			Input::Get().SetMouseButtonState(1, true, false);
+			Input::SetMouseButtonState(1, true, false);
 		}
 		return 0;
 
 		case WM_RBUTTONUP:
 		{
-			Input::Get().SetMouseButtonState(1, false, true);
+			Input::SetMouseButtonState(1, false, true);
 		}
 		return 0;
 
 		case WM_MBUTTONDOWN:
 		{
-			Input::Get().SetMouseButtonState(2, true, false);
+			Input::SetMouseButtonState(2, true, false);
 		}
 		return 0;
 
 		case WM_MBUTTONUP:
 		{
-			Input::Get().SetMouseButtonState(2, false, true);
+			Input::SetMouseButtonState(2, false, true);
 		}
 		return 0;
 
