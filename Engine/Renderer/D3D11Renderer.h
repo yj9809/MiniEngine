@@ -2,10 +2,11 @@
 
 #include "IRenderer.h"
 #include "Common/Common.h"
+#include "RenderPass/PassScheduler.h"
 
 #include <d3d11.h>
 #include <dxgi1_2.h>
-#include <d3dcompiler.h>
+
 #include <vector>
 #include <unordered_map>
 #include <wrl/client.h>
@@ -57,12 +58,6 @@ namespace Engine
 		// Step.4 Viewport 설정.
 		void InitViewport(int width, int height) const;
 		
-		// Step.5 상수 버퍼 생성.
-		bool CreateConstantBuffer(UINT byteWidth, ComPtr<ID3D11Buffer>& buffer) const;
-		
-		// Step.6 Shader 생성.
-		bool InitShaders();
-		
 	private:
 		// GPU와 연결되는 기본 디바이스 객체.
 		ComPtr<ID3D11Device> device;
@@ -76,18 +71,6 @@ namespace Engine
 
 		// Render Target View 생성.
 		ComPtr<ID3D11RenderTargetView> renderTargetView;
-
-		// World View Projaction 행렬을 담는 상수 버퍼.
-		ComPtr<ID3D11Buffer> wvpConstantBuffer;
-		
-		// vertex 버퍼 구조를 셰이더에 알려주는 객체.
-		// 버퍼의 float3은 POSITION이다를 GPU에 정의.
-		ComPtr<ID3D11InputLayout> inputLayout;
-
-		// 셰이더 객체.
-		// VS: 정점 셰이더, PS: 픽셀 셰이더.
-		ComPtr<ID3D11VertexShader> vertexShader;
-		ComPtr<ID3D11PixelShader> pixelShader;
 		
 		// Rendering 목록을 담당하는 컨테이너.
 		std::vector<RenderCommand> renderCommands;
@@ -97,6 +80,9 @@ namespace Engine
 		
 		// 버퍼 핸들 생성용 카운터.
 		BufferHandle nextBufferHandle = 1;
+		
+		// Render Pass 스케줄러.
+		PassScheduler passScheduler;
 	};
 }
 

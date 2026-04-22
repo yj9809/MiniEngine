@@ -105,6 +105,11 @@
     <ClInclude Include="Renderer\D3D11Renderer.h" />
     <ClInclude Include="Renderer\IRenderer.h" />
     <ClInclude Include="Renderer\RenderCommand.h" />
+    <ClInclude Include="Renderer\RenderPass\OpaquePass.h" />
+    <ClInclude Include="Renderer\RenderPass\PassScheduler.h" />
+    <ClInclude Include="Renderer\RenderPass\RenderPass.h" />
+    <ClInclude Include="Renderer\RenderPass\RenderPassType.h" />
+    <ClInclude Include="Renderer\RenderPass\WireframePass.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -124,6 +129,9 @@
     <ClCompile Include="Math\Vector3.cpp" />
     <ClCompile Include="Math\Vector4.cpp" />
     <ClCompile Include="Renderer\D3D11Renderer.cpp" />
+    <ClCompile Include="Renderer\RenderPass\OpaquePass.cpp" />
+    <ClCompile Include="Renderer\RenderPass\PassScheduler.cpp" />
+    <ClCompile Include="Renderer\RenderPass\WireframePass.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
