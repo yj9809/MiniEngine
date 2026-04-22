@@ -489,6 +489,18 @@ command.topology     = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 renderer->Submit(command);
 ```
 
+**4.8단계 — 경량 Pass Scheduler** ✅
+
+렌더링 명령을 PassType별로 그룹화해 각 패스가 독립적으로 셰이더/래스터라이저 상태를 관리하는 구조.
+
+- `RenderPassType` (`uint8_t` enum) — Opaque / Transparent / Wireframe / UI
+- `RenderPass` — `Prepare()` / `Execute()` 순수 가상 함수 기반 추상 클래스
+- `PassScheduler` — `unordered_map<RenderPassType, unique_ptr<RenderPass>>`로 패스 등록/조회
+- `OpaquePass` — 셰이더, InputLayout, WVP 상수 버퍼 소유. 기존 D3D11Renderer에서 분리
+- `WireframePass` — OpaquePass와 동일 구조 + `D3D11_FILL_WIREFRAME` 래스터라이저 추가
+- `D3D11Renderer::Render()` — `renderCommands`를 PassType별로 그룹화 후 `Prepare → Execute` 순서 실행
+- `RenderCommand`에 `passType` 필드 추가 (기본값 `RenderPassType::Opaque`)
+
 ---
 
 ### ✅ 4.5단계 — Time 시스템
@@ -611,7 +623,7 @@ void CollisionSystem::UnRegister(Collider* collider)
 | 3단계 | Component 시스템 (`AddComponent<T>()`, `InputComponent`) | ✅ 완료 |
 | 4단계 | DX11 렌더러 기초 (IRenderer, D3D11Renderer, SwapChain) | 🔄 진행 중 |
 | 4.5단계 | Time 시스템 (DeltaTime, TimeScale) | ✅ 완료 |
-| 4.8단계 | 경량 Pass Scheduler | 🔲 예정 |
+| 4.8단계 | 경량 Pass Scheduler (RenderPass / PassScheduler / OpaquePass / WireframePass) | ✅ 완료 |
 | 5단계 | DX11 렌더러 심화 (TransformComponent, 카메라, 메시, 머티리얼, 기본 Phong 조명) | 🔲 예정 |
 | 5.5단계 | 중간 데모 | 🔲 예정 |
 | 6단계 | Deferred Rendering | 🔲 예정 |
