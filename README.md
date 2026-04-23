@@ -494,10 +494,10 @@ renderer->Submit(command);
 렌더링 명령을 PassType별로 그룹화해 각 패스가 독립적으로 셰이더/래스터라이저 상태를 관리하는 구조.
 
 - `RenderPassType` (`uint8_t` enum) — Opaque / Transparent / Wireframe / UI
-- `RenderPass` — `Prepare()` / `Execute()` 순수 가상 함수 기반 추상 클래스
+- `RenderPass` — Template Method 패턴 베이스 클래스. `Execute()` 루프(커맨드 순회/cbuffer 업데이트/Draw)를 베이스에서 구현. `GetConstantBuffer()` / `Draw()` 순수 가상. `OnPostExecute()` — 루프 종료 후 파이프라인 상태 복구용 no-op 훅
 - `PassScheduler` — `unordered_map<RenderPassType, unique_ptr<RenderPass>>`로 패스 등록/조회
-- `OpaquePass` — 셰이더, InputLayout, WVP 상수 버퍼 소유. 기존 D3D11Renderer에서 분리
-- `WireframePass` — OpaquePass와 동일 구조 + `D3D11_FILL_WIREFRAME` 래스터라이저 추가
+- `OpaquePass` — 셰이더, InputLayout, WVP 상수 버퍼 소유. `GetConstantBuffer()` / `Draw()` 구현
+- `WireframePass` — OpaquePass와 동일 구조 + `D3D11_FILL_WIREFRAME` 래스터라이저. `OnPostExecute()`에서 `RSSetState(nullptr)` 파이프라인 복구
 - `D3D11Renderer::Render()` — `renderCommands`를 PassType별로 그룹화 후 `Prepare → Execute` 순서 실행
 - `RenderCommand`에 `passType` 필드 추가 (기본값 `RenderPassType::Opaque`)
 

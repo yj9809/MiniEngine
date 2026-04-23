@@ -131,6 +131,7 @@
     <ClCompile Include="Renderer\D3D11Renderer.cpp" />
     <ClCompile Include="Renderer\RenderPass\OpaquePass.cpp" />
     <ClCompile Include="Renderer\RenderPass\PassScheduler.cpp" />
+    <ClCompile Include="Renderer\RenderPass\RenderPass.cpp" />
     <ClCompile Include="Renderer\RenderPass\WireframePass.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
   </ItemGroup>

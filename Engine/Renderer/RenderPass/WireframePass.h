@@ -10,16 +10,15 @@ namespace Engine
         WireframePass(ID3D11Device* device);
 
         virtual void Prepare(ID3D11DeviceContext* context) override;
-
-        virtual void Execute(
-            ID3D11DeviceContext* context,
-            const std::vector<RenderCommand>& commands,
-            const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>>& bufferMap) override;
+        
+    protected:
+        inline virtual ID3D11Buffer* GetConstantBuffer() override { return wvpConstantBuffer.Get(); }
+        
+        virtual void Draw(ID3D11DeviceContext* context, const RenderCommand& command) override;
+        
+        virtual void OnPostExecute(ID3D11DeviceContext* context) override;
         
     private:
-        // 상수 버퍼 생성.
-        bool CreateConstantBuffer(ID3D11Device* device, UINT byteWidth, ComPtr<ID3D11Buffer>& buffer) const;
-
         // 래스터라이저 생성.
         bool InitRasterizer(ID3D11Device* device);
         

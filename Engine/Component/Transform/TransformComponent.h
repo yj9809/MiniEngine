@@ -11,7 +11,10 @@ namespace Engine
         RTTI_DECLARATIONS(TransformComponent, Component)
         
     public:
-    
+        TransformComponent() = default;
+        TransformComponent(const TransformComponent&) = delete;
+        TransformComponent& operator=(const TransformComponent&) = delete;
+        
     };
 }
 

@@ -16,15 +16,31 @@ void QuadActor::Init(Engine::IRenderer* renderer)
         float r, g, b, a;
     };
 
+    // 중심(0) + 8각형 둘레 (1~8) — 삼각형 팬
     Vertex vertices[] =
     {
-        {-0.5f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f, 1.0f}, // 0 좌상 (빨강)
-        {0.5f, 0.5f, 0.0f, 0.5f, 1.0f, 0.5f, 1.0f}, // 1 우상 (초록)
-        {0.5f, -0.5f, 0.0f, 0.5f, 0.5f, 1.0f, 1.0f}, // 2 우하 (파랑)
-        {-0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.5f, 1.0f},
+        { 0.00f,  0.00f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // 0 중심
+        { 0.00f,  0.50f, 0.0f, 1.0f, 0.2f, 0.2f, 1.0f}, // 1
+        { 0.35f,  0.35f, 0.0f, 1.0f, 0.6f, 0.2f, 1.0f}, // 2
+        { 0.50f,  0.00f, 0.0f, 0.8f, 1.0f, 0.2f, 1.0f}, // 3
+        { 0.35f, -0.35f, 0.0f, 0.2f, 1.0f, 0.4f, 1.0f}, // 4
+        { 0.00f, -0.50f, 0.0f, 0.2f, 0.8f, 1.0f, 1.0f}, // 5
+        {-0.35f, -0.35f, 0.0f, 0.2f, 0.4f, 1.0f, 1.0f}, // 6
+        {-0.50f,  0.00f, 0.0f, 0.6f, 0.2f, 1.0f, 1.0f}, // 7
+        {-0.35f,  0.35f, 0.0f, 1.0f, 0.2f, 0.8f, 1.0f}, // 8
     };
 
-    UINT indices[] = {0, 1, 2, 2, 3, 0};
+    UINT indices[] =
+    {
+        0, 1, 2,
+        0, 2, 3,
+        0, 3, 4,
+        0, 4, 5,
+        0, 5, 6,
+        0, 6, 7,
+        0, 7, 8,
+        0, 8, 1,
+    };
 
     vertexBuffer = renderer->CreateVertexBuffer(vertices, sizeof(vertices));
     indexBuffer = renderer->CreateIndexBuffer(indices, sizeof(indices));
@@ -44,11 +60,11 @@ void QuadActor::Draw()
     Engine::RenderCommand command;
     command.vertexBuffer = vertexBuffer;
     command.indexBuffer = indexBuffer;
-    command.indexCount = 6;
+    command.indexCount = 24;
     command.stride = sizeof(float) * 7; // x, y, z, r, g, b, a
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     command.worldMatrix = Engine::Matrix4::RotationZ(angle);
-    command.passType = Engine::RenderPassType::Wireframe;
+    command.passType = Engine::RenderPassType::Opaque;
 
     renderer->Submit(command);
 }
