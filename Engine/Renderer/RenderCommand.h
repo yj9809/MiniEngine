@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Math/Matrix4.h"
-#include "RenderPass/RenderPassType.h"
+#include "RenderPass/RenderLayerType.h"
 
 #include <d3d11.h>
 #include <cstdint>
@@ -28,6 +28,6 @@ namespace Engine
         Matrix4 worldMatrix = Matrix4::identity;
         // RenderPass 타입.
         // 해당 타입에 따라 그려질 패스가 달라진다. 기본값은 Opaque.
-        RenderPassType passType = RenderPassType::Opaque;
+        RenderLayerType passType = RenderLayerType::Opaque;
     };
 }

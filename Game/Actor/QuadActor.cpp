@@ -1,6 +1,7 @@
 ﻿#include "QuadActor.h"
 
 #include "Renderer/RenderCommand.h"
+#include "Core/Input.h"
 #include "Core/Time.h"
 
 #include <vector>
@@ -19,7 +20,7 @@ void QuadActor::Init(Engine::IRenderer* renderer)
     // 중심(0) + 8각형 둘레 (1~8) — 삼각형 팬
     Vertex vertices[] =
     {
-        { 0.00f,  0.00f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f}, // 0 중심
+        { 0.00f,  0.00f, 0.0f, 0.5f, 0.5f, 0.5f, 1.0f}, // 0 중심
         { 0.00f,  0.50f, 0.0f, 1.0f, 0.2f, 0.2f, 1.0f}, // 1
         { 0.35f,  0.35f, 0.0f, 1.0f, 0.6f, 0.2f, 1.0f}, // 2
         { 0.50f,  0.00f, 0.0f, 0.8f, 1.0f, 0.2f, 1.0f}, // 3
@@ -50,8 +51,12 @@ void QuadActor::Tick(float deltaTime)
 {
     Actor::Tick(deltaTime);
 
-    // 초당 2도 회전하도록 각도 업데이트.
-    // angle += deltaTime * 2.0f;
+    if (Engine::Input::GetKeyDown('1'))
+        currentPass = Engine::RenderLayerType::Opaque;
+    else if (Engine::Input::GetKeyDown('2'))
+        currentPass = Engine::RenderLayerType::Wireframe;
+
+    angle += deltaTime * 1.0f;
 }
 
 void QuadActor::Draw()
@@ -64,7 +69,7 @@ void QuadActor::Draw()
     command.stride = sizeof(float) * 7; // x, y, z, r, g, b, a
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     command.worldMatrix = Engine::Matrix4::RotationZ(angle);
-    command.passType = Engine::RenderPassType::Opaque;
+    command.passType = currentPass;
 
     renderer->Submit(command);
 }

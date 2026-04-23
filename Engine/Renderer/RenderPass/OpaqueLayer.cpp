@@ -1,11 +1,11 @@
-﻿#include "OpaquePass.h"
+﻿#include "OpaqueLayer.h"
 
 #include <d3dcompiler.h>
 #include <cassert>
 
 namespace Engine
 {
-    OpaquePass::OpaquePass(ID3D11Device* device)
+    OpaqueLayer::OpaqueLayer(ID3D11Device* device)
     {
         assert(InitShaders(device) && "Failed to initialize shaders for OpaquePass");
         assert(
@@ -14,7 +14,7 @@ namespace Engine
         );
     }
 
-    void OpaquePass::Prepare(ID3D11DeviceContext* context)
+    void OpaqueLayer::Prepare(ID3D11DeviceContext* context)
     {
         // 셰이더에 버퍼 등록.
         context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
@@ -27,12 +27,12 @@ namespace Engine
         context->PSSetShader(pixelShader.Get(), nullptr, 0);
     }
 
-    void OpaquePass::Draw(ID3D11DeviceContext* context, const RenderCommand& command)
+    void OpaqueLayer::Draw(ID3D11DeviceContext* context, const RenderCommand& command)
     {
         context->DrawIndexed(command.indexCount, 0, 0);
     }
 
-    bool OpaquePass::InitShaders(ID3D11Device* device)
+    bool OpaqueLayer::InitShaders(ID3D11Device* device)
     {
         // .cso: 빌드 시 컴파일한 셰이더 바이너리. 셰이더 객체 생성에 사용.
         ComPtr<ID3DBlob> vsBlod;

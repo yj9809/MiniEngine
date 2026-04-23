@@ -1,4 +1,5 @@
 #include "Actor/QuadActor.h"
+#include "Actor/TriangleActor.h"
 #include "Engine/Engine.h"
 #include "Level/Level.h"
 #include "Core/Input.h"
@@ -14,6 +15,10 @@ int main()
 	auto quad = std::make_unique<QuadActor>();
 	quad->Init(engine.GetRenderer());
 	levelPtr->AddNewActor(std::move(quad));
+	
+	auto triangle = std::make_unique<TriangleActor>();
+	triangle->Init(engine.GetRenderer());
+	levelPtr->AddNewActor(std::move(triangle));
 
 	engine.Run();
 }

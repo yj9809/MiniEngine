@@ -105,11 +105,11 @@
     <ClInclude Include="Renderer\D3D11Renderer.h" />
     <ClInclude Include="Renderer\IRenderer.h" />
     <ClInclude Include="Renderer\RenderCommand.h" />
-    <ClInclude Include="Renderer\RenderPass\OpaquePass.h" />
-    <ClInclude Include="Renderer\RenderPass\PassScheduler.h" />
-    <ClInclude Include="Renderer\RenderPass\RenderPass.h" />
-    <ClInclude Include="Renderer\RenderPass\RenderPassType.h" />
-    <ClInclude Include="Renderer\RenderPass\WireframePass.h" />
+    <ClInclude Include="Renderer\RenderPass\OpaqueLayer.h" />
+    <ClInclude Include="Renderer\RenderPass\LayerScheduler.h" />
+    <ClInclude Include="Renderer\RenderPass\RenderLayer.h" />
+    <ClInclude Include="Renderer\RenderPass\RenderLayerType.h" />
+    <ClInclude Include="Renderer\RenderPass\WireframeLayer.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -129,10 +129,10 @@
     <ClCompile Include="Math\Vector3.cpp" />
     <ClCompile Include="Math\Vector4.cpp" />
     <ClCompile Include="Renderer\D3D11Renderer.cpp" />
-    <ClCompile Include="Renderer\RenderPass\OpaquePass.cpp" />
-    <ClCompile Include="Renderer\RenderPass\PassScheduler.cpp" />
-    <ClCompile Include="Renderer\RenderPass\RenderPass.cpp" />
-    <ClCompile Include="Renderer\RenderPass\WireframePass.cpp" />
+    <ClCompile Include="Renderer\RenderPass\OpaqueLayer.cpp" />
+    <ClCompile Include="Renderer\RenderPass\LayerScheduler.cpp" />
+    <ClCompile Include="Renderer\RenderPass\RenderLayer.cpp" />
+    <ClCompile Include="Renderer\RenderPass\WireframeLayer.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -3,8 +3,8 @@
 #include <d3d11.h>
 
 #include "Common/Common.h"
-#include "RenderPass/OpaquePass.h"
-#include "RenderPass/WireframePass.h"
+#include "RenderPass/OpaqueLayer.h"
+#include "RenderPass/WireframeLayer.h"
 
 namespace Engine
 {
@@ -33,10 +33,10 @@ namespace Engine
 		
 		// Step.5 PassScheduler 설정.
 		passScheduler.RegisterPassScheduler(
-			RenderPassType::Opaque, std::make_unique<OpaquePass>(device.Get())
+			RenderLayerType::Opaque, std::make_unique<OpaqueLayer>(device.Get())
 		);
 		passScheduler.RegisterPassScheduler(
-			RenderPassType::Wireframe, std::make_unique<WireframePass>(device.Get())
+			RenderLayerType::Wireframe, std::make_unique<WireframeLayer>(device.Get())
 		);
 		
 		return true;
@@ -244,7 +244,7 @@ namespace Engine
 	
 	void D3D11Renderer::Render()
 	{			
-		std::unordered_map<RenderPassType, std::vector<RenderCommand>> passCommandMap;
+		std::unordered_map<RenderLayerType, std::vector<RenderCommand>> passCommandMap;
 		
 		for (const RenderCommand& command : renderCommands)
 		{
@@ -254,7 +254,7 @@ namespace Engine
 		
 		for (auto& command : passCommandMap)
 		{
-			RenderPass* pass = passScheduler.GetPass(command.first);
+			RenderLayer* pass = passScheduler.GetPass(command.first);
 			if (pass)
 			{
 				pass->Prepare(context.Get());

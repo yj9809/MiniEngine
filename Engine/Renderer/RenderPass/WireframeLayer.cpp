@@ -1,11 +1,11 @@
-﻿#include "WireframePass.h"
+﻿#include "WireframeLayer.h"
 
 #include <d3dcompiler.h>
 #include <cassert>
 
 namespace Engine
 {
-    WireframePass::WireframePass(ID3D11Device* device)
+    WireframeLayer::WireframeLayer(ID3D11Device* device)
     {
         assert(InitShaders(device) && "Failed to initialize shaders for WireframePass");
         assert(InitRasterizer(device) && "Failed to initialize rasterizer for WireframePass");
@@ -15,7 +15,7 @@ namespace Engine
         );
     }
 
-    void WireframePass::Prepare(ID3D11DeviceContext* context)
+    void WireframeLayer::Prepare(ID3D11DeviceContext* context)
     {
         // 래스터라이저 바인딩.
         context->RSSetState(wireframeRasterizer.Get());
@@ -31,18 +31,18 @@ namespace Engine
         context->PSSetShader(pixelShader.Get(), nullptr, 0);
     }
 
-    void WireframePass::Draw(ID3D11DeviceContext* context, const RenderCommand& command)
+    void WireframeLayer::Draw(ID3D11DeviceContext* context, const RenderCommand& command)
     {
         context->DrawIndexed(command.indexCount, 0, 0);
     }
 
-    void WireframePass::OnPostExecute(ID3D11DeviceContext* context)
+    void WireframeLayer::OnPostExecute(ID3D11DeviceContext* context)
     {
         // 래스터라이저 상태 초기화 (기본값으로 되돌리기).
         context->RSSetState(nullptr); 
     }
 
-    bool WireframePass::InitRasterizer(ID3D11Device* device)
+    bool WireframeLayer::InitRasterizer(ID3D11Device* device)
     {
         // 래스터라이저 생성을 위한 설명서.
         D3D11_RASTERIZER_DESC rsDesc = {};
@@ -57,7 +57,7 @@ namespace Engine
         return true;
     }
 
-    bool WireframePass::InitShaders(ID3D11Device* device)
+    bool WireframeLayer::InitShaders(ID3D11Device* device)
     {
         // .cso: 빌드 시 컴파일한 셰이더 바이너리. 셰이더 객체 생성에 사용.
         ComPtr<ID3DBlob> vsBlod;

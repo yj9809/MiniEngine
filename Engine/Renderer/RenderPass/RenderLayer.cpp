@@ -1,20 +1,23 @@
-#include "RenderPass.h"
+#include "RenderLayer.h"
 
 namespace Engine
 {
-    void RenderPass::Execute(ID3D11DeviceContext* context, const std::vector<RenderCommand>& commands,
+    void RenderLayer::Execute(ID3D11DeviceContext* context, const std::vector<RenderCommand>& commands,
         const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>>& bufferMap)
     {
         for (const RenderCommand& command : commands)
         {
-            UpdateConstantBuffer(context, command);
-            BindBuffer(context, command, bufferMap);
+            if (!BindBuffer(context, command, bufferMap))
+            {
+                continue;
+            }
+            UpdateConstantBuffer(context, command);            
             Draw(context, command);
         }
         OnPostExecute(context);
     }
     
-    bool RenderPass::CreateConstantBuffer(ID3D11Device* device, UINT byteWidth, ComPtr<ID3D11Buffer>& buffer) const
+    bool RenderLayer::CreateConstantBuffer(ID3D11Device* device, UINT byteWidth, ComPtr<ID3D11Buffer>& buffer) const
     {
         D3D11_BUFFER_DESC cbDesc = {};
         cbDesc.ByteWidth = byteWidth;
@@ -29,7 +32,7 @@ namespace Engine
         return true;
     }
 
-    void RenderPass::UpdateConstantBuffer(ID3D11DeviceContext* context, const RenderCommand& command)
+    void RenderLayer::UpdateConstantBuffer(ID3D11DeviceContext* context, const RenderCommand& command)
     {
         auto* cBuffer = GetConstantBuffer();
         
@@ -52,7 +55,7 @@ namespace Engine
         context->Unmap(cBuffer, 0);
     }
 
-    bool RenderPass::BindBuffer(ID3D11DeviceContext* context, const RenderCommand& command, const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>>& bufferMap)
+    bool RenderLayer::BindBuffer(ID3D11DeviceContext* context, const RenderCommand& command, const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>>& bufferMap)
     {
         UINT offset = 0;
         

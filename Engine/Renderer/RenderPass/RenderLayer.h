@@ -13,10 +13,10 @@ using namespace Microsoft::WRL;
 namespace Engine
 {
     // Render pass base class.
-    class ENGINE_API RenderPass
+    class ENGINE_API RenderLayer
     {
     public:
-        virtual ~RenderPass() = default;
+        virtual ~RenderLayer() = default;
 
         // 해당 패스에서 사용할 Shader, Input Layout, 렌더 상태(블렌딩, 깊이 테스트 등)를 설정한다.
         virtual void Prepare(ID3D11DeviceContext* context) = 0;

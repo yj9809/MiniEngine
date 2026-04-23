@@ -2,7 +2,7 @@
 
 #include "IRenderer.h"
 #include "Common/Common.h"
-#include "RenderPass/PassScheduler.h"
+#include "RenderPass/LayerScheduler.h"
 
 #include <d3d11.h>
 #include <dxgi1_2.h>
@@ -82,7 +82,7 @@ namespace Engine
 		BufferHandle nextBufferHandle = 1;
 		
 		// Render Pass 스케줄러.
-		PassScheduler passScheduler;
+		LayerScheduler passScheduler;
 	};
 }
 
