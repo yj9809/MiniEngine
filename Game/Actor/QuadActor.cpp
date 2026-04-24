@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include "Component/Transform/TransformComponent.h"
+
 void QuadActor::Init(Engine::IRenderer* renderer)
 {
     this->renderer = renderer;
@@ -56,7 +58,9 @@ void QuadActor::Tick(float deltaTime)
     else if (Engine::Input::GetKeyDown('2'))
         currentPass = Engine::RenderLayerType::Wireframe;
 
-    angle += deltaTime * 1.0f;
+    Engine::Vector3 rotation = rootComponent->GetLocalRotationEulerDeg();
+    rotation.z += deltaTime * 180.0f; // 초당 45도 회전
+    rootComponent->SetLocalRotationEulerDeg(rotation);
 }
 
 void QuadActor::Draw()
@@ -68,7 +72,7 @@ void QuadActor::Draw()
     command.indexCount = 24;
     command.stride = sizeof(float) * 7; // x, y, z, r, g, b, a
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    command.worldMatrix = Engine::Matrix4::RotationZ(angle);
+    command.worldMatrix = rootComponent->GetWorldMatrix();
     command.passType = currentPass;
 
     renderer->Submit(command);

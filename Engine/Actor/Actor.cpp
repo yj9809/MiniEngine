@@ -1,56 +1,71 @@
 #include "Actor.h"
-#include "Level/Level.h"
+#include "Component/Transform/TransformComponent.h"
 
 namespace Engine
 {
-	Actor::Actor()
-	{
-	}
+    Actor::Actor()
+    {
+        rootComponent = AddComponent<TransformComponent>();
+    }
 
-	Actor::~Actor()
-	{
-	}
+    Actor::~Actor()
+    {
+    }
 
-	void Actor::BeginPlay()
-	{
-	}
+    void Actor::BeginPlay()
+    {
+    }
 
-	void Actor::Tick(float deltaTime)
-	{
-		if (!components.empty())
-		{
-			for (auto& component : components)
-			{
-				component->Tick(deltaTime);
-			}
-		}
-	}
+    void Actor::Tick(float deltaTime)
+    {
+        for (auto& component : components)
+        {
+            component->Tick(deltaTime);
+        }
+    }
 
-	void Actor::Draw()
-	{
-	}
+    void Actor::Draw()
+    {
+    }
 
-	void Actor::OnDestroy()
-	{
-		// Tick/Draw에서 즉시 제외하고, 다음 ProcessAddAndDestroyActor()에서 메모리 해제.
-		isActive = false;
-		destroyRequested = true;
-	}
+    void Actor::OnDestroy()
+    {
+        // Tick/Draw에서 즉시 제외하고, 다음 ProcessAddAndDestroyActor()에서 메모리 해제.
+        isActive = false;
+        destroyRequested = true;
+        for (auto& component : components)
+        {
+            component->OnRemove();
+        }
+    }
 
-	void Actor::SetPosition(const Vector3& position)
-	{
-		this->position = position;
-	}
+    void Actor::SetPosition(const Vector3& position)
+    {
+        rootComponent->SetLocalPosition(position);
+    }
 
-	Vector3 Actor::GetPositionI() const
-	{
-		// 콘솔 렌더러는 정수 좌표를 요구하므로 float를 int로 잘라낸다(반올림 아님).
-		// Vector2의 멤버가 float이므로, int로 truncate한 뒤 다시 float로 변환해 담는다.
-		return Vector3(static_cast<float>(static_cast<int>(position.x)), static_cast<float>(static_cast<int>(position.y)), static_cast<float>(static_cast<int>(position.z)));
-	}
+    void Actor::SetRotation(const Vector3& rotation)
+    {
+        rootComponent->SetLocalRotationEulerDeg(rotation);
+    }
 
-	Vector3 Actor::GetPositionF() const
-	{
-		return position;
-	}
+    void Actor::SetScale(const Vector3& scale)
+    {
+        rootComponent->SetLocalScale(scale);
+    }
+    
+    Vector3 Actor::GetPosition() const
+    {
+        return rootComponent->GetLocalPosition();
+    }
+
+    Vector3 Actor::GetRotation() const
+    {
+        return rootComponent->GetLocalRotationEulerDeg();
+    }
+
+    Vector3 Actor::GetScale() const
+    {
+        return rootComponent->GetLocalScale();
+    }
 }

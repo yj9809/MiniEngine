@@ -19,7 +19,8 @@ Engine/
 ├── Actor/          # 게임 오브젝트 베이스 클래스
 ├── Common/         # 공통 매크로, RTTI
 ├── Component/      # 컴포넌트 베이스 클래스
-│   └── Physics/    # BoxCollider 등 물리 컴포넌트
+│   ├── Physics/    # BoxCollider 등 물리 컴포넌트
+│   └── Transform/  # TransformComponent
 ├── Core/           # Input 시스템, Win32Window, CollisionSystem
 ├── Engine/         # 엔진 코어, 게임 루프
 ├── Level/          # 씬(레벨) 관리
@@ -540,6 +541,23 @@ Tick(Time::GetDeltaTime());  // TimeScale 적용된 값으로 Tick
 
 ---
 
+### 🔄 5단계 — DX11 렌더러 심화
+
+**5-1. TransformComponent (Root Component)** ✅
+
+모든 Actor의 Root Component로 position / rotationEulerDeg / scale을 통합 관리.
+Actor 생성자에서 `AddComponent<TransformComponent>()`로 자동 삽입하고, `rootComponent` 캐시 포인터를 별도 보유한다.
+
+- dirty 플래그 + mutable 캐시 — Transform 변경 시에만 `GetWorldMatrix()` 재계산
+- 행렬 합성 순서: Scale * Rotation * Translation (SRT) — HLSL `mul(v, M)` row-vector 방식 기준 (언리얼 실제 코드로 확인)
+- deg→rad 변환은 `GetWorldMatrix()` 내부에서만 처리, 저장은 degree 단위 유지
+- `parent` 포인터 선언 (구현은 계층 구조 도입 시점에 defer)
+- `Actor::position` 멤버 제거, `SetPosition()` / `GetPosition()` → `rootComponent` 위임
+- `QuadActor::angle` 제거 → `rootComponent->SetLocalRotationEulerDeg()` 교체
+- `OnDestroy()`에서 컴포넌트 전체 순회 후 `OnRemove()` 호출 (기존 dead code 해소)
+
+---
+
 ### 🔄 6단계 — 충돌 시스템
 
 AABB 기반 3D 충돌 처리. 먼저 Brute Force로 완성하고, 이후 BVH로 최적화한다.
@@ -624,7 +642,7 @@ void CollisionSystem::UnRegister(Collider* collider)
 | 4단계 | DX11 렌더러 기초 (IRenderer, D3D11Renderer, SwapChain) | 🔄 진행 중 |
 | 4.5단계 | Time 시스템 (DeltaTime, TimeScale) | ✅ 완료 |
 | 4.8단계 | 경량 Pass Scheduler (RenderPass / PassScheduler / OpaquePass / WireframePass) | ✅ 완료 |
-| 5단계 | DX11 렌더러 심화 (TransformComponent, 카메라, 메시, 머티리얼, 기본 Phong 조명) | 🔲 예정 |
+| 5단계 | DX11 렌더러 심화 (TransformComponent, 카메라, 메시, 머티리얼, 기본 Phong 조명) | 🔄 진행 중 |
 | 5.5단계 | 중간 데모 | 🔲 예정 |
 | 6단계 | Deferred Rendering | 🔲 예정 |
 | 7단계 | PBR(Physically Based Rendering) | 🔲 예정 |

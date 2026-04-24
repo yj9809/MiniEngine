@@ -14,6 +14,5 @@ private:
     Engine::IRenderer* renderer = nullptr;
     Engine::BufferHandle vertexBuffer = Engine::NULL_BUFFER;
     Engine::BufferHandle indexBuffer = Engine::NULL_BUFFER;
-    float angle = 0.0f;
     Engine::RenderLayerType currentPass = Engine::RenderLayerType::Opaque;
 };

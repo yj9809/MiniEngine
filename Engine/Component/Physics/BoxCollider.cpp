@@ -16,7 +16,7 @@ namespace Engine
 	
 	void BoxCollider::Tick(float deltaTime)
 	{
-		Vector3 actorPos = GetOwner().GetPositionF();
+		Vector3 actorPos = GetOwner().GetPosition();
 
 		worldMin = actorPos + center - halfSize;
 		worldMax = actorPos + center + halfSize;

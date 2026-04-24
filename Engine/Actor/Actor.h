@@ -4,13 +4,13 @@
 #include "Math/Vector3.h"
 #include "Component/Component.h"
 
-#include <string>
 #include <memory>
 #include <vector>
 
 namespace Engine
 {
     class Level;
+    class TransformComponent;
 
     // 게임 월드에 존재하는 모든 오브젝트의 베이스 클래스.
     // 언리얼 엔진의 AActor와 유사하게, 생명주기(BeginPlay → Tick → OnDestroy)를
@@ -69,12 +69,13 @@ namespace Engine
 
         // Getter/Setter.
         void SetPosition(const Vector3& position);
-
-        // 렌더러용 정수 좌표 반환. float → int 후 다시 float로 포장해 반환한다.
-        Vector3 GetPositionI() const;
-
-        // 물리/로직용 부동소수점 좌표 반환.
-        Vector3 GetPositionF() const;
+        void SetRotation(const Vector3& rotation);
+        void SetScale(const Vector3& scale);
+        
+        // 현재 포지션 반환 (로컬).
+        Vector3 GetPosition() const;
+        Vector3 GetRotation() const;
+        Vector3 GetScale() const;
 
         inline void SetOwner(Level* newOwner) { owner = newOwner; }
         inline Level* GetOwner() const { return owner; }
@@ -91,17 +92,12 @@ namespace Engine
         // Tick() 도중 배열을 수정하면 이터레이터가 무효화되기 때문이다.
         bool destroyRequested = false;
 
-        // 렌더링에 사용할 이미지(문자열 형태의 스프라이트 등).
-        std::string image;
-
-        int width = 0;
-
-        int height = 0;
-
         // 이 액터를 소유한 Level. 소유권은 Level에 있으므로 raw pointer 사용.
         Level* owner = nullptr;
-
-        Vector3 position;
+        
+        // Transform을 root로 고정.
+        // Actor는 기본적으로 Transform을 소유하도록 설계.
+        TransformComponent* rootComponent = nullptr;
 
     private:
         // 이 액터에 부착된 컴포넌트 목록. Actor가 unique_ptr로 소유권 관리.
