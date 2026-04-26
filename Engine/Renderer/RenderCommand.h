@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Math/Matrix4.h"
-#include "RenderPass/RenderLayerType.h"
+#include "RenderLayer/RenderLayerType.h"
 
 #include <d3d11.h>
 #include <cstdint>

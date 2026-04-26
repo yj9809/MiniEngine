@@ -49,6 +49,13 @@ void QuadActor::Init(Engine::IRenderer* renderer)
     indexBuffer = renderer->CreateIndexBuffer(indices, sizeof(indices));
 }
 
+void QuadActor::BeginPlay()
+{
+    Actor::BeginPlay();
+    
+    rootComponent->SetLocalPosition({ 0.0f, 0.0f, 0.1f });
+}
+
 void QuadActor::Tick(float deltaTime)
 {
     Actor::Tick(deltaTime);
@@ -61,6 +68,9 @@ void QuadActor::Tick(float deltaTime)
     Engine::Vector3 rotation = rootComponent->GetLocalRotationEulerDeg();
     rotation.z += deltaTime * 180.0f; // 초당 45도 회전
     rootComponent->SetLocalRotationEulerDeg(rotation);
+    Engine::Vector3 scale = rootComponent->GetLocalScale();
+    float scaleAmount = 0.5f * sinf(Engine::Time::GetTotalTime() * 2.0f) + 1.0f;
+    rootComponent->SetLocalScale({ scaleAmount, scaleAmount, 1.0f });
 }
 
 void QuadActor::Draw()

@@ -1,5 +1,7 @@
 ﻿#include "LayerScheduler.h"
 
+#include "RenderLayerType.h"
+
 namespace Engine
 {
     void LayerScheduler::RegisterPassScheduler(RenderLayerType type, std::unique_ptr<RenderLayer> renderPass)

@@ -1,5 +1,6 @@
 #include "TriangleActor.h"
 
+#include "Component/Transform/TransformComponent.h"
 #include "Renderer/RenderCommand.h"
 #include "Core/Input.h"
 
@@ -26,6 +27,13 @@ void TriangleActor::Init(Engine::IRenderer* renderer)
     indexBuffer = renderer->CreateIndexBuffer(indices, sizeof(indices));
 }
 
+void TriangleActor::BeginPlay()
+{
+    Actor::BeginPlay();
+    
+    rootComponent->SetLocalPosition({ 0.0f, 0.3f, 0.0f });
+}
+
 void TriangleActor::Tick(float deltaTime)
 {
     Actor::Tick(deltaTime);
@@ -35,7 +43,9 @@ void TriangleActor::Tick(float deltaTime)
     else if (Engine::Input::GetKeyDown('2'))
         currentPass = Engine::RenderLayerType::Wireframe;
 
-    angle += deltaTime * -1.0f;
+    Engine::Vector3 rotation = rootComponent->GetLocalRotationEulerDeg();
+    rotation.z += deltaTime * 30.0f;
+    rootComponent->SetLocalRotationEulerDeg(rotation);
 }
 
 void TriangleActor::Draw()
@@ -48,7 +58,7 @@ void TriangleActor::Draw()
     command.indexCount = 3;
     command.stride = sizeof(float) * 7;
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-    command.worldMatrix = Engine::Matrix4::RotationZ(angle);
+    command.worldMatrix = rootComponent->GetWorldMatrix();
     command.passType = currentPass;
 
     renderer->Submit(command);

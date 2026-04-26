@@ -7,6 +7,7 @@ class QuadActor : public Engine::Actor
 {
 public:
     void Init(Engine::IRenderer* renderer);
+    virtual void BeginPlay() override;
     virtual void Tick(float deltaTime) override;
     virtual void Draw() override;
     

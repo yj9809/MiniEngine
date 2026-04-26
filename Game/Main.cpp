@@ -12,13 +12,14 @@ int main()
 	Engine::Level* levelPtr = level.get();
 	engine.SetNewLevel(std::move(level));
 
-	auto quad = std::make_unique<QuadActor>();
-	quad->Init(engine.GetRenderer());
-	levelPtr->AddNewActor(std::move(quad));
-	
 	auto triangle = std::make_unique<TriangleActor>();
 	triangle->Init(engine.GetRenderer());
 	levelPtr->AddNewActor(std::move(triangle));
 
+	
+	auto quad = std::make_unique<QuadActor>();
+	quad->Init(engine.GetRenderer());
+	levelPtr->AddNewActor(std::move(quad));
+	
 	engine.Run();
 }
