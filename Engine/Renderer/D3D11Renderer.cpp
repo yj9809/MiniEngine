@@ -3,8 +3,9 @@
 #include <d3d11.h>
 
 #include "Common/Common.h"
-#include "RenderPass/OpaqueLayer.h"
-#include "RenderPass/WireframeLayer.h"
+#include "RenderLayer/OpaqueLayer.h"
+#include "RenderLayer/RenderLayerType.h"
+#include "RenderLayer/WireframeLayer.h"
 
 namespace Engine
 {
@@ -28,14 +29,20 @@ namespace Engine
 			return false;
 		}
 		
-		// Step.4 Viewport 설정.
+		// Step.4 Depth Stencil View 생성.
+		if (!InitDepthStencilView(width, height))
+		{
+			return false;
+		}
+		
+		// Step.5 Viewport 설정.
 		InitViewport(width, height);
 		
-		// Step.5 PassScheduler 설정.
-		passScheduler.RegisterPassScheduler(
+		// Step.6 PassScheduler 설정.
+		layerScheduler.RegisterPassScheduler(
 			RenderLayerType::Opaque, std::make_unique<OpaqueLayer>(device.Get())
 		);
-		passScheduler.RegisterPassScheduler(
+		layerScheduler.RegisterPassScheduler(
 			RenderLayerType::Wireframe, std::make_unique<WireframeLayer>(device.Get())
 		);
 		
@@ -147,10 +154,46 @@ namespace Engine
 		hr = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView);
 		FAILCHECK(hr, L"Failed create render target view", false)
 
-		// Render Target View를 Output Merger 단계(그래픽스 파이프라인의 마지막 단계)에 바인딩.
-		// 이후 모든 Draw 명령이 이 back buffer에 그려짐.
-		context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+		return true;
+	}
+
+	bool D3D11Renderer::InitDepthStencilView(int width, int height)
+	{
+		// Step.1 Texture2D 생성.
+		// RTV와는 다르게 백 버퍼에서 받아오지 않고 새로 만들어야 한다.
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.Width = width;
+		textureDesc.Height = height;
+		textureDesc.MipLevels = 1; // 깊이 버퍼는 MipMap 불필요.
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = DXGI_FORMAT_D32_FLOAT; // 32bit 부동소수점 깊이 버퍼.
+		textureDesc.SampleDesc.Count = 1; // 스왑체인과 일치.
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL; // 깊이-스텐실 버퍼로 바인딩.
 		
+		HRESULT hr = device->CreateTexture2D(&textureDesc, nullptr, &depthStencilTexture);
+		FAILCHECK(hr, L"Failed create depth stencil Texture", false)
+		
+		// Step.2 Depth Stencil View 생성.
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = textureDesc.Format; // Texture2D 포맷과 일치.
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; // Texture2D로 액세스.
+		
+		hr = device->CreateDepthStencilView(depthStencilTexture.Get(), &dsvDesc, &depthStencilView);
+		FAILCHECK(hr, L"Failed create depth stencil view", false)
+		
+		// Step.3 Depth Stencil State 생성.
+		D3D11_DEPTH_STENCIL_DESC dsDesc = {};
+		dsDesc.DepthEnable = true; // 깊이 테스트 활성화.
+		dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL; // 깊이 버퍼에 쓰기 켜기.
+		dsDesc.DepthFunc = D3D11_COMPARISON_LESS; // 더 가까운 픽셀만 렌더링.
+		dsDesc.StencilEnable = false; // 스텐실 테스트 비활성화.
+		
+		hr = device->CreateDepthStencilState(&dsDesc, &depthStencilState);
+		FAILCHECK(hr, L"Failed create depth stencil state", false)
+		
+		// 깊이-스텐실 상태 설정.
+		context->OMSetDepthStencilState(depthStencilState.Get(), 0); 
 		return true;
 	}
 
@@ -215,12 +258,16 @@ namespace Engine
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
 	{
 		// FILP_DISCARD 방식은 Present() 후 렌더 타겟 바인딩이 해제되므로 매 프레임 재바인딩 필요.
-		context->OMSetRenderTargets(1, renderTargetView.GetAddressOf(), nullptr);
+		context->OMSetRenderTargets(
+			1, 
+			renderTargetView.GetAddressOf(), 
+			depthStencilView.Get());
 
 		// 매 프레임 시작 시 back buffer를 지정한 색으로 초기화.
 		// 안 지우면 이전 프레임 내용이 남아있음.
 		float color[4] = { r, g, b, 1.0f };
 		context->ClearRenderTargetView(renderTargetView.Get(), color);
+		context->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	void D3D11Renderer::EndFrame()
@@ -236,6 +283,9 @@ namespace Engine
 		// 생성 역순으로 해제.
 		// ComPtr이라 스마트 포인터로 자동 해제가 되지만 명시적 해제가 필요할 경우 사용.
 		bufferMap.clear();
+		depthStencilState.Reset();
+		depthStencilView.Reset();
+		depthStencilTexture.Reset();
 		renderTargetView.Reset();
 		swapChain.Reset();
 		context.Reset();
@@ -254,7 +304,7 @@ namespace Engine
 		
 		for (auto& command : passCommandMap)
 		{
-			RenderLayer* pass = passScheduler.GetPass(command.first);
+			RenderLayer* pass = layerScheduler.GetPass(command.first);
 			if (pass)
 			{
 				pass->Prepare(context.Get());

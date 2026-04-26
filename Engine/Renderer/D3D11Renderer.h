@@ -2,7 +2,7 @@
 
 #include "IRenderer.h"
 #include "Common/Common.h"
-#include "RenderPass/LayerScheduler.h"
+#include "RenderLayer/LayerScheduler.h"
 
 #include <d3d11.h>
 #include <dxgi1_2.h>
@@ -55,7 +55,10 @@ namespace Engine
 		// Step.3 Render Target View 생성.
 		bool InitRenderTargetView();
 		
-		// Step.4 Viewport 설정.
+		// Step.4 Depth Stencil View 생성.
+		bool InitDepthStencilView(int width, int height);
+		
+		// Step.5 Viewport 설정.
 		void InitViewport(int width, int height) const;
 		
 	private:
@@ -81,8 +84,13 @@ namespace Engine
 		// 버퍼 핸들 생성용 카운터.
 		BufferHandle nextBufferHandle = 1;
 		
-		// Render Pass 스케줄러.
-		LayerScheduler passScheduler;
+		// Render Layer 스케줄러.
+		LayerScheduler layerScheduler;
+		
+		// Depth Stencil View를 구현하기 위한 멤버 변수.
+		ComPtr<ID3D11Texture2D> depthStencilTexture;
+		ComPtr<ID3D11DepthStencilView> depthStencilView;
+		ComPtr<ID3D11DepthStencilState> depthStencilState;
 	};
 }
 

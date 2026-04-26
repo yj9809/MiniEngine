@@ -94,6 +94,7 @@
     <ClInclude Include="Component\Transform\TransformComponent.h" />
     <ClInclude Include="Core\CollisionSystem.h" />
     <ClInclude Include="Core\Input.h" />
+    <ClInclude Include="Core\Log.h" />
     <ClInclude Include="Core\Time.h" />
     <ClInclude Include="Core\Win32Window.h" />
     <ClInclude Include="Engine\Engine.h" />
@@ -105,11 +106,11 @@
     <ClInclude Include="Renderer\D3D11Renderer.h" />
     <ClInclude Include="Renderer\IRenderer.h" />
     <ClInclude Include="Renderer\RenderCommand.h" />
-    <ClInclude Include="Renderer\RenderPass\OpaqueLayer.h" />
-    <ClInclude Include="Renderer\RenderPass\LayerScheduler.h" />
-    <ClInclude Include="Renderer\RenderPass\RenderLayer.h" />
-    <ClInclude Include="Renderer\RenderPass\RenderLayerType.h" />
-    <ClInclude Include="Renderer\RenderPass\WireframeLayer.h" />
+    <ClInclude Include="Renderer\RenderLayer\OpaqueLayer.h" />
+    <ClInclude Include="Renderer\RenderLayer\LayerScheduler.h" />
+    <ClInclude Include="Renderer\RenderLayer\RenderLayer.h" />
+    <ClInclude Include="Renderer\RenderLayer\RenderLayerType.h" />
+    <ClInclude Include="Renderer\RenderLayer\WireframeLayer.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
   </ItemGroup>
   <ItemGroup>
@@ -120,6 +121,7 @@
     <ClCompile Include="Component\Transform\TransformComponent.cpp" />
     <ClCompile Include="Core\CollisionSystem.cpp" />
     <ClCompile Include="Core\Input.cpp" />
+    <ClCompile Include="Core\Log.cpp" />
     <ClCompile Include="Core\Time.cpp" />
     <ClCompile Include="Core\Win32Window.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
@@ -129,10 +131,10 @@
     <ClCompile Include="Math\Vector3.cpp" />
     <ClCompile Include="Math\Vector4.cpp" />
     <ClCompile Include="Renderer\D3D11Renderer.cpp" />
-    <ClCompile Include="Renderer\RenderPass\OpaqueLayer.cpp" />
-    <ClCompile Include="Renderer\RenderPass\LayerScheduler.cpp" />
-    <ClCompile Include="Renderer\RenderPass\RenderLayer.cpp" />
-    <ClCompile Include="Renderer\RenderPass\WireframeLayer.cpp" />
+    <ClCompile Include="Renderer\RenderLayer\OpaqueLayer.cpp" />
+    <ClCompile Include="Renderer\RenderLayer\LayerScheduler.cpp" />
+    <ClCompile Include="Renderer\RenderLayer\RenderLayer.cpp" />
+    <ClCompile Include="Renderer\RenderLayer\WireframeLayer.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
