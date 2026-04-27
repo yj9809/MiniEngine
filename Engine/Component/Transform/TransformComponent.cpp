@@ -1,18 +1,29 @@
 ﻿#include "TransformComponent.h"
 
-constexpr float PI = 3.14159265f;
 
 namespace Engine
 {
     void TransformComponent::SetLocalPosition(const Vector3& position)
     {
         dirty = true;
+        
+        if (onTransformChanged)
+        {
+            onTransformChanged();
+        }
+        
         localPosition = position;
     }
 
     void TransformComponent::SetLocalRotationEulerDeg(const Vector3& rotation)
     {
         dirty = true;
+        
+        if (onTransformChanged)
+        {
+            onTransformChanged();
+        }
+        
         localRotationEulerDeg = rotation;
     }
 

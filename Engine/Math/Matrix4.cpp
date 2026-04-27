@@ -311,10 +311,8 @@ namespace Engine
 		return result;
 	}
 
-	Matrix4 Matrix4::PerspectiveFOV(float fovY, float width, float height, float nearZ, float farZ)
+	Matrix4 Matrix4::PerspectiveFOV(float fovY, float aspect, float nearZ, float farZ)
 	{
-		// 화면 비율 (aspect ratio).
-		float aspect = width / height;
 		// fovY는 수직 시야각이므로 절반으로 나누고 tan을 취해 y 스케일을 구한다.
 		float halfFovY = fovY * 0.5f;
 		// 1 / tan(halfFovY) = cot(halfFovY) = y 스케일.

@@ -53,7 +53,7 @@ void QuadActor::BeginPlay()
 {
     Actor::BeginPlay();
     
-    rootComponent->SetLocalPosition({ 0.0f, 0.0f, 0.1f });
+    rootComponent->SetLocalPosition({ 0.0f, 0.0f, 10.f });
 }
 
 void QuadActor::Tick(float deltaTime)
@@ -65,12 +65,12 @@ void QuadActor::Tick(float deltaTime)
     else if (Engine::Input::GetKeyDown('2'))
         currentPass = Engine::RenderLayerType::Wireframe;
 
-    Engine::Vector3 rotation = rootComponent->GetLocalRotationEulerDeg();
-    rotation.z += deltaTime * 180.0f; // 초당 45도 회전
-    rootComponent->SetLocalRotationEulerDeg(rotation);
-    Engine::Vector3 scale = rootComponent->GetLocalScale();
-    float scaleAmount = 0.5f * sinf(Engine::Time::GetTotalTime() * 2.0f) + 1.0f;
-    rootComponent->SetLocalScale({ scaleAmount, scaleAmount, 1.0f });
+    // Engine::Vector3 rotation = rootComponent->GetLocalRotationEulerDeg();
+    // rotation.z += deltaTime * 180.0f; // 초당 45도 회전
+    // rootComponent->SetLocalRotationEulerDeg(rotation);
+    // Engine::Vector3 scale = rootComponent->GetLocalScale();
+    // float scaleAmount = 0.5f * sinf(Engine::Time::GetTotalTime() * 2.0f) + 1.0f;
+    // rootComponent->SetLocalScale({ scaleAmount, scaleAmount, 1.0f });
 }
 
 void QuadActor::Draw()
@@ -83,6 +83,8 @@ void QuadActor::Draw()
     command.stride = sizeof(float) * 7; // x, y, z, r, g, b, a
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     command.worldMatrix = rootComponent->GetWorldMatrix();
+    command.viewMatrix = viewMatrix;
+    command.projectionMatrix = projectionMatrix;
     command.passType = currentPass;
 
     renderer->Submit(command);

@@ -44,3 +44,6 @@ inline void HandleD3DError(HRESULT hr, const wchar_t* message, const wchar_t* fi
         return retval;                      \
     }
 
+
+constexpr float PI = 3.14159265f;
+

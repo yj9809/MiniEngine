@@ -6,7 +6,7 @@ namespace Engine
 {
 	class Actor;
 
-	class Component : public RTTI
+	class ENGINE_API Component : public RTTI
 	{
 		RTTI_DECLARATIONS(Component, RTTI)
 		friend class Actor;

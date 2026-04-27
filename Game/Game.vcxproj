@@ -167,11 +167,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Actor\CameraActor.cpp" />
     <ClCompile Include="Actor\QuadActor.cpp" />
     <ClCompile Include="Actor\TriangleActor.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Actor\CameraActor.h" />
     <ClInclude Include="Actor\QuadActor.h" />
     <ClInclude Include="Actor\TriangleActor.h" />
   </ItemGroup>

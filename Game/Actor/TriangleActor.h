@@ -5,6 +5,8 @@
 
 class TriangleActor : public Engine::Actor
 {
+    RTTI_DECLARATIONS(TriangleActor, Actor)
+    
 public:
     void Init(Engine::IRenderer* renderer);
     virtual void BeginPlay() override;

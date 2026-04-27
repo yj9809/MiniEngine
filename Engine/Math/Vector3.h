@@ -42,6 +42,7 @@ namespace Engine
 		static const Vector3 unitX;
 		static const Vector3 unitY;
 		static const Vector3 unitZ;
+		static const Vector3 up;
 
 	public:
 		float x = 0;

@@ -96,4 +96,5 @@ namespace Engine
 	const Vector3 Vector3::unitX = Vector3(1, 0, 0);
 	const Vector3 Vector3::unitY = Vector3(0, 1, 0);
 	const Vector3 Vector3::unitZ = Vector3(0, 0, 1);
+	const Vector3 Vector3::up = Vector3(0, 1, 0);
 }

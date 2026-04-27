@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <functional>
+
 #include "Common/Common.h"
 #include "Common/RTTI.h"
 #include "Component/Component.h"
@@ -16,6 +18,10 @@ namespace Engine
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = delete;
         TransformComponent& operator=(const TransformComponent&) = delete;
+        
+        // Transform 변경 시 호출되는 콜백 함수.
+        // Scale은 카메라에 영향을 주지 않으므로 콜백에서 제외한다.
+        std::function<void()> onTransformChanged;
         
         // Setter.
         void SetLocalPosition(const Vector3& position);

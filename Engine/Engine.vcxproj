@@ -86,6 +86,7 @@
     <ClInclude Include="Actor\Actor.h" />
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\RTTI.h" />
+    <ClInclude Include="Component\Camera\CameraComponent.h" />
     <ClInclude Include="Component\Component.h" />
     <ClInclude Include="Component\ICommand.h" />
     <ClInclude Include="Component\InputSystem\InputComponent.h" />
@@ -115,6 +116,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Actor\Actor.cpp" />
+    <ClCompile Include="Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Component\Component.cpp" />
     <ClCompile Include="Component\InputSystem\InputComponent.cpp" />
     <ClCompile Include="Component\Physics\BoxCollider.cpp" />

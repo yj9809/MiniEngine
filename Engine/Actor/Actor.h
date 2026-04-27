@@ -7,6 +7,8 @@
 #include <memory>
 #include <vector>
 
+#include "Math/Matrix4.h"
+
 namespace Engine
 {
     class Level;
@@ -80,6 +82,8 @@ namespace Engine
         inline void SetOwner(Level* newOwner) { owner = newOwner; }
         inline Level* GetOwner() const { return owner; }
 
+        inline TransformComponent* GetRootComponent() const { return rootComponent; }
+        
         inline bool IsActive() const { return isActive; }
         inline bool IsDestroyRequested() const { return destroyRequested; }
 
@@ -98,6 +102,10 @@ namespace Engine
         // Transform을 root로 고정.
         // Actor는 기본적으로 Transform을 소유하도록 설계.
         TransformComponent* rootComponent = nullptr;
+        
+        // view 행렬.
+        Matrix4 viewMatrix = Matrix4::identity;
+        Matrix4 projectionMatrix = Matrix4::identity;
 
     private:
         // 이 액터에 부착된 컴포넌트 목록. Actor가 unique_ptr로 소유권 관리.

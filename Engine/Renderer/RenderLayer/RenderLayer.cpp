@@ -50,7 +50,7 @@ namespace Engine
         FAILCHECK(hr, L"Failed to map resource",)
 
         // 받아온 버퍼 데이터를 WorldViewProjection 행렬로 채우기.
-        Matrix4 wvpMatrix = command.worldMatrix;
+        Matrix4 wvpMatrix = command.worldMatrix * command.viewMatrix * command.projectionMatrix;
         memcpy(mappedResource.pData, &wvpMatrix, sizeof(Matrix4));
         context->Unmap(cBuffer, 0);
     }

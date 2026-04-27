@@ -5,6 +5,8 @@
 
 class QuadActor : public Engine::Actor
 {
+    RTTI_DECLARATIONS(QuadActor, Actor)
+    
 public:
     void Init(Engine::IRenderer* renderer);
     virtual void BeginPlay() override;

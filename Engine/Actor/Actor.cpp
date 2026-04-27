@@ -1,5 +1,8 @@
 #include "Actor.h"
+
+#include "Component/Camera/CameraComponent.h"
 #include "Component/Transform/TransformComponent.h"
+#include "Level/Level.h"
 
 namespace Engine
 {
@@ -26,6 +29,15 @@ namespace Engine
 
     void Actor::Draw()
     {
+        auto camera = GetOwner()->GetMainCamera();
+        
+        if (!camera)
+        {
+            return;
+        }
+        
+        viewMatrix = camera->GetViewMatrix();
+        projectionMatrix = camera->GetProjectionMatrix();
     }
 
     void Actor::OnDestroy()

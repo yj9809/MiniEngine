@@ -44,7 +44,7 @@ namespace Engine
 		static Matrix4 LookAt(const Vector3& eye, const Vector3& at, const Vector3& up);
 		// 투영 행렬.
 		// 왼손 좌표계.
-		static Matrix4 PerspectiveFOV(float fovY, float width, float height, float nearZ, float farZ);
+		static Matrix4 PerspectiveFOV(float fovY, float aspect, float nearZ, float farZ);
 
 		static const Matrix4 identity;
 		static const Matrix4 zero;

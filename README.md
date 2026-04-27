@@ -19,6 +19,7 @@ Engine/
 ├── Actor/          # 게임 오브젝트 베이스 클래스
 ├── Common/         # 공통 매크로, RTTI
 ├── Component/      # 컴포넌트 베이스 클래스
+│   ├── Camera/     # CameraComponent, ViewInfo
 │   ├── Physics/    # BoxCollider 등 물리 컴포넌트
 │   └── Transform/  # TransformComponent
 ├── Core/           # Input 시스템, Win32Window, CollisionSystem
@@ -542,6 +543,20 @@ Tick(Time::GetDeltaTime());  // TimeScale 적용된 값으로 Tick
 ---
 
 ### 🔄 5단계 — DX11 렌더러 심화
+
+**5-2. CameraComponent** ✅
+
+언리얼의 `UCameraComponent` + `FMinimalViewInfo` 구조를 참고한 카메라 시스템.
+
+- `ViewInfo` 구조체 — fov / aspect / nearZ / farZ만 보관 (위치/방향은 TransformComponent에서 읽음)
+- `CameraComponent` — `OnAdd()`에서 TransformComponent의 `onTransformChanged` 델리게이트에 등록, 위치/방향 변경 시 `dirtyView = true`로 자동 무효화
+- dirty 플래그 분리 — `dirtyView`(위치/방향 변경) / `dirtyProjection`(fov/aspect/near/far 변경) 독립 관리
+- `LookAt()` — pitch/yaw 기반 Forward 벡터 계산 후 `Matrix4::LookAt(eye, at, up)` 호출
+- `Projection()` — `Matrix4::PerspectiveFOV(fov, aspect, nearZ, farZ)` 호출
+- `Level::SetMainCamera()` / `GetMainCamera()` — 활성 카메라 등록/조회
+- `Actor::Draw()` — 매 프레임 `GetMainCamera()`로 View/Projection 행렬을 공통으로 가져와 protected 멤버에 저장, 파생 Actor가 커맨드에 그대로 사용
+- `RenderLayer::UpdateConstantBuffer()` — `world * view * projection` WVP 행렬 계산 후 상수 버퍼에 업로드
+- `CameraActor` — WASD(Forward/Right 벡터 기반 이동), 마우스 우클릭 회전(pitch/yaw)
 
 **5-1. TransformComponent (Root Component)** ✅
 
