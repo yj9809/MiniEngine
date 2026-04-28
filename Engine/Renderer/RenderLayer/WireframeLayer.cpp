@@ -64,9 +64,9 @@ namespace Engine
         ComPtr<ID3DBlob> psBlod;
 
         // 셰이더 .cso 파일 로드.
-        HRESULT hr = D3DReadFileToBlob(L"Shader/VertexShader.cso", &vsBlod);
+        HRESULT hr = D3DReadFileToBlob(L"Shader/MeshVertexShader.cso", &vsBlod);
         FAILCHECK(hr, L"Failed to read VertexShader.cso", false)
-        hr = D3DReadFileToBlob(L"Shader/PixelShader.cso", &psBlod);
+        hr = D3DReadFileToBlob(L"Shader/MeshPixelShader.cso", &psBlod);
         FAILCHECK(hr, L"Failed to read PixelShader.cso", false)
 
         // 셰이더 객체 생성.
@@ -98,9 +98,18 @@ namespace Engine
                 0
             },
             {
-                "COLOR",
+                "NORMAL",
                 0,
-                DXGI_FORMAT_R32G32B32A32_FLOAT,
+                DXGI_FORMAT_R32G32B32_FLOAT,
+                0,
+                D3D11_APPEND_ALIGNED_ELEMENT,
+                D3D11_INPUT_PER_VERTEX_DATA,
+                0
+            },
+            {
+            "TEXCOORD",
+                0,
+                DXGI_FORMAT_R32G32_FLOAT,
                 0,
                 D3D11_APPEND_ALIGNED_ELEMENT,
                 D3D11_INPUT_PER_VERTEX_DATA,
@@ -110,7 +119,7 @@ namespace Engine
         // Input 레이아웃 추가시 NumElements 값도 추가해주어야 한다.
         hr = device->CreateInputLayout(
             layoutDesc,
-            2,
+            3,
             vsBlod->GetBufferPointer(),
             vsBlod->GetBufferSize(),
             &inputLayout

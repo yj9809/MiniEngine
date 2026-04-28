@@ -255,6 +255,12 @@ namespace Engine
 		return count;
 	}
 
+	void D3D11Renderer::ReleaseBuffer(BufferHandle buffer)
+	{
+		// ComPtr이기 때문에 Map에서 삭제만 해주면 된다.
+		bufferMap.erase(buffer);
+	}
+
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
 	{
 		// FILP_DISCARD 방식은 Present() 후 렌더 타겟 바인딩이 해제되므로 매 프레임 재바인딩 필요.

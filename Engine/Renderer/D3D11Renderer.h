@@ -44,6 +44,9 @@ namespace Engine
 		// 외부에서 정점/인덱스 버퍼를 생성하기 위한 함수.
 		virtual BufferHandle CreateVertexBuffer(const void* vertexData, UINT vertexDataSize) override;
 		virtual BufferHandle CreateIndexBuffer(const void* indexData, UINT indexDataSize) override;
+		
+		// 버퍼를 반환하기 위한 함수.
+		virtual void ReleaseBuffer(BufferHandle buffer) override;
 
 	private:
 		// Step.1 Device + DeviceContext 생성.

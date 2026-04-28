@@ -104,6 +104,7 @@ namespace Engine
         TransformComponent* rootComponent = nullptr;
         
         // view 행렬.
+        // Todo: MeshRenderer가 받기 위해 Getter 구현 해야함.
         Matrix4 viewMatrix = Matrix4::identity;
         Matrix4 projectionMatrix = Matrix4::identity;
 

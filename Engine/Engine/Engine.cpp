@@ -22,6 +22,7 @@ namespace Engine
 
 	Engine::~Engine()
 	{
+		mainLevel.reset();
 		renderer->GPUShutdown();
 	}
 

@@ -558,6 +558,15 @@ Tick(Time::GetDeltaTime());  // TimeScale 적용된 값으로 Tick
 - `RenderLayer::UpdateConstantBuffer()` — `world * view * projection` WVP 행렬 계산 후 상수 버퍼에 업로드
 - `CameraActor` — WASD(Forward/Right 벡터 기반 이동), 마우스 우클릭 회전(pitch/yaw)
 
+**5-3. Mesh 로딩 준비** 🔄
+
+- MeshVertexShader / MeshPixelShader 신규 작성 (POSITION + NORMAL + UV 포맷)
+- InputLayout 교체 — `POSITION` + `NORMAL(float3)` + `TEXCOORD(float2)`로 변경 (OpaqueLayer, WireframeLayer)
+- PS 디버그 모드 — Normal을 `* 0.5 + 0.5`로 변환해 [0,1] 색상으로 시각화
+- `IRenderer::ReleaseBuffer()` 추가 + `D3D11Renderer` 구현 — Mesh 소멸 시 GPU 버퍼 반환
+- Engine 셧다운 순서 버그 수정 — `mainLevel.reset()` → `GPUShutdown()` 순서 보장
+- `Mesh.h` 설계 완료 — `LoadFromOBJ(IRenderer*, const char*)` 시그니처, Getter 4종
+
 **5-1. TransformComponent (Root Component)** ✅
 
 모든 Actor의 Root Component로 position / rotationEulerDeg / scale을 통합 관리.

@@ -32,5 +32,8 @@ namespace Engine
 		// 버퍼 생성 함수.
 		virtual BufferHandle CreateVertexBuffer(const void* vertexData, UINT vertexDataSize) = 0;
 		virtual BufferHandle CreateIndexBuffer(const void* indexData, UINT indexDataSize) = 0;
+		
+		// 버퍼 반환 함수.
+		virtual void ReleaseBuffer(BufferHandle buffer) = 0;
 	};
 }

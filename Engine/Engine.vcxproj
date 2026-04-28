@@ -106,6 +106,7 @@
     <ClInclude Include="Math\Vector4.h" />
     <ClInclude Include="Renderer\D3D11Renderer.h" />
     <ClInclude Include="Renderer\IRenderer.h" />
+    <ClInclude Include="Renderer\Mesh.h" />
     <ClInclude Include="Renderer\RenderCommand.h" />
     <ClInclude Include="Renderer\RenderLayer\OpaqueLayer.h" />
     <ClInclude Include="Renderer\RenderLayer\LayerScheduler.h" />
@@ -113,6 +114,7 @@
     <ClInclude Include="Renderer\RenderLayer\RenderLayerType.h" />
     <ClInclude Include="Renderer\RenderLayer\WireframeLayer.h" />
     <ClInclude Include="Renderer\ScreenBuffer.h" />
+    <ClInclude Include="Renderer\Vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Actor\Actor.cpp" />
@@ -133,11 +135,14 @@
     <ClCompile Include="Math\Vector3.cpp" />
     <ClCompile Include="Math\Vector4.cpp" />
     <ClCompile Include="Renderer\D3D11Renderer.cpp" />
+    <ClCompile Include="Renderer\Mesh.cpp" />
     <ClCompile Include="Renderer\RenderLayer\OpaqueLayer.cpp" />
     <ClCompile Include="Renderer\RenderLayer\LayerScheduler.cpp" />
     <ClCompile Include="Renderer\RenderLayer\RenderLayer.cpp" />
     <ClCompile Include="Renderer\RenderLayer\WireframeLayer.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
+    <ClCompile Include="Shader\MeshPixelShader.hlsl" />
+    <ClCompile Include="Shader\MeshVertexShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\PixelShader.hlsl">
