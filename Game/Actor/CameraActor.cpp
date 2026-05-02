@@ -10,6 +10,7 @@ void CameraActor::BeginPlay()
     
     mainCamera = AddComponent<Engine::CameraComponent>();
     GetOwner()->SetMainCamera(mainCamera);
+    
 }
 
 void CameraActor::Tick(float deltaTime)

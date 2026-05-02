@@ -38,6 +38,11 @@ namespace Engine
         
         viewMatrix = camera->GetViewMatrix();
         projectionMatrix = camera->GetProjectionMatrix();
+        
+        for (auto& component : components)
+        {
+            component->Draw();
+        }
     }
 
     void Actor::OnDestroy()

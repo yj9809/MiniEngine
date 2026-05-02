@@ -7,11 +7,10 @@ namespace Engine
 {
     OpaqueLayer::OpaqueLayer(ID3D11Device* device)
     {
-        assert(InitShaders(device) && "Failed to initialize shaders for OpaquePass");
-        assert(
-            CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer)
-            && "Failed to create constant buffer for OpaquePass"
-        );
+        bool isShaders = InitShaders(device);
+        assert(isShaders && "Failed to initialize shaders for OpaquePass");
+        bool isConstantBuffer = CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer);
+        assert(isConstantBuffer && "Failed to create constant buffer for OpaquePass");
     }
 
     void OpaqueLayer::Prepare(ID3D11DeviceContext* context)

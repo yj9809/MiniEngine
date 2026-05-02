@@ -17,6 +17,7 @@ namespace Engine
 		virtual void OnAdd();
 		virtual void OnRemove();
 		virtual void Tick(float deltaTime);
+		virtual void Draw();
 
 		Actor& GetOwner() const { return *owner; }
 

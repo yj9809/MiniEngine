@@ -85,7 +85,7 @@ void QuadActor::Draw()
     command.worldMatrix = rootComponent->GetWorldMatrix();
     command.viewMatrix = viewMatrix;
     command.projectionMatrix = projectionMatrix;
-    command.passType = currentPass;
+    command.layerType = currentPass;
 
     renderer->Submit(command);
 }

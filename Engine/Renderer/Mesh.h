@@ -30,5 +30,6 @@ namespace Engine
         
         UINT indexCount = 0;
         UINT stride = 0;
+        
     };
 }

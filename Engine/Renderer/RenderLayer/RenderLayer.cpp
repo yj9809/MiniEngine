@@ -75,5 +75,7 @@ namespace Engine
         context->IASetVertexBuffers(0, 1, &vb, &command.stride, &offset);
         context->IASetIndexBuffer(ibIt->second.Get(), DXGI_FORMAT_R32_UINT, 0);
         context->IASetPrimitiveTopology(command.topology);
+        
+        return true;
     }    
 }

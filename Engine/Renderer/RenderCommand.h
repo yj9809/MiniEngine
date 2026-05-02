@@ -32,6 +32,6 @@ namespace Engine
         Matrix4 projectionMatrix = Matrix4::identity;
         // RenderPass 타입.
         // 해당 타입에 따라 그려질 패스가 달라진다. 기본값은 Opaque.
-        RenderLayerType passType = RenderLayerType::Opaque;
+        RenderLayerType layerType = RenderLayerType::Opaque;
     };
 }

@@ -59,7 +59,7 @@ void TriangleActor::Draw()
     command.stride = sizeof(float) * 7;
     command.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     command.worldMatrix = rootComponent->GetWorldMatrix();
-    command.passType = currentPass;
+    command.layerType = currentPass;
 
     renderer->Submit(command);
 }

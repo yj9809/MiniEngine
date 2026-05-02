@@ -305,7 +305,7 @@ namespace Engine
 		for (const RenderCommand& command : renderCommands)
 		{
 			// PassType별 Command 그룹화.
-			passCommandMap[command.passType].emplace_back(command);
+			passCommandMap[command.layerType].emplace_back(command);
 		}
 		
 		for (auto& command : passCommandMap)
