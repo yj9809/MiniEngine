@@ -1,6 +1,7 @@
 #include "D3D11Renderer.h"
 
 #include <d3d11.h>
+#include <wincodec.h>
 
 #include "Common/Common.h"
 #include "RenderLayer/OpaqueLayer.h"
@@ -45,6 +46,9 @@ namespace Engine
 		layerScheduler.RegisterPassScheduler(
 			RenderLayerType::Wireframe, std::make_unique<WireframeLayer>(device.Get())
 		);
+		
+		// WIC 쓰기 전 COM 초기화를 한 번 진행해줘야 한다.
+		CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 		
 		return true;
 	}
@@ -261,6 +265,36 @@ namespace Engine
 		bufferMap.erase(buffer);
 	}
 
+	TextureHandle D3D11Renderer::CreateTexture(const wchar_t* fileName)
+	{
+		// 1. WIC Imaging Factory 생성.
+		
+		// WIC Factory 생성.
+		ComPtr<IWICImagingFactory> wicFactory;
+		CoCreateInstance(
+			CLSID_WICImagingFactory,
+			nullptr,
+			CLSCTX_INPROC_SERVER,
+			IID_PPV_ARGS(&wicFactory)
+		);
+		
+		// 2. WIC Decoder 생성 및 이미지 파일 로드.
+		ComPtr<IWICBitmapDecoder> wicDecoder;
+		HRESULT hr = wicFactory->CreateDecoderFromFilename(
+			fileName,
+			nullptr,
+			GENERIC_READ,
+			WICDecodeMetadataCacheOnDemand,
+			&wicDecoder
+		);
+		
+		FAILCHECK(hr, L"Failed to create WIC decoder", NULL_TEXTURE);
+	}
+
+	void D3D11Renderer::ReleaseTexture(TextureHandle texture)
+	{
+	}
+
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
 	{
 		// FILP_DISCARD 방식은 Present() 후 렌더 타겟 바인딩이 해제되므로 매 프레임 재바인딩 필요.
@@ -289,6 +323,7 @@ namespace Engine
 		// 생성 역순으로 해제.
 		// ComPtr이라 스마트 포인터로 자동 해제가 되지만 명시적 해제가 필요할 경우 사용.
 		bufferMap.clear();
+		textureMap.clear();
 		depthStencilState.Reset();
 		depthStencilView.Reset();
 		depthStencilTexture.Reset();
@@ -296,6 +331,7 @@ namespace Engine
 		swapChain.Reset();
 		context.Reset();
 		device.Reset();
+		CoUninitialize();
 	}
 	
 	void D3D11Renderer::Render()

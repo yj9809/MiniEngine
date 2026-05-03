@@ -19,8 +19,14 @@ namespace Engine
 {
     Mesh::~Mesh()
     {
-        renderer->ReleaseBuffer(vertexBuffer);
-        renderer->ReleaseBuffer(indexBuffer);
+        if (vertexBuffer)
+        {
+            renderer->ReleaseBuffer(vertexBuffer);
+        }
+        if (indexBuffer)
+        {
+            renderer->ReleaseBuffer(indexBuffer);
+        }
     }
 
     std::shared_ptr<Mesh> Mesh::LoadFromOBJ(IRenderer* renderer, const char* fileName)

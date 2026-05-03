@@ -47,6 +47,12 @@ namespace Engine
 		
 		// 버퍼를 반환하기 위한 함수.
 		virtual void ReleaseBuffer(BufferHandle buffer) override;
+		
+		// 외부에서 텍스쳐를 생성하기 위한 함수.
+		virtual TextureHandle CreateTexture(const wchar_t* fileName) override;
+		
+		// 텍스처를 반환하기 위한 함수.
+		virtual void ReleaseTexture(TextureHandle texture) override;
 
 	private:
 		// Step.1 Device + DeviceContext 생성.
@@ -94,6 +100,12 @@ namespace Engine
 		ComPtr<ID3D11Texture2D> depthStencilTexture;
 		ComPtr<ID3D11DepthStencilView> depthStencilView;
 		ComPtr<ID3D11DepthStencilState> depthStencilState;
+		
+		// 텍스처를 담아놓는 컨테이너.
+		std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>> textureMap;
+		
+		// 텍스처 핸들 생성용 카운터.
+		TextureHandle nextTextureHandle = 1;
 	};
 }
 

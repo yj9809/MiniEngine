@@ -19,11 +19,10 @@ void TestMeshActor::BeginPlay()
     Actor::BeginPlay();
     
     meshRenderer = AddComponent<Engine::MeshRendererComponent>();
-    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "C:/Users/dkrkt/OneDrive/Desktop/MiniEngine/Engine/Asset/Cube.obj"));
+    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "C:/Users/dkrkt/OneDrive/Desktop/MiniEngine/Engine/Asset/Porsche_911_GT2.obj"));
     
     meshRenderer->Initialize(renderer);
     
-    rootComponent->SetLocalScale({ 0.03f, 0.03f, 0.03f });
     rootComponent->SetLocalPosition({ 0.0f, -1.0f, 3.f });
 }
 

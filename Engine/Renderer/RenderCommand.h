@@ -8,9 +8,13 @@
 
 namespace Engine
 {
-    // 정수 값을 버퍼 핸들로 사용하는 간단한 구조체.
+    // 버퍼를 정수 값 핸들로 관리하기 위한 타입 별칭.
     using BufferHandle = uint32_t;
     static constexpr BufferHandle NULL_BUFFER = 0;
+    
+    // 텍스처를 정수 값 핸들로 관리하기 위한 타입 별칭.
+    using TextureHandle = uint32_t;
+    static constexpr TextureHandle NULL_TEXTURE = 0;
 
     struct RenderCommand
     {
@@ -18,6 +22,8 @@ namespace Engine
         BufferHandle vertexBuffer = NULL_BUFFER;
         // 인덱스 버퍼 핸들.
         BufferHandle indexBuffer = NULL_BUFFER;
+        // 텍스처 핸들.
+        TextureHandle texture = NULL_TEXTURE;
         // 인덱스 버퍼 크기 설정용 변수.
         UINT indexCount = 0;
         // 정점 하나의 크기 설정용 변수.
