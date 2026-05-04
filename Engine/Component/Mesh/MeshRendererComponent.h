@@ -10,6 +10,7 @@
 namespace Engine
 {
     class Mesh;
+    class Texture;
     class IRenderer;
     
     class ENGINE_API MeshRendererComponent : public Component
@@ -19,6 +20,8 @@ namespace Engine
     public:
         void SetMesh(std::shared_ptr<Mesh> newMesh);
         
+        void SetTexture(std::shared_ptr<Texture> newTexture);
+        
         void SetLayerType(RenderLayerType newLayerType);
         
         void Initialize(IRenderer* renderer);
@@ -27,6 +30,8 @@ namespace Engine
         
     private:
         std::shared_ptr<Mesh> mesh;
+        
+        std::shared_ptr<Texture> texture;
         
         RenderLayerType layerType = RenderLayerType::Opaque;
         

@@ -5,7 +5,10 @@ struct VSOutput
 	float2 uv : TEXCOORD;
 };
 
+Texture2D gTexture : register(t0);
+SamplerState gSampler : register(s0);
+
 float4 PS(VSOutput input) : SV_TARGET
 {
-	return float4(input.normal * 0.5f + 0.5f, 1.0f);
+	return gTexture.Sample(gSampler, input.uv);
 }

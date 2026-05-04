@@ -8,6 +8,7 @@
 #include "Core/Time.h"
 #include "Level/Level.h"
 #include "Renderer/Mesh.h"
+#include "Renderer/Texture.h"
 
 void TestMeshActor::Initialize(Engine::IRenderer* renderer)
 {
@@ -19,8 +20,8 @@ void TestMeshActor::BeginPlay()
     Actor::BeginPlay();
     
     meshRenderer = AddComponent<Engine::MeshRendererComponent>();
-    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "C:/Users/dkrkt/OneDrive/Desktop/MiniEngine/Engine/Asset/Porsche_911_GT2.obj"));
-    
+    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "C:/Users/dkrkt/OneDrive/Desktop/MiniEngine/Engine/Asset/world.obj"));
+    meshRenderer->SetTexture(Engine::Texture::LoadFromFile(renderer, L"D:/모델링/world/world_giant.jpg"));
     meshRenderer->Initialize(renderer);
     
     rootComponent->SetLocalPosition({ 0.0f, -1.0f, 3.f });

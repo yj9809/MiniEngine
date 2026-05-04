@@ -3,7 +3,8 @@
 namespace Engine
 {
     void RenderLayer::Execute(ID3D11DeviceContext* context, const std::vector<RenderCommand>& commands,
-        const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>>& bufferMap)
+        const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>>& bufferMap,
+        const std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>>& textureMap)
     {
         for (const RenderCommand& command : commands)
         {
@@ -12,7 +13,7 @@ namespace Engine
                 continue;
             }
             UpdateConstantBuffer(context, command);            
-            Draw(context, command);
+            Draw(context, command, textureMap);
         }
         OnPostExecute(context);
     }

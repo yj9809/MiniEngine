@@ -31,7 +31,10 @@ namespace Engine
         context->PSSetShader(pixelShader.Get(), nullptr, 0);
     }
 
-    void WireframeLayer::Draw(ID3D11DeviceContext* context, const RenderCommand& command)
+    void WireframeLayer::Draw(
+        ID3D11DeviceContext* context, 
+        const RenderCommand& command,
+        const std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>>& textureMap)
     {
         context->DrawIndexed(command.indexCount, 0, 0);
     }

@@ -48,7 +48,9 @@ namespace Engine
 		);
 		
 		// WIC 쓰기 전 COM 초기화를 한 번 진행해줘야 한다.
-		CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+		
+		FAILCHECK(hr, L"Failed COM initialization", false)
 		
 		return true;
 	}
@@ -271,28 +273,111 @@ namespace Engine
 		
 		// WIC Factory 생성.
 		ComPtr<IWICImagingFactory> wicFactory;
-		CoCreateInstance(
+		HRESULT hr = CoCreateInstance(
 			CLSID_WICImagingFactory,
 			nullptr,
 			CLSCTX_INPROC_SERVER,
 			IID_PPV_ARGS(&wicFactory)
 		);
+		FAILCHECK(hr, L"Failed to create WIC Imaging Factory", NULL_TEXTURE)
 		
 		// 2. WIC Decoder 생성 및 이미지 파일 로드.
 		ComPtr<IWICBitmapDecoder> wicDecoder;
-		HRESULT hr = wicFactory->CreateDecoderFromFilename(
+		
+		hr = wicFactory->CreateDecoderFromFilename(
 			fileName,
 			nullptr,
 			GENERIC_READ,
 			WICDecodeMetadataCacheOnDemand,
 			&wicDecoder
 		);
+		FAILCHECK(hr, L"Failed to create WIC decoder", NULL_TEXTURE)
 		
-		FAILCHECK(hr, L"Failed to create WIC decoder", NULL_TEXTURE);
+		// 3. 이미지의 프레임 가져오기.		
+		ComPtr<IWICBitmapFrameDecode> wicFrame;
+		
+		hr = wicDecoder->GetFrame(0, &wicFrame);
+		FAILCHECK(hr, L"Failed to get frame", NULL_TEXTURE)
+		
+		// 4. 이미지 사이즈 가져오기.
+		UINT width = 0;
+		UINT height = 0;
+		
+		hr = wicFrame->GetSize(&width, &height);
+		FAILCHECK(hr, L"Failed to get frame size", NULL_TEXTURE)
+		
+		// 5. 이미지 변환기 생성.
+		ComPtr<IWICFormatConverter> wicConverter;
+		hr = wicFactory->CreateFormatConverter(&wicConverter);
+		FAILCHECK(hr, L"Failed to create WIC format converter", NULL_TEXTURE)
+		
+		// 6. 이미지 포맷 변환 (DirectX에서 지원하는 포맷으로).
+		// PNG/JPG는 색상표를 사용하지 않아 초기화 시 값을 넘겨주지 않아도 된다.
+		// 팔레트 기반 변환이 아니기 때문에 디더링도 필요 없다.
+		hr = wicConverter->Initialize(
+			wicFrame.Get(),						// 원본.
+			GUID_WICPixelFormat32bppRGBA,		// 변환할 포맷 (RGBA 8bit).
+			WICBitmapDitherTypeNone,			// 디더링 없음.
+			nullptr,							// 팔레트 (필요 없음).
+			0.0f,								// 알파 임계값 (팔레트 변환 시에만 사용).
+			WICBitmapPaletteTypeCustom			// 팔레트 유형 (필요 없음).
+		);
+		FAILCHECK(hr, L"Failed to initialize WIC format converter", NULL_TEXTURE)
+		
+		// 7. 변환된 이미지 데이터를 배열로 꺼내기.
+		// 이미지 한 행(row)의 바이트 수 (RGBA 각 1바이트 씩 총 4바이트).
+		UINT stride = width * 4;
+		
+		// 버퍼 크기는 이미지 전체 크기 (행 바이트 수 * 높이).
+		UINT bufferSize = stride * height;
+		
+		// 버퍼 선언.
+		std::vector<uint8_t> pixelBuffer(bufferSize);
+		
+		// 픽셀 버퍼에 가져오기.
+		hr = wicConverter->CopyPixels(
+			nullptr,				// 변환된 이미지 전체를 복사하기 위해 null로 설정.
+			stride,					// 한 행의 바이트 수.
+			bufferSize,				// 버퍼 크기.
+			pixelBuffer.data()		// 변환된 이미지 데이터를 받을 버퍼.
+		);
+		FAILCHECK(hr, L"Failed to copy pixels from WIC converter", NULL_TEXTURE)
+		
+		// 8. Texture2D 생성.
+		// 텍스처 생성용 설명서.
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.Width = width;
+		textureDesc.Height = height;
+		textureDesc.MipLevels = 1;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.Usage = D3D11_USAGE_IMMUTABLE; // 변경 불가능한 텍스처 (생성 시 데이터 제공 필요).
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE; // 셰이더에서 읽을 수 있는 텍스처로 바인딩.
+		
+		// 업로드할 데이터 연결.
+		D3D11_SUBRESOURCE_DATA initData = {};
+		initData.pSysMem = pixelBuffer.data(); // 변환된 이미지 데이터.
+		initData.SysMemPitch = stride; // 한 행의 바이트 수.
+		
+		// 텍스처 생성.
+		ComPtr<ID3D11Texture2D> texture;
+		hr = device->CreateTexture2D(&textureDesc, &initData, &texture);
+		FAILCHECK(hr, L"Failed to create texture", NULL_TEXTURE)
+		
+		// 9. Shader Resource View 생성.
+		ComPtr<ID3D11ShaderResourceView> textureView;
+		hr = device->CreateShaderResourceView(texture.Get(), nullptr, &textureView);
+		FAILCHECK(hr, L"Failed to create shader resource view", NULL_TEXTURE)
+		
+		TextureHandle textureHandle = nextTextureHandle++;
+		textureMap[textureHandle] = textureView;
+		return textureHandle;
 	}
 
 	void D3D11Renderer::ReleaseTexture(TextureHandle texture)
 	{
+		textureMap.erase(texture);
 	}
 
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
@@ -350,7 +435,7 @@ namespace Engine
 			if (pass)
 			{
 				pass->Prepare(context.Get());
-				pass->Execute(context.Get(), command.second, bufferMap);
+				pass->Execute(context.Get(), command.second, bufferMap, textureMap);
 			}
 		}
 		

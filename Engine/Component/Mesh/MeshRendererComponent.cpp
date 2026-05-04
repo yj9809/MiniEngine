@@ -6,12 +6,18 @@
 #include "Level/Level.h"
 #include "Renderer/IRenderer.h"
 #include "Renderer/Mesh.h"
+#include "Renderer/Texture.h"
 
 namespace Engine
 {
     void MeshRendererComponent::SetMesh(std::shared_ptr<Mesh> newMesh)
     {
         mesh = newMesh;
+    }
+
+    void MeshRendererComponent::SetTexture(std::shared_ptr<Texture> newTexture)
+    {
+        texture = newTexture;
     }
 
     void MeshRendererComponent::SetLayerType(RenderLayerType newLayerType)
@@ -40,6 +46,7 @@ namespace Engine
         
         renderCommand.vertexBuffer = vertexBuffer;
         renderCommand.indexBuffer = indexBuffer;
+        renderCommand.texture = texture ? texture->GetTextureHandle() : NULL_TEXTURE;
         renderCommand.indexCount = indexCount;
         renderCommand.stride = stride;
         renderCommand.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

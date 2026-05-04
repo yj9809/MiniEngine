@@ -129,18 +129,21 @@ namespace Engine
                     }
 
                     const char* face = tokenStart;
-                    long posIndex = strtol(face, const_cast<char**>(&face), 10);
+                    long posIndex = 0, uvIndex = 0, normalIndex = 0;
+                    
+                    posIndex = strtol(face, const_cast<char**>(&face), 10);
                     if (*face == '/')
                     {
                         face++;
+                        
+                        uvIndex = strtol(face, const_cast<char**>(&face), 10);
+                        if (*face == '/')
+                        {
+                            face++;
+                            normalIndex = strtol(face, const_cast<char**>(&face), 10);
+                        }
                     }
-                    long uvIndex = strtol(face, const_cast<char**>(&face), 10);
-                    if (*face == '/')
-                    {
-                        face++;
-                    }
-                    long normalIndex = strtol(face, const_cast<char**>(&face), 10);
-
+                    
                     Vertex vertex;
                     if (posIndex > 0)
                     {
