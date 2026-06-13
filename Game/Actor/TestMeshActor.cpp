@@ -26,7 +26,7 @@ void TestMeshActor::BeginPlay()
     meshRenderer->SetTexture(Engine::Texture::LoadFromFile(renderer, L"D:/모델링/world/world_giant.jpg"));
     meshRenderer->Initialize(renderer);
     
-    rootComponent->SetLocalPosition({ 10.0f, 0.0f, 0.0f });
+    rootComponent->SetLocalPosition({ 2.0f, 0.0f, 0.0f });
     
     // --- RotationX 부호 검증 로그 ---
     const float rad90 = 3.14159265f * 0.5f;   // 90도 = π/2
