@@ -49,9 +49,9 @@ namespace Engine
         float pitch = rotation.x * (PI / 180.f);
         float yaw = rotation.y * (PI / 180.f);
         
-        forward.x = std::cos(pitch) * std::sin(yaw);
-        forward.y = -std::sin(pitch);
-        forward.z = std::cos(pitch) * std::cos(yaw);
+        forward.x = std::cos(pitch) * std::cos(yaw);
+        forward.y = std::cos(pitch) * std::sin(yaw);
+        forward.z = std::sin(pitch);
         
         Vector3 cameraPosition = GetOwner().GetPosition();
         

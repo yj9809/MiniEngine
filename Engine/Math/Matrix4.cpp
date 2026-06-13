@@ -210,14 +210,14 @@ namespace Engine
 		Matrix4 result;
 
 		// 1	0		0		0
-		// 0	cos		-sin	0
-		// 0	sin		cos		0
+		// 0	cos		sin		0
+		// 0	-sin	cos		0
 		// 0	0		0		1
 
 		result.m11 = cos(radians);
-		result.m12 = -sin(radians);
+		result.m12 = sin(radians);
 
-		result.m21 = sin(radians);
+		result.m21 = -sin(radians);
 		result.m22 = cos(radians);
 
 		return result;
@@ -260,10 +260,10 @@ namespace Engine
 	}
 
 	// 곱하는 순서에 따라 결과가 달라진다.
-	// zxy 순서로 회전 행렬이라면 z * x * y 순서로 곱해야 한다.
-	Matrix4 Matrix4::Rotation(float x, float y, float z)
+	// ZYX 순서로 회전 행렬이라면 X * Y * Z 순서로 곱해야 한다.
+	Matrix4 Matrix4::Rotation(float roll, float pitch, float yaw)
 	{
-		return RotationZ(z) * RotationX(x) * RotationY(y);
+		return RotationX(roll) * RotationY(pitch) * RotationZ(yaw);
 	}
 
 	Matrix4 Matrix4::Rotation(const Vector3& rotation)

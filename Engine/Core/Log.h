@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Common/Common.h"
+
 #include <format>
 #include <string_view>
 #include <iostream>
@@ -8,7 +10,7 @@
 namespace Engine
 {
     // FAILCHECK(HRESULT 기반)로 처리하지 않는 경우에도 로그를 남기기 위한 간단한 로그 클래스.
-    class Log
+    class ENGINE_API Log
     {
     public:
         // 로그는 정적 함수만 제공하는 유틸리티 클래스이므로, 인스턴스 생성을 막는다.

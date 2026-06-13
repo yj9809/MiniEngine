@@ -22,9 +22,9 @@ void CameraActor::Tick(float deltaTime)
     float yaw   = rotation.y * (PI / 180.f);
 
     Engine::Vector3 forward;
-    forward.x = cos(pitch) * sin(yaw);
-    forward.y = -sin(pitch);
-    forward.z = cos(pitch) * cos(yaw);
+    forward.x = std::cos(pitch) * std::cos(yaw);
+    forward.y = std::cos(pitch) * std::sin(yaw);
+    forward.z = std::sin(pitch);
     forward = forward.Normalize();
 
     Engine::Vector3 right = Engine::Vector3::up.Cross(forward).Normalize();
