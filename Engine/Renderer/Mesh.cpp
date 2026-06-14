@@ -1,7 +1,5 @@
 ﻿#include "Mesh.h"
 
-#include <chrono>
-
 #include "IRenderer.h"
 #include "Core/Log.h"
 #include "Math/Vector3.h"
@@ -31,15 +29,12 @@ namespace Engine
 
     std::shared_ptr<Mesh> Mesh::LoadFromOBJ(IRenderer* renderer, const char* fileName)
     {
-        // Test: OBJ 파일 로드 시간 측정.
-        auto startTime = std::chrono::high_resolution_clock::now();
-        
         std::ifstream file(fileName);
         std::string line;
 
         if (!file.is_open())
         {
-            Log::Error("Failed to open OBJ file: %s", fileName);
+            Log::Error("Failed to open OBJ file: {}", fileName);
             return nullptr;
         }
 
@@ -214,11 +209,6 @@ namespace Engine
         mesh->indexCount = static_cast<UINT>(indices.size());
         mesh->stride = sizeof(Vertex);
 
-        // Test: OBJ 파일 로드 시간 측정.
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-        std::cout << duration << "ms" << std::endl;
-        
         return mesh;
     }
 }

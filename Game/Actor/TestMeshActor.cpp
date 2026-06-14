@@ -1,15 +1,11 @@
 ﻿#include "TestMeshActor.h"
 
-#include <chrono>
-
 #include "Component/Mesh/MeshRendererComponent.h"
 #include "Component/Transform/TransformComponent.h"
-#include "Core/Log.h"
 #include "Core/Time.h"
 #include "Level/Level.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Texture.h"
-#include "Math/Matrix4.h"
 #include "Math/Vector3.h"
 
 void TestMeshActor::Initialize(Engine::IRenderer* renderer)
@@ -27,12 +23,6 @@ void TestMeshActor::BeginPlay()
     meshRenderer->Initialize(renderer);
     
     rootComponent->SetLocalPosition({ 2.0f, 0.0f, 0.0f });
-    
-    // --- RotationX 부호 검증 로그 ---
-    const float rad90 = 3.14159265f * 0.5f;   // 90도 = π/2
-    Engine::Matrix4 rx = Engine::Matrix4::RotationX(rad90);
-    Engine::Vector3 v = rx.TransformVector(Engine::Vector3(0.0f, 1.0f, 0.0f));
-    Engine::Log::Info("RotationX(90) * (0,1,0) = ({}, {}, {})", v.x, v.y, v.z);
 }
 
 void TestMeshActor::Tick(float deltaTime)
