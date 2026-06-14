@@ -22,8 +22,8 @@ void TestMeshActor::BeginPlay()
     Actor::BeginPlay();
     
     meshRenderer = AddComponent<Engine::MeshRendererComponent>();
-    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "C:/Users/dkrkt/OneDrive/Desktop/MiniEngine/Engine/Asset/world.obj"));
-    meshRenderer->SetTexture(Engine::Texture::LoadFromFile(renderer, L"D:/모델링/world/world_giant.jpg"));
+    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "Asset/world.obj"));
+    meshRenderer->SetTexture(Engine::Texture::LoadFromFile(renderer, L"Asset/world_giant.jpg"));
     meshRenderer->Initialize(renderer);
     
     rootComponent->SetLocalPosition({ 2.0f, 0.0f, 0.0f });

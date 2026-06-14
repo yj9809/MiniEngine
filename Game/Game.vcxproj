@@ -102,7 +102,8 @@
       <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y /E /I "$(SolutionDir)Game\Asset" "$(OutDir)Asset"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -123,7 +124,8 @@
       <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y /E /I "$(SolutionDir)Game\Asset" "$(OutDir)Asset"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -142,7 +144,8 @@
       <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y /E /I "$(SolutionDir)Game\Asset" "$(OutDir)Asset"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -163,7 +166,8 @@
       <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y /E /I "$(SolutionDir)Game\Asset" "$(OutDir)Asset"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

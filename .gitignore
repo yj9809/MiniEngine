@@ -105,6 +105,8 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.obj
+# 데모용 3D 모델(.obj)은 빌드 오브젝트(.obj)와 확장자가 겹쳐 무시되므로 예외 처리
+!Game/Asset/*.obj
 *.idb
 *.iobj
 *.pch
