@@ -11,7 +11,6 @@
 namespace Engine
 {
     class Mesh;
-    class Texture;
     class IRenderer;
     class Material;
     

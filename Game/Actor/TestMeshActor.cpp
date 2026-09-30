@@ -1,5 +1,7 @@
 ﻿#include "TestMeshActor.h"
 
+#include <memory>
+
 #include "Component/Mesh/MeshRendererComponent.h"
 #include "Component/Transform/TransformComponent.h"
 #include "Core/Time.h"
