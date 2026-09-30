@@ -7,6 +7,7 @@
 #include "Renderer/IRenderer.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Texture.h"
+#include "Renderer/Material.h"
 
 namespace Engine
 {
@@ -15,9 +16,13 @@ namespace Engine
         mesh = newMesh;
     }
 
-    void MeshRendererComponent::SetTexture(std::shared_ptr<Texture> newTexture)
+    void MeshRendererComponent::SetMaterial(size_t slot, std::shared_ptr<Material> newMaterial)
     {
-        texture = newTexture;
+        if (materials.size() <= slot)
+        {
+            materials.resize(slot + 1);
+        }
+        materials[slot] = std::move(newMaterial);
     }
 
     void MeshRendererComponent::SetLayerType(RenderLayerType newLayerType)
@@ -46,7 +51,19 @@ namespace Engine
         
         renderCommand.vertexBuffer = vertexBuffer;
         renderCommand.indexBuffer = indexBuffer;
-        renderCommand.texture = texture ? texture->GetTextureHandle() : NULL_TEXTURE;
+
+        // 기존 Texture를 사용하지 않고 MaterialTexture를 사용.     
+        if(!materials.empty() && materials[0])
+        {
+            const auto& materialTexture = materials[0]->GetMainTexture();
+
+            renderCommand.texture = materialTexture ? materialTexture->GetTextureHandle() : NULL_TEXTURE;
+        }
+        else
+        {
+            renderCommand.texture = NULL_TEXTURE;
+        }
+
         renderCommand.indexCount = indexCount;
         renderCommand.stride = stride;
         renderCommand.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
