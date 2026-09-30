@@ -26,6 +26,10 @@ void TestMeshActor::BeginPlay()
     // Texture를 직접 설정하는 대신 Material을 생성하고, Material에 Texture를 설정한 후 MeshRendererComponent에 Material을 설정.
     const auto& material = std::make_shared<Engine::Material>();
     material->SetMainTexture(Engine::Texture::LoadFromFile(renderer, L"Asset/world_giant.jpg"));
+
+    // Material Pixel Shader에 전달할 상수 버퍼에 baseColor를 설정.
+    material->SetBaseColor({ 1.0f, 0.3f, 0.3f, 1.0f }); // RGBA
+
     meshRenderer->SetMaterial(0, material);
 
     meshRenderer->Initialize(renderer);

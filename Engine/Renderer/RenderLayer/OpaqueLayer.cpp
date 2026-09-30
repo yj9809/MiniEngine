@@ -2,6 +2,7 @@
 
 #include <d3dcompiler.h>
 #include <cassert>
+#include <cstring>
 
 namespace Engine
 {
@@ -11,10 +12,19 @@ namespace Engine
         assert(isShaders && "Failed to initialize shaders for OpaquePass");
         bool isConstantBuffer = CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer);
         assert(isConstantBuffer && "Failed to create constant buffer for OpaquePass");
+
         // 픽셀 셰이더에 전달할 상수 버퍼 생성.
         bool isMaterialBuffer = CreateConstantBuffer(device, sizeof(MaterialConstantBuffer), materialConstantBuffer);
         assert(isMaterialBuffer && "Failed to create material constant buffer for OpaquePass");
-        
+
+        // 정점 셰이더에 전달할 월드 행렬 상수 버퍼 생성.
+        bool isWorldBuffer = CreateConstantBuffer(device, sizeof(Matrix4), worldConstantBuffer);
+        assert(isWorldBuffer && "Failed to create world constant buffer for OpaquePass");
+
+        // 픽셀 셰이더에 전달할 조명 상수 버퍼 생성.
+        bool isLightingBuffer = CreateConstantBuffer(device, sizeof(LightingConstantBuffer), lightingConstantBuffer);
+        assert(isLightingBuffer && "Failed to create lighting constant buffer for OpaquePass");
+
         // 샘플링 규칙 생성용 설명서.
         D3D11_SAMPLER_DESC samplerDesc = {};
         samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // 선형 필터링.
@@ -34,6 +44,25 @@ namespace Engine
         context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
         // 픽셀 셰이더에 버퍼 등록.
         context->PSSetConstantBuffers(0, 1, materialConstantBuffer.GetAddressOf());
+        // 정점 셰이더에 월드 행렬 상수 버퍼 등록.
+        context->VSSetConstantBuffers(1, 1, worldConstantBuffer.GetAddressOf());
+        
+        // 광원은 하나의 방향광만 존재한다고 가정.
+        #pragma region Lighting 상수 버퍼 업데이트.
+        LightingConstantBuffer lightingBuffer{};
+        // 조명 방향은 위에서 아래로 향하는 방향으로 설정.
+        lightingBuffer.lightDirection = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+        
+        D3D11_MAPPED_SUBRESOURCE mappedResource{};
+        HRESULT hr = context->Map(lightingConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        FAILCHECK(hr, L"Failed to map lighting constant buffer", )
+
+        memcpy(mappedResource.pData, &lightingBuffer, sizeof(LightingConstantBuffer));
+
+        context->Unmap(lightingConstantBuffer.Get(), 0);
+        #pragma endregion
+        // 픽셀 셰이더에 조명 상수 버퍼 등록.
+        context->PSSetConstantBuffers(1, 1, lightingConstantBuffer.GetAddressOf());
 
         // InputLayout 등록.
         context->IASetInputLayout(inputLayout.Get());
@@ -51,7 +80,7 @@ namespace Engine
         const RenderCommand& command,
         const std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>>& textureMap)
     {
-        // 픽셀 셰이더에 전달할 상수 버퍼 업데이트.
+        #pragma region Material 상수 버퍼 업데이트.
         MaterialConstantBuffer materialBuffer{};
         materialBuffer.baseColor = command.baseColor;
 
@@ -63,6 +92,16 @@ namespace Engine
         memcpy(mappedResource.pData, &materialBuffer, sizeof(MaterialConstantBuffer));
 
         context->Unmap(materialConstantBuffer.Get(), 0);
+        #pragma endregion
+
+        #pragma region World 상수 버퍼 업데이트.
+        hr = context->Map(worldConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        FAILCHECK(hr, L"Failed to map world constant buffer", )
+
+        memcpy(mappedResource.pData, &command.worldMatrix, sizeof(Matrix4));
+
+        context->Unmap(worldConstantBuffer.Get(), 0);
+        #pragma endregion
 
         // Texture 바인딩.
         ID3D11ShaderResourceView* textureView = nullptr;

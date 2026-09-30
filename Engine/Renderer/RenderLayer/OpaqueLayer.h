@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "LayerScheduler.h"
+#include "Math/Vector4.h"
 
 namespace Engine
 {
@@ -41,10 +42,22 @@ namespace Engine
         ComPtr<ID3D11SamplerState> samplerState;
 
         // 픽셸 세이더에 전달할 상수 버퍼.
+        // 추후 Material 파라미터 확장을 쉽게 하기 위해 구조리로 정의.
         struct MaterialConstantBuffer
         {
             Vector4 baseColor;
         };
         ComPtr<ID3D11Buffer> materialConstantBuffer;
+
+        // 정점 셰이더에 전달한 월드 행렬 상수 버퍼.
+        ComPtr<ID3D11Buffer> worldConstantBuffer;
+
+        // 픽셀 셰이더에 전달할 조명 상수 버퍼.
+        // 추후 조명 파라미터 확장을 쉽게 하기 위해 구조리로 정의.
+        struct LightingConstantBuffer
+        {
+            Vector4 lightDirection;
+        };
+        ComPtr<ID3D11Buffer> lightingConstantBuffer;
     };
 }
