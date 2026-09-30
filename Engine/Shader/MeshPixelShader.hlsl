@@ -12,6 +12,8 @@ cbuffer MaterialConstantBuffer : register(b0)
 cbuffer LightingConstantBuffer : register(b1)
 {
 	float4 gLightDirection;
+	float4 gLightColor;
+	float4 gAmbientColor;
 };
 
 Texture2D gTexture : register(t0);
@@ -24,7 +26,12 @@ float4 PS(VSOutput input) : SV_TARGET
 	float3 N = normalize(input.normal);
 	float3 L = normalize(-gLightDirection.xyz);
 
-	float diffuse = saturate(dot(N, L));
+	float diffuseFactor = saturate(dot(N, L));
+	
+	float3 ambient = gAmbientColor.rgb * albedo.rgb;
+	float3 diffuse = gLightColor.rgb * diffuseFactor;
+	
+	float3 lighting = ambient + diffuse;
 
-	return float4(albedo.rgb * diffuse, albedo.a);
+	return float4(albedo.rgb * lighting, albedo.a);
 }

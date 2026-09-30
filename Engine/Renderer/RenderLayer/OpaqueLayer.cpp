@@ -52,7 +52,9 @@ namespace Engine
         LightingConstantBuffer lightingBuffer{};
         // 조명 방향은 위에서 아래로 향하는 방향으로 설정.
         lightingBuffer.lightDirection = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
-        
+        lightingBuffer.lightColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // 흰색 조명.
+        lightingBuffer.ambientColor = Vector4(0.1f, 0.1f, 0.1f, 1.0f); // 어두운 환경 조명.
+
         D3D11_MAPPED_SUBRESOURCE mappedResource{};
         HRESULT hr = context->Map(lightingConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         FAILCHECK(hr, L"Failed to map lighting constant buffer", )

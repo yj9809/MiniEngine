@@ -57,6 +57,8 @@ namespace Engine
         struct LightingConstantBuffer
         {
             Vector4 lightDirection;
+            Vector4 lightColor;
+            Vector4 ambientColor;
         };
         ComPtr<ID3D11Buffer> lightingConstantBuffer;
     };

@@ -10,6 +10,6 @@ int main(int argc, char** argv)
 {
     const char* args[] = { argv[0], TEST_FILTER };
     int newArgc = 2;
-    ::testing::InitGoogleTest(&newArgc, const_cast<char**>(args));
+    testing::InitGoogleTest(&newArgc, const_cast<char**>(args));
     return RUN_ALL_TESTS();
 }

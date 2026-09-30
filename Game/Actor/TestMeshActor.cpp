@@ -28,7 +28,7 @@ void TestMeshActor::BeginPlay()
     material->SetMainTexture(Engine::Texture::LoadFromFile(renderer, L"Asset/world_giant.jpg"));
 
     // Material Pixel Shader에 전달할 상수 버퍼에 baseColor를 설정.
-    material->SetBaseColor({ 1.0f, 0.3f, 0.3f, 1.0f }); // RGBA
+    material->SetBaseColor({ 1.0f, 1.0f, 1.0f, 1.0f }); // RGBA
 
     meshRenderer->SetMaterial(0, material);
 
