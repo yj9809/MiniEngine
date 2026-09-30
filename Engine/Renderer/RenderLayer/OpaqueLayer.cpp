@@ -11,6 +11,9 @@ namespace Engine
         assert(isShaders && "Failed to initialize shaders for OpaquePass");
         bool isConstantBuffer = CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer);
         assert(isConstantBuffer && "Failed to create constant buffer for OpaquePass");
+        // 픽셀 셰이더에 전달할 상수 버퍼 생성.
+        bool isMaterialBuffer = CreateConstantBuffer(device, sizeof(MaterialConstantBuffer), materialConstantBuffer);
+        assert(isMaterialBuffer && "Failed to create material constant buffer for OpaquePass");
         
         // 샘플링 규칙 생성용 설명서.
         D3D11_SAMPLER_DESC samplerDesc = {};
@@ -27,8 +30,10 @@ namespace Engine
 
     void OpaqueLayer::Prepare(ID3D11DeviceContext* context)
     {
-        // 셰이더에 버퍼 등록.
+        // 정점 셰이더에 버퍼 등록.
         context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
+        // 픽셀 셰이더에 버퍼 등록.
+        context->PSSetConstantBuffers(0, 1, materialConstantBuffer.GetAddressOf());
 
         // InputLayout 등록.
         context->IASetInputLayout(inputLayout.Get());
@@ -46,13 +51,29 @@ namespace Engine
         const RenderCommand& command,
         const std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>>& textureMap)
     {
+        // 픽셀 셰이더에 전달할 상수 버퍼 업데이트.
+        MaterialConstantBuffer materialBuffer{};
+        materialBuffer.baseColor = command.baseColor;
+
+        D3D11_MAPPED_SUBRESOURCE mappedResource{};
+
+        HRESULT hr = context->Map(materialConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        FAILCHECK(hr, L"Failed to map material constant buffer", )
+
+        memcpy(mappedResource.pData, &materialBuffer, sizeof(MaterialConstantBuffer));
+
+        context->Unmap(materialConstantBuffer.Get(), 0);
+
+        // Texture 바인딩.
+        ID3D11ShaderResourceView* textureView = nullptr;
+
         auto it = textureMap.find(command.texture);
         if (it != textureMap.end())
         {
-            ID3D11ShaderResourceView* textureView = it->second.Get();
-            context->PSSetShaderResources(0, 1, &textureView);
+            textureView = it->second.Get();
         }
-        
+
+        context->PSSetShaderResources(0, 1, &textureView);
         context->DrawIndexed(command.indexCount, 0, 0);
     }
 

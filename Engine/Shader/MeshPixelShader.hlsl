@@ -5,10 +5,15 @@ struct VSOutput
 	float2 uv : TEXCOORD;
 };
 
+cbuffer MaterialConstantBuffer : register(b0)
+{
+	float4 gBaseColor;
+};
+
 Texture2D gTexture : register(t0);
 SamplerState gSampler : register(s0);
 
 float4 PS(VSOutput input) : SV_TARGET
 {
-	return gTexture.Sample(gSampler, input.uv);
+	return gTexture.Sample(gSampler, input.uv) * gBaseColor;
 }

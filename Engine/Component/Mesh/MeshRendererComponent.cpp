@@ -60,10 +60,12 @@ namespace Engine
             const auto& materialTexture = materials[0]->GetMainTexture();
 
             renderCommand.texture = materialTexture ? materialTexture->GetTextureHandle() : NULL_TEXTURE;
+            renderCommand.baseColor = materials[0]->GetBaseColor();
         }
         else
         {
             renderCommand.texture = NULL_TEXTURE;
+            renderCommand.baseColor = Vector4::one;
         }
 
         renderCommand.indexCount = indexCount;

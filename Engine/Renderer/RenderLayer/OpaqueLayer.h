@@ -39,5 +39,12 @@ namespace Engine
         
         // 텍스터 샘플링 규칙 정의 객체.
         ComPtr<ID3D11SamplerState> samplerState;
+
+        // 픽셸 세이더에 전달할 상수 버퍼.
+        struct MaterialConstantBuffer
+        {
+            Vector4 baseColor;
+        };
+        ComPtr<ID3D11Buffer> materialConstantBuffer;
     };
 }

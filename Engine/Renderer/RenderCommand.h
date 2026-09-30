@@ -24,6 +24,8 @@ namespace Engine
         BufferHandle indexBuffer = NULL_BUFFER;
         // 텍스처 핸들.
         TextureHandle texture = NULL_TEXTURE;
+        // 마테리얼 베이스 컬러.
+        Vector4 baseColor = Vector4::one;
         // 인덱스 버퍼 크기 설정용 변수.
         UINT indexCount = 0;
         // 정점 하나의 크기 설정용 변수.
