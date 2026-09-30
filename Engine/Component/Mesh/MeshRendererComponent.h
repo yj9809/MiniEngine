@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <memory>
+#include <vector>
 
 #include "Common/Common.h"
 #include "Component/Component.h"

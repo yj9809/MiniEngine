@@ -6,6 +6,7 @@
 #include "Level/Level.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Texture.h"
+#include "Renderer/Material.h"
 #include "Math/Vector3.h"
 
 void TestMeshActor::Initialize(Engine::IRenderer* renderer)
@@ -19,7 +20,12 @@ void TestMeshActor::BeginPlay()
     
     meshRenderer = AddComponent<Engine::MeshRendererComponent>();
     meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "Asset/world.obj"));
-    meshRenderer->SetTexture(Engine::Texture::LoadFromFile(renderer, L"Asset/world_giant.jpg"));
+
+    // Texture를 직접 설정하는 대신 Material을 생성하고, Material에 Texture를 설정한 후 MeshRendererComponent에 Material을 설정.
+    const auto& material = std::make_shared<Engine::Material>();
+    material->SetMainTexture(Engine::Texture::LoadFromFile(renderer, L"Asset/world_giant.jpg"));
+    meshRenderer->SetMaterial(0, material);
+
     meshRenderer->Initialize(renderer);
     
     rootComponent->SetLocalPosition({ 2.0f, 0.0f, 0.0f });
