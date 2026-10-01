@@ -1,5 +1,6 @@
 #include "Level.h"
 #include "Actor/Actor.h"
+#include "Lighting/LightingSystem.h"
 
 namespace Engine
 {
@@ -72,5 +73,15 @@ namespace Engine
 	{
 		actors.clear();
 		actorsToAdd.clear();
+	}
+
+	LightingSystem* Level::GetLightingSystem()
+	{
+		if(!lightingSystem)
+		{
+			lightingSystem = std::make_unique<LightingSystem>();
+		}
+
+		return lightingSystem.get();
 	}
 }

@@ -15,8 +15,20 @@ namespace Engine
     {
     }
 
+    void Actor::Initialize()
+    {
+        for (auto& component : components)
+        {
+            component->Initialize();
+        }
+    }
+
     void Actor::BeginPlay()
     {
+        for(auto& component : components)
+        {
+            component->BeginPlay();
+        }
     }
 
     void Actor::Tick(float deltaTime)

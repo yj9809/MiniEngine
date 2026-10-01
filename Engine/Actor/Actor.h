@@ -22,13 +22,18 @@ namespace Engine
         RTTI_DECLARATIONS(Actor, RTTI)
 
     public:
+        // 파생 클래스는 기본적으로 생성자에서 Component를 생성하고 AddComponent()로 부착하도록 설계.
         Actor();
         virtual ~Actor();
 
         Actor(const Actor&) = delete;
         Actor& operator=(const Actor&) = delete;
 
-        // 액터가 레벨에 처음 등록될 때 한 번 호출된다. 초기화 로직을 여기에 구현한다.
+        // 액터가 레벨에 등록될 때 한 번 호출된다. 초기화 로직을 여기에 구현한다.
+        virtual void Initialize();
+
+        // 액터가 초기화까지 끝나면 BeginPlay()가 호출된다. 
+        //Tick()이 호출되기 전에 한 번만 호출된다.
         virtual void BeginPlay();
 
         // 매 프레임 호출된다. deltaTime은 초 단위 프레임 경과 시간.

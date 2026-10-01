@@ -13,6 +13,10 @@ namespace Engine
         RTTI_DECLARATIONS(DirectionalLightComponent, Component)
 
     public:
+        virtual void BeginPlay() override;
+
+        virtual void OnRemove() override;
+
         void SetColor(const Vector3& color);
 
         void SetIntensity(float value);

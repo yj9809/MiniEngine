@@ -16,6 +16,8 @@ namespace Engine
 
 		virtual void OnAdd();
 		virtual void OnRemove();
+		virtual void Initialize();
+		virtual void BeginPlay();
 		virtual void Tick(float deltaTime);
 		virtual void Draw();
 

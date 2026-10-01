@@ -12,6 +12,16 @@ namespace Engine
 
 	}
 
+	void Component::Initialize()
+	{
+
+	}
+
+	void Component::BeginPlay()
+	{
+
+	}
+
 	void Component::Tick(float deltaTime)
 	{
 
