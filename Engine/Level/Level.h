@@ -1,14 +1,15 @@
 #pragma once
 
-#include "Common/RTTI.h"
-
 #include <vector>
 #include <memory>
+
+#include "Common/RTTI.h"
 
 namespace Engine
 {
     class Actor;
     class CameraComponent;
+    class DirectionalLightComponent;
 
     // 게임 월드의 한 장면(스테이지, 씬)을 나타내는 클래스.
     // 액터 목록을 소유하고 생명주기(BeginPlay → Tick → Draw → EndLevel)를 관리한다.
@@ -56,5 +57,9 @@ namespace Engine
 
         // 메인 카메라를 찾기 위한 관찰 포인터.
         CameraComponent* mainCamera = nullptr;
+
+        // 현재 레벨에 등록된 방향광 컴포넌트 컨테이너.
+        // 컴포넌트의 소유권은 Actor가 가지며, 여기서는 관찰 포인터만 보관한다.
+        std::vector<DirectionalLightComponent*> directionalLights;
     };
 }
