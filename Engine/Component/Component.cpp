@@ -2,6 +2,20 @@
 
 namespace Engine
 {
+	void Component::DispatchInitialize()
+	{
+		if (lifecycleState != LifecycleState::Constructed)
+		{
+			return;
+		}
+		
+		lifecycleState = LifecycleState::Initializing;
+
+		Initialize();
+
+		lifecycleState = LifecycleState::Initialized;
+	}
+
 	void Component::OnAdd()
 	{
 

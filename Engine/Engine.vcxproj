@@ -86,6 +86,7 @@
   <ItemGroup>
     <ClInclude Include="Actor\Actor.h" />
     <ClInclude Include="Common\Common.h" />
+    <ClInclude Include="Common\LifecycleState.h" />
     <ClInclude Include="Common\RTTI.h" />
     <ClInclude Include="Component\Camera\CameraComponent.h" />
     <ClInclude Include="Component\Component.h" />

@@ -15,12 +15,28 @@ namespace Engine
     {
     }
 
+    void Actor::DispatchInitialize()
+    {
+        if (lifecycleState != LifecycleState::Constructed)
+        {
+            return;
+        }
+        
+        lifecycleState = LifecycleState::Initializing;
+        
+        Initialize();
+        
+        for (auto & component : components)
+        {
+            component->DispatchInitialize();
+        }
+        
+        lifecycleState = LifecycleState::Initialized;
+    }
+
     void Actor::Initialize()
     {
-        for (auto& component : components)
-        {
-            component->Initialize();
-        }
+        
     }
 
     void Actor::BeginPlay()

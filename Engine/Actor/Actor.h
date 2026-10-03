@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Common/RTTI.h"
-#include "Math/Vector3.h"
-#include "Component/Component.h"
-
 #include <memory>
 #include <vector>
 
+#include "Common/RTTI.h"
+#include "Math/Vector3.h"
 #include "Math/Matrix4.h"
+#include "Component/Component.h"
+#include "Common/LifecycleState.h"
 
 namespace Engine
 {
@@ -29,6 +29,9 @@ namespace Engine
         Actor(const Actor&) = delete;
         Actor& operator=(const Actor&) = delete;
 
+        // 엔진 내부에서 초기화를 보장하기 위한 DispatchInitialize() 호출. 외부에서 직접 호출하지 말 것.
+        void DispatchInitialize();
+        
         // 액터가 레벨에 등록될 때 한 번 호출된다. 초기화 로직을 여기에 구현한다.
         virtual void Initialize();
 
@@ -116,5 +119,9 @@ namespace Engine
     private:
         // 이 액터에 부착된 컴포넌트 목록. Actor가 unique_ptr로 소유권 관리.
         std::vector<std::unique_ptr<Component>> components;
+        
+        // 액터의 생명주기 상태.
+        // Constructed -> Initializing -> Initialized -> BeginningPlay -> HasBegunPlay.
+        LifecycleState lifecycleState = LifecycleState::Constructed;
     };
 }
