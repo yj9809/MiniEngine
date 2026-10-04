@@ -39,12 +39,28 @@ namespace Engine
         
     }
 
+    void Actor::DispatchBeginPlay()
+    {
+        if (lifecycleState != LifecycleState::Initialized)
+        {
+            return;
+        }
+        
+        lifecycleState = LifecycleState::BeginningPlay;
+        
+        BeginPlay();
+        
+        for (auto& component : components)
+        {
+            component->DispatchBeginPlay();
+        }
+        
+        lifecycleState = LifecycleState::HasBegunPlay;
+    }
+
     void Actor::BeginPlay()
     {
-        for(auto& component : components)
-        {
-            component->BeginPlay();
-        }
+        
     }
 
     void Actor::Tick(float deltaTime)

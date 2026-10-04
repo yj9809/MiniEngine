@@ -91,12 +91,12 @@
     <ClInclude Include="Component\Camera\CameraComponent.h" />
     <ClInclude Include="Component\Component.h" />
     <ClInclude Include="Component\ICommand.h" />
-    <ClInclude Include="Component\InputSystem\InputComponent.h" />
+    <ClInclude Include="Component\Input\InputComponent.h" />
+    <ClInclude Include="Component\Light\DirectionalLightComponent.h" />
     <ClInclude Include="Component\Mesh\MeshRendererComponent.h" />
     <ClInclude Include="Component\Physics\BoxCollider.h" />
     <ClInclude Include="Component\Physics\Collider.h" />
     <ClInclude Include="Component\Transform\TransformComponent.h" />
-    <ClInclude Include="Core\CollisionSystem.h" />
     <ClInclude Include="Core\Input.h" />
     <ClInclude Include="Core\Log.h" />
     <ClInclude Include="Core\Time.h" />
@@ -105,7 +105,6 @@
     <ClInclude Include="Level\Level.h" />
     <ClInclude Include="Lighting\DirectionalLight.h" />
     <ClInclude Include="Lighting\Light.h" />
-    <ClInclude Include="Lighting\LightingSystem.h" />
     <ClInclude Include="Math\Matrix4.h" />
     <ClInclude Include="Math\Vector2.h" />
     <ClInclude Include="Math\Vector3.h" />
@@ -123,23 +122,24 @@
     <ClInclude Include="Renderer\ScreenBuffer.h" />
     <ClInclude Include="Renderer\Texture.h" />
     <ClInclude Include="Renderer\Vertex.h" />
+    <ClInclude Include="System\CollisionSystem.h" />
+    <ClInclude Include="System\LightingSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Actor\Actor.cpp" />
     <ClCompile Include="Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Component\Component.cpp" />
-    <ClCompile Include="Component\InputSystem\InputComponent.cpp" />
+    <ClCompile Include="Component\Input\InputComponent.cpp" />
+    <ClCompile Include="Component\Light\DirectionalLightComponent.cpp" />
     <ClCompile Include="Component\Mesh\MeshRendererComponent.cpp" />
     <ClCompile Include="Component\Physics\BoxCollider.cpp" />
     <ClCompile Include="Component\Transform\TransformComponent.cpp" />
-    <ClCompile Include="Core\CollisionSystem.cpp" />
     <ClCompile Include="Core\Input.cpp" />
     <ClCompile Include="Core\Log.cpp" />
     <ClCompile Include="Core\Time.cpp" />
     <ClCompile Include="Core\Win32Window.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Level\Level.cpp" />
-    <ClCompile Include="Lighting\LightingSystem.cpp" />
     <ClCompile Include="Math\Matrix4.cpp" />
     <ClCompile Include="Math\Vector2.cpp" />
     <ClCompile Include="Math\Vector3.cpp" />
@@ -152,6 +152,8 @@
     <ClCompile Include="Renderer\RenderLayer\WireframeLayer.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
     <ClCompile Include="Renderer\Texture.cpp" />
+    <ClCompile Include="System\CollisionSystem.cpp" />
+    <ClCompile Include="System\LightingSystem.cpp" />
     <FxCompile Include="Shader\WireframePixelShader.hlsl">
       <FileType>Document</FileType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>

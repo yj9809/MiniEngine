@@ -4,13 +4,15 @@
 #include "Core/Input.h"
 #include "Level/Level.h"
 
+CameraActor::CameraActor()
+{
+    mainCamera = AddComponent<Engine::CameraComponent>();
+}
+
 void CameraActor::BeginPlay()
 {
     Actor::BeginPlay();
-    
-    mainCamera = AddComponent<Engine::CameraComponent>();
     GetOwner()->SetMainCamera(mainCamera);
-    
 }
 
 void CameraActor::Tick(float deltaTime)

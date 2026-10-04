@@ -1,6 +1,6 @@
 #include "Level.h"
 #include "Actor/Actor.h"
-#include "Lighting/LightingSystem.h"
+#include "System/LightingSystem.h"
 
 namespace Engine
 {
@@ -60,15 +60,19 @@ namespace Engine
 		}
 
 		// 대기 버퍼(actorsToAdd)의 액터를 실제 목록으로 이동.
-		// BeginPlay()를 여기서 호출해, AddNewActor() 시점이 아닌 프레임 경계에서 초기화되도록 보장한다.
+		// Initialize와 BeginPlay를 프레임 경계에서 호출한다.
 		for (auto& actor : actorsToAdd)
 		{
-			actor->BeginPlay();
+			// 생명주기 순서를 고려해 DispatchInitialize() → DispatchBeginPlay() 순으로 호출.
+			actor->DispatchInitialize();
+			actor->DispatchBeginPlay();
+			
 			actors.emplace_back(std::move(actor));
 		}
 
 		actorsToAdd.clear();
 	}
+	
 	void Level::EndLevel()
 	{
 		actors.clear();

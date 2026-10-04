@@ -2,7 +2,7 @@
 
 #include "Actor/Actor.h"
 #include "Level/Level.h"
-#include "Lighting/LightingSystem.h"
+#include "System/LightingSystem.h"
 
 namespace Engine
 {

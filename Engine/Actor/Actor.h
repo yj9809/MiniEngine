@@ -31,12 +31,12 @@ namespace Engine
 
         // 엔진 내부에서 초기화를 보장하기 위한 DispatchInitialize() 호출. 외부에서 직접 호출하지 말 것.
         void DispatchInitialize();
-        
         // 액터가 레벨에 등록될 때 한 번 호출된다. 초기화 로직을 여기에 구현한다.
         virtual void Initialize();
 
-        // 액터가 초기화까지 끝나면 BeginPlay()가 호출된다. 
-        //Tick()이 호출되기 전에 한 번만 호출된다.
+        // 엔진 내부에서 BeginPlay를 보장하기 위한 DispatchBeginPlay() 호출. 외부에서 직접 호출하지 말 것.
+        void DispatchBeginPlay();
+        // 액터가 초기화까지 끝나면 BeginPlay()가 호출된다. Tick()이 호출되기 전에 한 번만 호출된다.
         virtual void BeginPlay();
 
         // 매 프레임 호출된다. deltaTime은 초 단위 프레임 경과 시간.
