@@ -94,20 +94,20 @@ TEST(Matrix4Test, ScaleNonUniform)
 // -----------------------------------------------------------------------
 // Rotation — v*M, Z-up LH 기준
 // -----------------------------------------------------------------------
-// RotationX(90°): Y → -Z
-TEST(Matrix4Test, RotationX_Y_to_NegZ)
+// RotationX(90°): Y → +Z
+TEST(Matrix4Test, RotationX_Y_to_PosZ)
 {
     Matrix4 r = Matrix4::RotationX(3.141592f * 0.5f);
     Vector3 y(0.0f, 1.0f, 0.0f);
-    ExpectVec3Near(r.TransformVector(y), Vector3(0.0f, 0.0f, -1.0f));
+    ExpectVec3Near(r.TransformVector(y), Vector3(0.0f, 0.0f, 1.0f));
 }
 
-// RotationX(90°): Z → +Y
-TEST(Matrix4Test, RotationX_Z_to_PosY)
+// RotationX(90°): Z → -Y
+TEST(Matrix4Test, RotationX_Z_to_NegY)
 {
     Matrix4 r = Matrix4::RotationX(3.141592f * 0.5f);
     Vector3 z(0.0f, 0.0f, 1.0f);
-    ExpectVec3Near(r.TransformVector(z), Vector3(0.0f, 1.0f, 0.0f));
+    ExpectVec3Near(r.TransformVector(z), Vector3(0.0f, -1.0f, 0.0f));
 }
 
 // RotationY(90°): X → -Z
@@ -224,7 +224,7 @@ TEST(Matrix4Test, Perspective_NearMapsToZero)
     float nearZ = 1.0f;
     float farZ  = 100.0f;
 
-    Matrix4 proj = Matrix4::PerspectiveFOV(fovY, 1920.0f, 1080.0f, nearZ, farZ);
+    Matrix4 proj = Matrix4::PerspectiveFOV(fovY, 1920.0f / 1080.0f, nearZ, farZ);
 
     // v*M: Vector4(0, 0, nearZ, 1) * proj
     Vector4 v(0.0f, 0.0f, nearZ, 1.0f);
@@ -239,7 +239,7 @@ TEST(Matrix4Test, Perspective_FarMapsToOne)
     float nearZ = 1.0f;
     float farZ  = 100.0f;
 
-    Matrix4 proj = Matrix4::PerspectiveFOV(fovY, 1920.0f, 1080.0f, nearZ, farZ);
+    Matrix4 proj = Matrix4::PerspectiveFOV(fovY, 1920.0f / 1080.0f, nearZ, farZ);
 
     Vector4 v(0.0f, 0.0f, farZ, 1.0f);
     Vector4 clip = proj * v;

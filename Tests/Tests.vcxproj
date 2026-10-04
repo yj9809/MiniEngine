@@ -25,6 +25,15 @@
     <RootNamespace>Tests</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VCPkgLocalAppDataDisabled>true</VCPkgLocalAppDataDisabled>
+    <VcpkgRoot Condition="'$(VcpkgRoot)' == '' and Exists('$(LOCALAPPDATA)\vcpkg\vcpkg.path.txt')">$([System.IO.File]::ReadAllText('$(LOCALAPPDATA)\vcpkg\vcpkg.path.txt').Trim())</VcpkgRoot>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestRoot>$(SolutionDir)</VcpkgManifestRoot>
+    <VcpkgInstalledDir>$(SolutionDir)vcpkg_installed\</VcpkgInstalledDir>
+    <MiniEngineVcpkgTriplet Condition="'$(Platform)' == 'x64'">x64-windows</MiniEngineVcpkgTriplet>
+    <MiniEngineVcpkgTriplet Condition="'$(Platform)' == 'Win32'">x86-windows</MiniEngineVcpkgTriplet>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -53,6 +62,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(VcpkgRoot)\scripts\buildsystems\msbuild\vcpkg.props" Condition="Exists('$(VcpkgRoot)\scripts\buildsystems\msbuild\vcpkg.props')" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
@@ -93,16 +103,17 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Bin\Debug\Engine\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Bin\$(Configuration)\Engine\;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Engine.lib;gtest.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\bin\gtest.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -114,16 +125,17 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Bin\Debug\Engine\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Bin\$(Configuration)\Engine\;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Engine.lib;gtest.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\bin\gtest.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -133,16 +145,17 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Bin\Debug\Engine\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Bin\$(Configuration)\Engine\;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Engine.lib;gtest.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\bin\gtest.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -154,22 +167,24 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)Bin\Debug\Engine\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Engine.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)Bin\$(Configuration)\Engine\;$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Engine.lib;gtest.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
+xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\bin\gtest.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="LevelTest.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="LifecycleTest.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Matrix4Test.cpp" />
     <ClCompile Include="TimeTest.cpp" />
@@ -183,6 +198,7 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VcpkgRoot)\scripts\buildsystems\msbuild\vcpkg.targets" Condition="Exists('$(VcpkgRoot)\scripts\buildsystems\msbuild\vcpkg.targets')" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

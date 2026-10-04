@@ -244,6 +244,9 @@ PublishScripts/
 *.nuget.props
 *.nuget.targets
 
+# vcpkg manifest-mode installed packages
+/vcpkg_installed/
+
 # Microsoft Azure Build Output
 csx/
 *.build.csdef
