@@ -12,6 +12,8 @@ namespace Engine
         void RegisterDirectionalLight(const DirectionalLightComponent* directionalLight);
         void UnregisterDirectionalLight(const DirectionalLightComponent* directionalLight);
 
+        void Clear();
+        
     private:
         std::vector<const DirectionalLightComponent*> directionalLights;
     };

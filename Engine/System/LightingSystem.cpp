@@ -21,4 +21,9 @@ namespace Engine
             directionalLights.erase(it);
         }
     }
+
+    void LightingSystem::Clear()
+    {
+        directionalLights.clear();
+    }
 }

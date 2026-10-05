@@ -10,6 +10,9 @@ namespace Engine
     class Actor;
     class CameraComponent;
     class LightingSystem;
+    class IRenderer;
+    class ResourceManager;
+    class RenderingSystem;
 
     // 게임 월드의 한 장면(스테이지, 씬)을 나타내는 클래스.
     // 액터 목록을 소유하고 생명주기(BeginPlay → Tick → Draw → EndLevel)를 관리한다.
@@ -48,6 +51,12 @@ namespace Engine
         inline CameraComponent* GetMainCamera() const { return mainCamera; }
 
         LightingSystem* GetLightingSystem();
+        
+        // 렌더러와 리소스 매니저를 레벨에 연결한다. 레벨이 소유한 시스템들이 렌더링과 리소스 관리를 수행할 수 있도록 한다.
+        void AttachServices(IRenderer& renderer, ResourceManager& resourceManager);
+        
+        ResourceManager& GetResourceManager() const;
+        RenderingSystem& GetRenderingSystem() const;
 
     protected:
         // 현재 레벨에서 활성 중인 액터 목록. Level이 unique_ptr로 소유권 관리.
@@ -61,5 +70,11 @@ namespace Engine
         CameraComponent* mainCamera = nullptr;
 
         std::unique_ptr<LightingSystem> lightingSystem;
+        
+        // Engine 소유 ResourceManager에 대한 비소유 접근.
+        ResourceManager* resourceManager = nullptr;
+        
+        // 이 Level의 렌더 대상 목록을 소유.
+        std::unique_ptr<RenderingSystem> renderingSystem;
     };
 }

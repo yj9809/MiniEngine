@@ -1,15 +1,15 @@
 #include "Engine.h"
 
-#include "Core/Input.h"
-#include "Core/Win32Window.h"
-#include "Core/Time.h"
-#include "Renderer/D3D11Renderer.h"
-
-#include "Level/Level.h"
-
 #include <fstream>
 #include <filesystem>
 #include <Windows.h>
+
+#include "Core/Input.h"
+#include "Core/Win32Window.h"
+#include "Core/Time.h"
+#include "Level/Level.h"
+#include "Renderer/D3D11Renderer.h"
+#include "Resource/ResourceManager.h"
 
 namespace fs = std::filesystem;
 
@@ -22,8 +22,21 @@ namespace Engine
 
 	Engine::~Engine()
 	{
-		mainLevel.reset();
-		renderer->GPUShutdown();
+		if (mainLevel)
+		{
+			mainLevel->EndLevel();
+			mainLevel.reset();
+		}
+		if (resourceManager)
+		{
+			resourceManager->Clear();
+			resourceManager.reset();
+		}
+		if (renderer)
+		{
+			renderer->GPUShutdown();
+			renderer.reset();
+		}
 	}
 
 	void Engine::Run()
@@ -122,6 +135,8 @@ namespace Engine
 			mainLevel->EndLevel();
 		}
 
+		level->AttachServices(*renderer, *resourceManager);
+		
 		mainLevel = std::move(level);
 		mainLevel->BeginPlay();
 	}
@@ -137,6 +152,8 @@ namespace Engine
 		// 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
 		renderer = std::make_unique<D3D11Renderer>();
 		renderer->GPUInit(window->GetHwnd(), settings.width, settings.height);
+		
+		resourceManager = std::make_unique<ResourceManager>(*renderer);
 	}
 
 	void Engine::LoadSettings()

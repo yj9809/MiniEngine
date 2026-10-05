@@ -11,6 +11,7 @@ namespace Engine
 	class Level;
 	class Win32Window;
 	class IRenderer;
+	class ResourceManager;
 
 	// 엔진의 진입점이자 최상위 관리자 클래스.
 	// 게임 루프(Run), 설정 로드(LoadSettings), 레벨 전환(SetNewLevel)을 담당한다.
@@ -76,6 +77,10 @@ namespace Engine
 		
 		// 렌더러.
 		std::unique_ptr<IRenderer> renderer;
+
+		// 게임 전역 리소스 캐시.
+		// Renderer보다 먼저 파괴되어야 한다.
+		std::unique_ptr<ResourceManager> resourceManager;
 
 		// Settings.txt에서 로드된 설정값.
 		Settings settings;

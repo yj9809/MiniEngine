@@ -1,15 +1,23 @@
 #include "Level.h"
+
+#include <cassert>
+
 #include "Actor/Actor.h"
+#include "Renderer/IRenderer.h"
+#include "Resource/ResourceManager.h"	
 #include "System/LightingSystem.h"
+#include "System/RenderingSystem.h"
 
 namespace Engine
 {
 	Level::Level()
 	{
 	}
+	
 	Level::~Level()
 	{
 	}
+	
 	void Level::BeginPlay()
 	{
 	}
@@ -24,6 +32,7 @@ namespace Engine
 			actor->Tick(deltaTime);
 		}
 	}
+	
 	void Level::Draw()
 	{
 		for (auto& actor : actors)
@@ -75,6 +84,17 @@ namespace Engine
 	
 	void Level::EndLevel()
 	{
+		if (renderingSystem)
+		{
+			renderingSystem->Clear();
+		}
+		if (lightingSystem)
+		{
+			lightingSystem->Clear();
+		}
+		
+		mainCamera = nullptr;
+		
 		actors.clear();
 		actorsToAdd.clear();
 	}
@@ -87,5 +107,23 @@ namespace Engine
 		}
 
 		return lightingSystem.get();
+	}
+
+	void Level::AttachServices(IRenderer& renderer, ResourceManager& resourceManager)
+	{
+		this->resourceManager = &resourceManager;
+		renderingSystem = std::make_unique<RenderingSystem>(renderer);
+	}
+
+	ResourceManager& Level::GetResourceManager() const
+	{
+		assert(resourceManager != nullptr);
+		return *resourceManager;
+	}
+
+	RenderingSystem& Level::GetRenderingSystem() const
+	{
+		assert(renderingSystem != nullptr);
+		return *renderingSystem;
 	}
 }

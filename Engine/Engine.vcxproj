@@ -122,8 +122,10 @@
     <ClInclude Include="Renderer\ScreenBuffer.h" />
     <ClInclude Include="Renderer\Texture.h" />
     <ClInclude Include="Renderer\Vertex.h" />
+    <ClInclude Include="Resource\ResourceManager.h" />
     <ClInclude Include="System\CollisionSystem.h" />
     <ClInclude Include="System\LightingSystem.h" />
+    <ClInclude Include="System\RenderingSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Actor\Actor.cpp" />
@@ -152,8 +154,10 @@
     <ClCompile Include="Renderer\RenderLayer\WireframeLayer.cpp" />
     <ClCompile Include="Renderer\ScreenBuffer.cpp" />
     <ClCompile Include="Renderer\Texture.cpp" />
+    <ClCompile Include="Resource\ResourceManager.cpp" />
     <ClCompile Include="System\CollisionSystem.cpp" />
     <ClCompile Include="System\LightingSystem.cpp" />
+    <ClCompile Include="System\RenderingSystem.cpp" />
     <FxCompile Include="Shader\WireframePixelShader.hlsl">
       <FileType>Document</FileType>
       <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
