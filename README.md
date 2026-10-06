@@ -124,7 +124,7 @@ Level
 
 ### 검증 현황
 
-기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 캡처는 해당 시점의 실행 기록이며, 최신 기준 커밋 `363c20f`의 ResourceManager / RenderingSystem 변경을 포함해 다시 실행한 독립 검증 결과는 아닙니다.
+기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. `LevelTest.cpp`는 현재 `Tests.vcxproj`에서 빌드 제외되어 이 실행 대상에 포함되지 않았습니다. 아래 캡처는 해당 시점의 실행 기록이며, 최신 기준 커밋 `363c20f`의 ResourceManager / RenderingSystem 변경을 포함해 다시 실행한 독립 검증 결과는 아닙니다.
 
 현재 테스트 소스에는 Level 테스트를 포함해 총 98개 케이스가 있습니다.
 
@@ -134,9 +134,9 @@ Level
 | Matrix4 | 21 | 변환, 역행렬, LookAt, 투영 |
 | Time | 17 | 스무딩, clamp, TimeScale, Pause/Resume |
 | Lifecycle | 9 | 호출 순서, 1회 보장, 재진입·순서 역전 차단 |
-| Level | 12 | Actor 추가·제거, owner, 대량 처리 |
+| Level | 12 | Actor 추가·제거, owner, 대량 처리 — 현재 프로젝트에서 빌드 제외 |
 
-`Tests/Main.cpp`는 현재 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 제공된 캡처에는 Level 12개 실행 화면이 없으므로, 전체 98개 회귀 테스트와 최신 HEAD 빌드는 다음 통합 체크포인트에서 다시 확인할 예정입니다.
+`Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출하지만, 현재 프로젝트 구성으로 빌드되는 대상은 Level 12개를 제외한 86개입니다. 전체 98개를 실행하려면 먼저 `LevelTest.cpp`의 빌드 포함 여부와 현재 생명주기 변경에 대한 호환성을 검토해야 합니다. 최신 HEAD 빌드와 86개 테스트 역시 별도의 독립 재검증이 남아 있습니다.
 
 | Lifecycle (9) | Matrix4 (21) |
 |---|---|
