@@ -6,24 +6,6 @@
 
 namespace Engine
 {
-    void DirectionalLightComponent::BeginPlay()
-    {
-        Component::BeginPlay();
-
-        // LightingSystem에 DirectionalLightComponent 등록.
-        auto* lightingSystem = GetOwner().GetOwner()->GetLightingSystem();
-        lightingSystem->RegisterDirectionalLight(this);
-    }
-
-    void DirectionalLightComponent::OnRemove()
-    {
-        Component::OnRemove();
-
-        // LightingSystem에서 DirectionalLightComponent 제거.
-        auto* lightingSystem = GetOwner().GetOwner()->GetLightingSystem();
-        lightingSystem->UnregisterDirectionalLight(this);
-    }
-
     void DirectionalLightComponent::SetColor(const Vector3& color)
     {
         light.SetColor(color);
@@ -32,5 +14,37 @@ namespace Engine
     void DirectionalLightComponent::SetIntensity(float value)
     {
         light.SetIntensity(value);
+    }
+
+    void DirectionalLightComponent::BeginPlay()
+    {
+        Component::BeginPlay();
+
+        // LightingSystem에 중복 등록 방지.
+        if (registeredSystem != nullptr)
+        {
+            return;
+        }
+
+        Level* ownerLevel = GetOwner().GetOwner();
+
+        if (!ownerLevel)
+        {
+            return;
+        }
+
+        LightingSystem* lightingSystem = ownerLevel->GetLightingSystem();
+        lightingSystem->RegisterDirectionalLight(this);
+        registeredSystem = lightingSystem;
+    }
+
+    void DirectionalLightComponent::OnRemove()
+    {
+        if (registeredSystem != nullptr)
+        {
+            registeredSystem->UnregisterDirectionalLight(this);
+            registeredSystem = nullptr;
+        }
+        Component::OnRemove();
     }
 }
