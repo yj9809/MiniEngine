@@ -33,10 +33,15 @@ namespace Engine
         inline Vector3 GetLocalRotationEulerDeg() const { return localRotationEulerDeg; }
         inline Vector3 GetLocalScale() const { return localScale; }
         const Matrix4& GetWorldMatrix() const;
+        Vector3 GetForward() const;
+
+    private:
+        Matrix4 GetRotationMatrix() const;
+
     private:
         Vector3 localPosition = Vector3::zero;
-        // 회전 값은 Degree로 저장.
-        // Todo: 추후 Quaternion으로 변경 고려.
+        // Degree 단위 회전값.
+        // x = Pitch, y = Yaw, z = Roll.
         Vector3 localRotationEulerDeg = Vector3::zero;
         Vector3 localScale = Vector3::one;
         

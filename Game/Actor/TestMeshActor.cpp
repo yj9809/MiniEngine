@@ -48,15 +48,15 @@ void TestMeshActor::Tick(float deltaTime)
 {
     Actor::Tick(deltaTime);
 
-    // 1/2/3 키로 각 축 회전을 토글 (한 번 누르면 시작, 다시 누르면 정지).
-    if (Engine::Input::GetKeyDown('1')) rotateX = !rotateX;
-    if (Engine::Input::GetKeyDown('2')) rotateY = !rotateY;
-    if (Engine::Input::GetKeyDown('3')) rotateZ = !rotateZ;
-
-    // 켜진 축만 매 프레임 각도를 누적.
     Engine::Vector3 rotation = rootComponent->GetLocalRotationEulerDeg();
-    if (rotateX) rotation.x += rotationSpeedDeg * deltaTime;
-    if (rotateY) rotation.y += rotationSpeedDeg * deltaTime;
-    if (rotateZ) rotation.z += rotationSpeedDeg * deltaTime;
+
+    // 1/2/3 키로 Pitch/Yaw/Roll 회전을 토글.
+    if (Engine::Input::GetKeyDown('1')) rotatePitch = !rotatePitch;
+    if (Engine::Input::GetKeyDown('2')) rotateYaw = !rotateYaw;
+    if (Engine::Input::GetKeyDown('3')) rotateRoll = !rotateRoll;
+
+    if (rotatePitch) rotation.x += rotationSpeedDeg * deltaTime;
+    if (rotateYaw) rotation.y += rotationSpeedDeg * deltaTime;
+    if (rotateRoll) rotation.z += rotationSpeedDeg * deltaTime;
     rootComponent->SetLocalRotationEulerDeg(rotation);
 }

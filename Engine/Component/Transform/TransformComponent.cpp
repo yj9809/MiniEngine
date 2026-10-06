@@ -41,15 +41,27 @@ namespace Engine
             return cachedWorldMatrix;
         }
         
-        // Degree -> Radian 변환.
-        Vector3 rotationRad = localRotationEulerDeg * (PI / 180.0f);
         // 새로운 World 행렬 대입.
+        const Matrix4 rotationMatrix = GetRotationMatrix();
+
         cachedWorldMatrix = Matrix4::Scale(localScale) *
-                            Matrix4::Rotation(rotationRad) *
+                            rotationMatrix *
                             Matrix4::Translation(localPosition);
         
         dirty = false;
         
         return cachedWorldMatrix;
+    }
+
+    Vector3 TransformComponent::GetForward() const
+    {
+        return GetRotationMatrix().TransformVector(Vector3::unitX).Normalize();
+    }
+
+    Matrix4 TransformComponent::GetRotationMatrix() const
+    {
+        const Vector3 rotationRad = localRotationEulerDeg * (PI / 180.0f);
+
+        return Matrix4::Rotation(rotationRad.z, -rotationRad.x, rotationRad.y);
     }
 }
