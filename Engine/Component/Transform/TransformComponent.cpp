@@ -62,6 +62,6 @@ namespace Engine
     {
         const Vector3 rotationRad = localRotationEulerDeg * (PI / 180.0f);
 
-        return Matrix4::Rotation(rotationRad.z, -rotationRad.x, rotationRad.y);
+        return Matrix4::Rotation(-rotationRad.z, -rotationRad.x, rotationRad.y);
     }
 }
