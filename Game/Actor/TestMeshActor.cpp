@@ -4,35 +4,42 @@
 
 #include "Component/Mesh/MeshRendererComponent.h"
 #include "Component/Transform/TransformComponent.h"
-#include "Core/Time.h"
+#include "Core/Input.h"
+#include "Resource/ResourceManager.h"
 #include "Level/Level.h"
-#include "Renderer/Mesh.h"
-#include "Renderer/Texture.h"
 #include "Renderer/Material.h"
 #include "Math/Vector3.h"
 
-void TestMeshActor::Initialize(Engine::IRenderer* renderer)
+TestMeshActor::TestMeshActor()
 {
-    this->renderer = renderer;
+    meshRenderer = AddComponent<Engine::MeshRendererComponent>();
+}
+
+void TestMeshActor::Initialize()
+{
+    Actor::Initialize();
+
+    Engine::Level* ownerLevel = GetOwner();
+
+    if(!ownerLevel)
+    {
+        return;
+    }
+
+    Engine::ResourceManager& resourceManager = ownerLevel->GetResourceManager();
+
+    meshRenderer->SetMesh(resourceManager.LoadMesh("Asset/world.obj"));
+
+    auto material = std::make_shared<Engine::Material>();
+    material->SetMainTexture(resourceManager.LoadTexture(L"Asset/world_giant.jpg"));
+
+    material->SetBaseColor({ 1.0f, 1.0f, 1.0f, 1.0f }); // RGBA
+    meshRenderer->SetMaterial(0, material);
 }
 
 void TestMeshActor::BeginPlay()
 {
     Actor::BeginPlay();
-    
-    meshRenderer = AddComponent<Engine::MeshRendererComponent>();
-    meshRenderer->SetMesh(Engine::Mesh::LoadFromOBJ(renderer, "Asset/world.obj"));
-
-    // Texture를 직접 설정하는 대신 Material을 생성하고, Material에 Texture를 설정한 후 MeshRendererComponent에 Material을 설정.
-    const auto& material = std::make_shared<Engine::Material>();
-    material->SetMainTexture(Engine::Texture::LoadFromFile(renderer, L"Asset/world_giant.jpg"));
-
-    // Material Pixel Shader에 전달할 상수 버퍼에 baseColor를 설정.
-    material->SetBaseColor({ 1.0f, 1.0f, 1.0f, 1.0f }); // RGBA
-
-    meshRenderer->SetMaterial(0, material);
-
-    meshRenderer->Initialize(renderer);
     
     rootComponent->SetLocalPosition({ 2.0f, 0.0f, 0.0f });
 }
@@ -52,9 +59,4 @@ void TestMeshActor::Tick(float deltaTime)
     if (rotateY) rotation.y += rotationSpeedDeg * deltaTime;
     if (rotateZ) rotation.z += rotationSpeedDeg * deltaTime;
     rootComponent->SetLocalRotationEulerDeg(rotation);
-}
-
-void TestMeshActor::Draw()
-{
-    Actor::Draw();
 }

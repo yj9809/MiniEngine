@@ -88,9 +88,4 @@ namespace Engine
 	{
 
 	}
-
-	void Component::Draw()
-	{
-		
-	}
 }

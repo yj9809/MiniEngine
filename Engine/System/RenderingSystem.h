@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Common/Common.h"
+#include "Math/Matrix4.h"
 
 namespace Engine
 {
@@ -20,6 +21,8 @@ namespace Engine
         void Register(MeshRendererComponent* component);
         void Unregister(MeshRendererComponent* component);
         void Clear();
+
+        void Render(const Matrix4& viewMatrix, const Matrix4& projectionMatrix);
         
     private:
         IRenderer& renderer;

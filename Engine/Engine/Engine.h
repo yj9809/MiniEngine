@@ -45,8 +45,6 @@ namespace Engine
 		// 이전 레벨의 EndLevel()을 호출해 정리한 뒤, 새 레벨의 BeginPlay()를 호출한다.
 		void SetNewLevel(std::unique_ptr<Level> level);
 		
-		// Todo: RenderCommand 확인을 위해 임시 테스트용 함수.
-		inline IRenderer* GetRenderer() const { return renderer.get(); }
 		inline Level* GetMainLevel() const { return mainLevel.get(); }
 
 	protected:

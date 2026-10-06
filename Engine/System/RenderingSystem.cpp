@@ -2,6 +2,10 @@
 
 #include <algorithm>
 
+#include "Component/Mesh/MeshRendererComponent.h"
+#include "Renderer/IRenderer.h"
+#include "Renderer/RenderCommand.h"
+
 namespace Engine
 {
     RenderingSystem::RenderingSystem(IRenderer& renderer)
@@ -45,5 +49,23 @@ namespace Engine
     void RenderingSystem::Clear()
     {
         meshRenderers.clear();
+    }
+
+    void RenderingSystem::Render(const Matrix4& viewMatrix, const Matrix4& projectionMatrix)
+    {
+        for(MeshRendererComponent* component : meshRenderers)
+        {
+            if(!component)
+            {
+                continue;
+            }
+            
+            RenderCommand command;
+
+            if(component->BuildRenderCommand(viewMatrix, projectionMatrix, command))
+            {
+                renderer.Submit(command);
+            }
+        }
     }
 }

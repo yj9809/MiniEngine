@@ -2,7 +2,6 @@
 
 #include <cassert>
 
-#include "Component/Camera/CameraComponent.h"
 #include "Component/Transform/TransformComponent.h"
 #include "Level/Level.h"
 
@@ -70,24 +69,6 @@ namespace Engine
         for (auto& component : components)
         {
             component->Tick(deltaTime);
-        }
-    }
-
-    void Actor::Draw()
-    {
-        auto camera = GetOwner()->GetMainCamera();
-        
-        if (!camera)
-        {
-            return;
-        }
-        
-        viewMatrix = camera->GetViewMatrix();
-        projectionMatrix = camera->GetProjectionMatrix();
-        
-        for (auto& component : components)
-        {
-            component->Draw();
         }
     }
 

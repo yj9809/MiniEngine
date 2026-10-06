@@ -7,6 +7,7 @@
 #include "Resource/ResourceManager.h"	
 #include "System/LightingSystem.h"
 #include "System/RenderingSystem.h"
+#include "Component/Camera/CameraComponent.h"
 
 namespace Engine
 {
@@ -35,13 +36,13 @@ namespace Engine
 	
 	void Level::Draw()
 	{
-		for (auto& actor : actors)
+		if (!renderingSystem || !mainCamera)
 		{
-			if (actor->IsActive())
-			{
-				actor->Draw();
-			}
+			return;
 		}
+
+		// 메인 카메라의 뷰/투영 행렬을 렌더링 시스템에 전달.
+		renderingSystem->Render(mainCamera->GetViewMatrix(), mainCamera->GetProjectionMatrix());
 	}
 
 	void Level::AddNewActor(std::unique_ptr<Actor> actor)

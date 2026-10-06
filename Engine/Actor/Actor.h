@@ -5,7 +5,6 @@
 
 #include "Common/RTTI.h"
 #include "Math/Vector3.h"
-#include "Math/Matrix4.h"
 #include "Component/Component.h"
 #include "Common/LifecycleState.h"
 
@@ -41,9 +40,6 @@ namespace Engine
 
         // 매 프레임 호출된다. deltaTime은 초 단위 프레임 경과 시간.
         virtual void Tick(float deltaTime);
-
-        // 렌더링 단계에서 호출된다.
-        virtual void Draw();
 
         // 엔진 내부에서 제거를 보장하기 위한 DispatchOnDestroy() 호출. 외부에서 직접 호출하지 말 것.
         void DispatchOnDestroy();
@@ -109,11 +105,6 @@ namespace Engine
         // Transform을 root로 고정.
         // Actor는 기본적으로 Transform을 소유하도록 설계.
         TransformComponent* rootComponent = nullptr;
-        
-        // view 행렬.
-        // Todo: MeshRenderer가 받기 위해 Getter 구현 해야함.
-        Matrix4 viewMatrix = Matrix4::identity;
-        Matrix4 projectionMatrix = Matrix4::identity;
 
     private:
         // 이 액터에 부착된 컴포넌트 목록. Actor가 unique_ptr로 소유권 관리.

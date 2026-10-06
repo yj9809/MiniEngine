@@ -11,7 +11,6 @@
 namespace Engine
 {
     class Mesh;
-    class IRenderer;
     class Material;
     class RenderingSystem;
     
@@ -25,10 +24,8 @@ namespace Engine
         void SetMaterial(size_t slot, std::shared_ptr<Material> newMaterial);
         
         void SetLayerType(RenderLayerType newLayerType);
-        
-        void Initialize(IRenderer* renderer);
-        
-        virtual void Draw() override;
+
+        bool BuildRenderCommand(const Matrix4& viewMatrix, const Matrix4& projectionMatrix, RenderCommand& outCommand) const;
 
     protected:
         virtual void BeginPlay() override;
@@ -41,18 +38,6 @@ namespace Engine
         std::vector<std::shared_ptr<Material>> materials;
         
         RenderLayerType layerType = RenderLayerType::Opaque;
-        
-        IRenderer* renderer = nullptr;
-        
-        BufferHandle vertexBuffer = NULL_BUFFER;
-        
-        BufferHandle indexBuffer = NULL_BUFFER;
-        
-        UINT indexCount = 0;
-        
-        UINT stride = 0;
-        
-        RenderCommand renderCommand;
 
         RenderingSystem* registeredSystem = nullptr;
     };

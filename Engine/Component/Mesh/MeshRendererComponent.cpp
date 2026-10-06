@@ -3,10 +3,8 @@
 #include <utility>
 
 #include "Actor/Actor.h"
-#include "Component/Camera/CameraComponent.h"
 #include "Component/Transform/TransformComponent.h"
 #include "Level/Level.h"
-#include "Renderer/IRenderer.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/Texture.h"
 #include "Renderer/Material.h"
@@ -33,51 +31,35 @@ namespace Engine
         layerType = newLayerType;
     }
 
-    void MeshRendererComponent::Initialize(IRenderer* renderer)
+    bool MeshRendererComponent::BuildRenderCommand(const Matrix4& viewMatrix, const Matrix4& projectionMatrix, RenderCommand& outCommand) const
     {
-        this->renderer = renderer;
-        
-        indexCount = mesh->GetIndexCount();
-        stride = mesh->GetStride();
-        
-        vertexBuffer = mesh->GetVertexBuffer();
-        indexBuffer = mesh->GetIndexBuffer();
-    }
+        if (!mesh)
+        {
+            return false;
+        }
 
-    void MeshRendererComponent::Draw()
-    {
-        Component::Draw();
-        
-        Matrix4 worldMatrix = GetOwner().GetRootComponent()->GetWorldMatrix();
-        Matrix4 viewMatrix = GetOwner().GetOwner()->GetMainCamera()->GetViewMatrix();
-        Matrix4 projectionMatrix = GetOwner().GetOwner()->GetMainCamera()->GetProjectionMatrix();
-        
-        renderCommand.vertexBuffer = vertexBuffer;
-        renderCommand.indexBuffer = indexBuffer;
+        outCommand = RenderCommand();
 
-        // 기존 Texture를 사용하지 않고 MaterialTexture를 사용.     
-        if(!materials.empty() && materials[0])
+        outCommand.vertexBuffer = mesh->GetVertexBuffer();
+        outCommand.indexBuffer = mesh->GetIndexBuffer();
+        outCommand.indexCount = mesh->GetIndexCount();
+        outCommand.stride = mesh->GetStride();
+        outCommand.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        if (!materials.empty() && materials[0])
         {
             const auto& materialTexture = materials[0]->GetMainTexture();
 
-            renderCommand.texture = materialTexture ? materialTexture->GetTextureHandle() : NULL_TEXTURE;
-            renderCommand.baseColor = materials[0]->GetBaseColor();
-        }
-        else
-        {
-            renderCommand.texture = NULL_TEXTURE;
-            renderCommand.baseColor = Vector4::one;
+            outCommand.texture = materialTexture ? materialTexture->GetTextureHandle() : NULL_TEXTURE;
+            outCommand.baseColor = materials[0]->GetBaseColor();
         }
 
-        renderCommand.indexCount = indexCount;
-        renderCommand.stride = stride;
-        renderCommand.topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        renderCommand.worldMatrix = worldMatrix;
-        renderCommand.viewMatrix = viewMatrix;
-        renderCommand.projectionMatrix = projectionMatrix;
-        renderCommand.layerType = layerType;
-        
-        renderer->Submit(renderCommand);
+        outCommand.worldMatrix = GetOwner().GetRootComponent()->GetWorldMatrix();
+        outCommand.viewMatrix = viewMatrix;
+        outCommand.projectionMatrix = projectionMatrix;
+        outCommand.layerType = layerType;
+
+        return true;
     }
 
     void MeshRendererComponent::BeginPlay()
