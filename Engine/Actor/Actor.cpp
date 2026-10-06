@@ -1,5 +1,7 @@
 #include "Actor.h"
 
+#include <cassert>
+
 #include "Component/Camera/CameraComponent.h"
 #include "Component/Transform/TransformComponent.h"
 #include "Level/Level.h"
@@ -89,15 +91,40 @@ namespace Engine
         }
     }
 
-    void Actor::OnDestroy()
+    void Actor::DispatchOnDestroy()
     {
-        // Tick/Draw에서 즉시 제외하고, 다음 ProcessAddAndDestroyActor()에서 메모리 해제.
+        if(lifecycleState == LifecycleState::Initializing || lifecycleState == LifecycleState::BeginningPlay)
+        {
+            assert(false && "Destroy during lifecycle transition is not supported.");
+            return;
+        }
+
+        if(lifecycleState == LifecycleState::EndingPlay || lifecycleState == LifecycleState::HasEndedPlay)
+        {
+            return;
+        }
+
+        const bool hasBegunPlay = (lifecycleState == LifecycleState::HasBegunPlay);
+
+        lifecycleState = LifecycleState::EndingPlay;
         isActive = false;
-        destroyRequested = true;
+
+        if(hasBegunPlay)
+        {
+            OnDestroy();
+        }
+
         for (auto& component : components)
         {
-            component->OnRemove();
+            component->DispatchOnRemove();
         }
+
+        lifecycleState = LifecycleState::HasEndedPlay;
+    }
+
+    void Actor::OnDestroy()
+    {
+
     }
 
     void Actor::SetPosition(const Vector3& position)
@@ -128,5 +155,10 @@ namespace Engine
     Vector3 Actor::GetScale() const
     {
         return rootComponent->GetLocalScale();
+    }
+
+    bool Actor::IsPendingDestroy() const
+    {
+        return lifecycleState == LifecycleState::HasEndedPlay;
     }
 }

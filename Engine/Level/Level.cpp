@@ -52,12 +52,12 @@ namespace Engine
 
 	void Level::ProcessAddAndDestroyActor()
 	{
-		// destroyRequested 액터 제거.
+		// 생명주기가 HasEndedPlay인 액터 제거.
 		// swap + pop_back 패턴: erase()는 뒤 원소를 전부 앞으로 당기는 O(n) 복사가 발생하지만,
 		// 마지막 원소와 교환 후 pop_back하면 O(1)로 제거할 수 있다. (순서 보장 불필요)
-		for (int i = 0; i < actors.size();)
+		for (std::size_t i = 0; i < actors.size();)
 		{
-			if (actors[i]->IsDestroyRequested())
+			if (actors[i]->IsPendingDestroy())
 			{
 				std::swap(actors[i], actors.back());
 				actors.pop_back();
@@ -69,9 +69,14 @@ namespace Engine
 		}
 
 		// 대기 버퍼(actorsToAdd)의 액터를 실제 목록으로 이동.
-		// Initialize와 BeginPlay를 프레임 경계에서 호출한다.
+		// 대기 중 이미 종료된 Actor는 Initialize/BeginPlay하지 않는다.	
 		for (auto& actor : actorsToAdd)
 		{
+			if (actor->IsPendingDestroy())
+			{
+				continue;
+			}
+
 			// 생명주기 순서를 고려해 DispatchInitialize() → DispatchBeginPlay() 순으로 호출.
 			actor->DispatchInitialize();
 			actor->DispatchBeginPlay();
@@ -84,6 +89,16 @@ namespace Engine
 	
 	void Level::EndLevel()
 	{
+		for (auto& actor : actors)
+		{
+			actor->DispatchOnDestroy();
+		}
+		
+		for (auto& actor : actorsToAdd)
+		{
+			actor->DispatchOnDestroy();
+		}
+
 		if (renderingSystem)
 		{
 			renderingSystem->Clear();

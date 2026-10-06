@@ -10,5 +10,7 @@ namespace Engine
         Initialized,
         BeginningPlay,
         HasBegunPlay,
+        EndingPlay,
+        HasEndedPlay
     };
 }

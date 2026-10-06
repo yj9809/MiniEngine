@@ -45,21 +45,20 @@ namespace Engine
         // 렌더링 단계에서 호출된다.
         virtual void Draw();
 
-        // 액터 제거 요청 시 호출된다.
-        // isActive = false, destroyRequested = true를 설정해
-        // 다음 ProcessAddAndDestroyActor()에서 실제로 제거되도록 예약한다.
-        virtual void OnDestroy();
+        // 엔진 내부에서 제거를 보장하기 위한 DispatchOnDestroy() 호출. 외부에서 직접 호출하지 말 것.
+        void DispatchOnDestroy();
 
-        // 컴포넌트를 동적으로 생성해 이 액터에 부착하고 raw pointer를 반환한다.
+        // 컴포넌트를 생성해 이 액터에 부착하고 raw pointer를 반환한다.
         // 소유권은 components 벡터가 가지며, 반환된 포인터는 관찰 용도로만 사용한다.
         template <typename T>
         T* AddComponent()
         {
             auto newComponent = std::make_unique<T>();
             T* ptr = newComponent.get();
-            ptr->owner = this;
+
             components.emplace_back(std::move(newComponent));
-            ptr->OnAdd();
+            ptr->DispatchOnAdd(*this);
+            
             return ptr;
         }
 
@@ -93,16 +92,16 @@ namespace Engine
         inline TransformComponent* GetRootComponent() const { return rootComponent; }
         
         inline bool IsActive() const { return isActive; }
-        inline bool IsDestroyRequested() const { return destroyRequested; }
+        bool IsPendingDestroy() const;
 
     protected:
-        // false가 되면 Tick/Draw 대상에서 제외된다. OnDestroy()에서 설정.
-        bool isActive = true;
+        // 사용자 정의 삭제 로직을 구현할 수 있는 가상 함수. 액터 제거 요청 시 호출된다.
+        virtual void OnDestroy();
 
-        // true가 되면 다음 프레임 처리 후 actors 배열에서 제거된다.
-        // 순회 중 즉시 제거하지 않고 플래그로 예약하는 이유:
-        // Tick() 도중 배열을 수정하면 이터레이터가 무효화되기 때문이다.
-        bool destroyRequested = false;
+    protected:
+        // false가 되면 Tick/Draw 대상에서 제외된다.
+        // DispatchOnDestroy()가 종료 처리 시작 시 설정한다.
+        bool isActive = true;
 
         // 이 액터를 소유한 Level. 소유권은 Level에 있으므로 raw pointer 사용.
         Level* owner = nullptr;
@@ -121,7 +120,9 @@ namespace Engine
         std::vector<std::unique_ptr<Component>> components;
         
         // 액터의 생명주기 상태.
-        // Constructed -> Initializing -> Initialized -> BeginningPlay -> HasBegunPlay.
+        // Constructed -> Initializing -> Initialized
+        // -> BeginningPlay -> HasBegunPlay
+        // -> EndingPlay -> HasEndedPlay
         LifecycleState lifecycleState = LifecycleState::Constructed;
     };
 }
