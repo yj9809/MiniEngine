@@ -10,6 +10,7 @@
 #include "Renderer/Mesh.h"
 #include "Renderer/Texture.h"
 #include "Renderer/Material.h"
+#include "System/RenderingSystem.h"
 
 namespace Engine
 {
@@ -77,5 +78,37 @@ namespace Engine
         renderCommand.layerType = layerType;
         
         renderer->Submit(renderCommand);
+    }
+
+    void MeshRendererComponent::BeginPlay()
+    {
+        Component::BeginPlay();
+
+        if(registeredSystem)
+        {
+            return;
+        }
+
+        Level* ownerLevel = GetOwner().GetOwner();
+
+        if(!ownerLevel)
+        {
+            return;
+        }
+
+        RenderingSystem& system = ownerLevel->GetRenderingSystem();
+        system.Register(this);
+        registeredSystem = &system;
+    }
+
+    void MeshRendererComponent::OnRemove()
+    {
+        if(registeredSystem)
+        {
+            registeredSystem->Unregister(this);
+            registeredSystem = nullptr;
+        }
+
+        Component::OnRemove();
     }
 }

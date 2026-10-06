@@ -13,6 +13,7 @@ namespace Engine
     class Mesh;
     class IRenderer;
     class Material;
+    class RenderingSystem;
     
     class ENGINE_API MeshRendererComponent : public Component
     {
@@ -28,6 +29,11 @@ namespace Engine
         void Initialize(IRenderer* renderer);
         
         virtual void Draw() override;
+
+    protected:
+        virtual void BeginPlay() override;
+
+        virtual void OnRemove() override;
         
     private:
         std::shared_ptr<Mesh> mesh;
@@ -47,5 +53,7 @@ namespace Engine
         UINT stride = 0;
         
         RenderCommand renderCommand;
+
+        RenderingSystem* registeredSystem = nullptr;
     };
 }
