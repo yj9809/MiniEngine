@@ -43,9 +43,22 @@ namespace
             }
         }
 
+    protected:
+        void OnRemove() override
+        {
+            ++removeCount;
+
+            if (events != nullptr)
+            {
+                events->emplace_back("Component.OnRemove");
+            }
+        }
+
+    public:
         std::vector<std::string>* events = nullptr;
         int initializeCount = 0;
         int beginPlayCount = 0;
+        int removeCount = 0;
         bool reenterDuringInitialize = false;
         bool reenterDuringBeginPlay = false;
     };
@@ -83,10 +96,24 @@ namespace
             }
         }
 
+        void DestroyForTest()
+        {
+            DispatchOnDestroy();
+        }
+
+    protected:
+        void OnDestroy() override
+        {
+            ++destroyCount;
+            events.emplace_back("Actor.OnDestroy");
+        }
+
+    public:
         std::vector<std::string> events;
         RecordingComponent* component = nullptr;
         int initializeCount = 0;
         int beginPlayCount = 0;
+        int destroyCount = 0;
         bool reenterDuringInitialize = false;
         bool reenterDuringBeginPlay = false;
     };
@@ -199,4 +226,34 @@ TEST(LifecycleTest, ActorDispatchBeginPlayBeforeInitializeIsIgnored)
 
     EXPECT_EQ(actor.beginPlayCount, 1);
     EXPECT_EQ(actor.component->beginPlayCount, 1);
+}
+
+TEST(LifecycleTest, ActorDestroyAfterBeginPlayRunsActorThenComponentOnce)
+{
+    RecordingActor actor;
+    actor.DispatchInitialize();
+    actor.DispatchBeginPlay();
+    actor.events.clear();
+
+    actor.DestroyForTest();
+    actor.DestroyForTest();
+
+    EXPECT_FALSE(actor.IsActive());
+    EXPECT_TRUE(actor.IsPendingDestroy());
+    EXPECT_EQ(actor.destroyCount, 1);
+    EXPECT_EQ(actor.component->removeCount, 1);
+    EXPECT_EQ(actor.events, (std::vector<std::string>{ "Actor.OnDestroy", "Component.OnRemove" }));
+}
+
+TEST(LifecycleTest, ActorDestroyBeforeBeginPlaySkipsActorHookButRemovesComponent)
+{
+    RecordingActor actor;
+
+    actor.DestroyForTest();
+
+    EXPECT_FALSE(actor.IsActive());
+    EXPECT_TRUE(actor.IsPendingDestroy());
+    EXPECT_EQ(actor.destroyCount, 0);
+    EXPECT_EQ(actor.component->removeCount, 1);
+    EXPECT_EQ(actor.events, (std::vector<std::string>{ "Component.OnRemove" }));
 }

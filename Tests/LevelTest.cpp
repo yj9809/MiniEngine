@@ -4,26 +4,36 @@
 
 using namespace Engine;
 
-// protected 멤버에 접근하기 위한 테스트용 서브클래스
-class TestLevel : public Level
+class TestActor final : public Engine::Actor
+{
+public:
+    void DestroyForTest()
+    {
+        DispatchOnDestroy();
+    }
+};
+
+// Test-only access to Level-owned actor containers.
+class InspectableLevel final : public Engine::Level
 {
 public:
     int GetActorCount() const { return static_cast<int>(actors.size()); }
     int GetPendingActorCount() const { return static_cast<int>(actorsToAdd.size()); }
 
-    // 특정 Actor의 raw pointer를 가져옴 (소유권 없는 참조)
+    // Non-owning access to actors managed by the Level.
     Actor* GetActor(int index) const { return actors[index].get(); }
+    TestActor* GetTestActor(int index) const { return static_cast<TestActor*>(actors[index].get()); }
 };
 
 
-// --- 액터 추가 테스트 ---
+// Actor addition.
 
 TEST(LevelTest, AddNewActor_PendingUntilProcessed)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    // AddNewActor 직후에는 actorsToAdd에만 들어있어야 함
-    level.AddNewActor(std::make_unique<Actor>());
+    // AddNewActor keeps the actor pending until the frame-boundary processing.
+    level.AddNewActor(std::make_unique<TestActor>());
 
     EXPECT_EQ(level.GetActorCount(), 0);
     EXPECT_EQ(level.GetPendingActorCount(), 1);
@@ -31,9 +41,9 @@ TEST(LevelTest, AddNewActor_PendingUntilProcessed)
 
 TEST(LevelTest, ProcessAdd_MovesActorToActors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    level.AddNewActor(std::make_unique<Actor>());
+    level.AddNewActor(std::make_unique<TestActor>());
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(level.GetActorCount(), 1);
@@ -42,28 +52,28 @@ TEST(LevelTest, ProcessAdd_MovesActorToActors)
 
 TEST(LevelTest, AddMultipleActors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    level.AddNewActor(std::make_unique<Actor>());
-    level.AddNewActor(std::make_unique<Actor>());
-    level.AddNewActor(std::make_unique<Actor>());
+    level.AddNewActor(std::make_unique<TestActor>());
+    level.AddNewActor(std::make_unique<TestActor>());
+    level.AddNewActor(std::make_unique<TestActor>());
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(level.GetActorCount(), 3);
 }
 
-// --- 액터 제거 테스트 ---
+// Actor removal.
 
 TEST(LevelTest, DestroyActor_RemovedOnProcess)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    level.AddNewActor(std::make_unique<Actor>());
+    level.AddNewActor(std::make_unique<TestActor>());
     level.ProcessAddAndDestroyActor();
     EXPECT_EQ(level.GetActorCount(), 1);
 
-    // OnDestroy 호출 후 Process하면 제거되어야 함
-    level.GetActor(0)->OnDestroy();
+    // A dispatched actor is removed during frame-boundary processing.
+    level.GetTestActor(0)->DestroyForTest();
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(level.GetActorCount(), 0);
@@ -71,39 +81,39 @@ TEST(LevelTest, DestroyActor_RemovedOnProcess)
 
 TEST(LevelTest, DestroyOneActor_OthersRemain)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    level.AddNewActor(std::make_unique<Actor>());
-    level.AddNewActor(std::make_unique<Actor>());
+    level.AddNewActor(std::make_unique<TestActor>());
+    level.AddNewActor(std::make_unique<TestActor>());
     level.ProcessAddAndDestroyActor();
 
-    // 첫 번째 액터만 제거
-    level.GetActor(0)->OnDestroy();
+    // Remove only the first actor.
+    level.GetTestActor(0)->DestroyForTest();
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(level.GetActorCount(), 1);
 }
 
-// --- Actor의 owner 설정 테스트 ---
+// Actor owner assignment.
 
 TEST(LevelTest, AddNewActor_SetsOwner)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    level.AddNewActor(std::make_unique<Actor>());
+    level.AddNewActor(std::make_unique<TestActor>());
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(level.GetActor(0)->GetOwner(), &level);
 }
 
-// --- EndLevel 테스트 ---
+// EndLevel.
 
 TEST(LevelTest, EndLevel_ClearsAllActors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    level.AddNewActor(std::make_unique<Actor>());
-    level.AddNewActor(std::make_unique<Actor>());
+    level.AddNewActor(std::make_unique<TestActor>());
+    level.AddNewActor(std::make_unique<TestActor>());
     level.ProcessAddAndDestroyActor();
     EXPECT_EQ(level.GetActorCount(), 2);
 
@@ -115,22 +125,22 @@ TEST(LevelTest, EndLevel_ClearsAllActors)
 
 TEST(LevelTest, EndLevel_ClearsPendingActors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    // Process 전에 EndLevel 호출
-    level.AddNewActor(std::make_unique<Actor>());
+    // EndLevel also destroys actors that are still pending.
+    level.AddNewActor(std::make_unique<TestActor>());
     level.EndLevel();
 
     EXPECT_EQ(level.GetPendingActorCount(), 0);
 }
-// --- 성능 테스트 ---
+// Bulk lifecycle coverage.
 
 TEST(LevelTest, Performance_Add1000Actors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
     for (int i = 0; i < 1000; i++)
-        level.AddNewActor(std::make_unique<Actor>());
+        level.AddNewActor(std::make_unique<TestActor>());
 
     level.ProcessAddAndDestroyActor();
 
@@ -139,10 +149,10 @@ TEST(LevelTest, Performance_Add1000Actors)
 
 TEST(LevelTest, Performance_Add10000Actors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
     for (int i = 0; i < 10000; i++)
-        level.AddNewActor(std::make_unique<Actor>());
+        level.AddNewActor(std::make_unique<TestActor>());
 
     level.ProcessAddAndDestroyActor();
 
@@ -151,16 +161,16 @@ TEST(LevelTest, Performance_Add10000Actors)
 
 TEST(LevelTest, Performance_Destroy10000Actors)
 {
-    TestLevel level;
+    InspectableLevel level;
 
     for (int i = 0; i < 10000; i++)
-        level.AddNewActor(std::make_unique<Actor>());
+        level.AddNewActor(std::make_unique<TestActor>());
 
     level.ProcessAddAndDestroyActor();
 
-    // 전부 제거 요청
+    // Dispatch removal for every actor.
     for (int i = 0; i < level.GetActorCount(); i++)
-        level.GetActor(i)->OnDestroy();
+        level.GetTestActor(i)->DestroyForTest();
 
     level.ProcessAddAndDestroyActor();
 
@@ -169,18 +179,18 @@ TEST(LevelTest, Performance_Destroy10000Actors)
 
 TEST(LevelTest, Performance_AddAndDestroy_Repeated)
 {
-    TestLevel level;
+    InspectableLevel level;
 
-    // 추가 → 제거를 100회 반복
+    // Repeat add and removal processing.
     for (int round = 0; round < 100; round++)
     {
         for (int i = 0; i < 100; i++)
-            level.AddNewActor(std::make_unique<Actor>());
+            level.AddNewActor(std::make_unique<TestActor>());
 
         level.ProcessAddAndDestroyActor();
 
         for (int i = 0; i < level.GetActorCount(); i++)
-            level.GetActor(i)->OnDestroy();
+            level.GetTestActor(i)->DestroyForTest();
 
         level.ProcessAddAndDestroyActor();
     }
