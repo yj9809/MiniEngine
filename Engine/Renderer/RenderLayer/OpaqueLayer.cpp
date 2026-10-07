@@ -38,7 +38,7 @@ namespace Engine
         assert(isSamplerState && "Failed to create sampler state for OpaquePass");
     }
 
-    void OpaqueLayer::Prepare(ID3D11DeviceContext* context)
+    void OpaqueLayer::Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData)
     {
         // 정점 셰이더에 버퍼 등록.
         context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
@@ -47,13 +47,20 @@ namespace Engine
         // 정점 셰이더에 월드 행렬 상수 버퍼 등록.
         context->VSSetConstantBuffers(1, 1, worldConstantBuffer.GetAddressOf());
         
-        // 광원은 하나의 방향광만 존재한다고 가정.
         #pragma region Lighting 상수 버퍼 업데이트.
         LightingConstantBuffer lightingBuffer{};
-        // 조명 방향은 위에서 아래로 향하는 방향으로 설정.
-        lightingBuffer.lightDirection = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
-        lightingBuffer.lightColor = Vector4(1.0f, 1.0f, 1.0f, 1.0f); // 흰색 조명.
         lightingBuffer.ambientColor = Vector4(0.1f, 0.1f, 0.1f, 1.0f); // 어두운 환경 조명.
+
+        // 첫 구현에서는 등록된 방향광 중 첫 번째 광원만 GPU에 전달한다.
+        if (!frameData.directionalLights.empty())
+        {
+            const DirectionalLightRenderData& light = frameData.directionalLights.front();
+            DirectionalLightGPUData& gpuLight = lightingBuffer.directionalLights[0];
+
+            gpuLight.direction = Vector4(light.direction, 0.0f);
+            gpuLight.colorAndIntensity = Vector4(light.color, light.intensity);
+            lightingBuffer.directionalLightCount = 1;
+        }
 
         D3D11_MAPPED_SUBRESOURCE mappedResource{};
         HRESULT hr = context->Map(lightingConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
@@ -63,6 +70,7 @@ namespace Engine
 
         context->Unmap(lightingConstantBuffer.Get(), 0);
         #pragma endregion
+
         // 픽셀 셰이더에 조명 상수 버퍼 등록.
         context->PSSetConstantBuffers(1, 1, lightingConstantBuffer.GetAddressOf());
 

@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <wrl/client.h>
 
+#include "Renderer/RenderData/RenderFrameData.h"
+
 using namespace Microsoft::WRL;
 
 namespace Engine
@@ -19,7 +21,7 @@ namespace Engine
         virtual ~RenderLayer() = default;
 
         // 해당 패스에서 사용할 Shader, Input Layout, 렌더 상태(블렌딩, 깊이 테스트 등)를 설정한다.
-        virtual void Prepare(ID3D11DeviceContext* context) = 0;
+        virtual void Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData) = 0;
         // Prepare 설정을 바탕으로 RenderCommand를 순회하며 드로우 콜을 실행.
         void Execute(
             ID3D11DeviceContext* context,

@@ -9,7 +9,7 @@ namespace Engine
     public:
         WireframeLayer(ID3D11Device* device);
 
-        virtual void Prepare(ID3D11DeviceContext* context) override;
+        virtual void Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData) override;
 
     protected:
         inline virtual ID3D11Buffer* GetConstantBuffer() override { return wvpConstantBuffer.Get(); }

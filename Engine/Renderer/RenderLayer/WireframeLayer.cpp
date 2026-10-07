@@ -15,7 +15,7 @@ namespace Engine
         );
     }
 
-    void WireframeLayer::Prepare(ID3D11DeviceContext* context)
+    void WireframeLayer::Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData)
     {
         // 래스터라이저 바인딩.
         context->RSSetState(wireframeRasterizer.Get());

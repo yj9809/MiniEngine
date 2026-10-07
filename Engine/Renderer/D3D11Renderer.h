@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <wrl/client.h>
 
+#include "RenderData/RenderFrameData.h"
+
 using namespace Microsoft::WRL;
 
 // 기본적인 DirectX11 초기화 순서.
@@ -109,8 +111,8 @@ namespace Engine
 		// 텍스처 핸들 생성용 카운터.
 		TextureHandle nextTextureHandle = 1;
 
-		// Render() 함수 진행 전까지 DirectionalLightRenderData를 담아놓는 컨테이너.
-		std::vector<DirectionalLightRenderData> directionalLights;
+		// 모든 레이어에서 읽을 수 있는 프레임 단위 조명 데이터.
+		RenderFrameData frameData;
 	};
 }
 

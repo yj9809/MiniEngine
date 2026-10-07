@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cstdint>
+
 #include "LayerScheduler.h"
 #include "Math/Vector4.h"
 
@@ -10,7 +12,7 @@ namespace Engine
     public:
         OpaqueLayer(ID3D11Device* device);
 
-        virtual void Prepare(ID3D11DeviceContext* context) override;
+        virtual void Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData) override;
 
     protected:
         inline virtual ID3D11Buffer* GetConstantBuffer() override { return wvpConstantBuffer.Get(); }
@@ -52,14 +54,27 @@ namespace Engine
         // 정점 셰이더에 전달한 월드 행렬 상수 버퍼.
         ComPtr<ID3D11Buffer> worldConstantBuffer;
 
+        // GPU 버퍼 용량은 최대 4개.
+        // 첫 구현에서는 이 중 첫 번째 방향광만 사용.
+        static constexpr uint32_t MaxDirectionalLights = 4;
+
         // 픽셀 셰이더에 전달할 조명 상수 버퍼.
         // 추후 조명 파라미터 확장을 쉽게 하기 위해 구조리로 정의.
+        struct DirectionalLightGPUData
+        {
+            Vector4 direction;
+            Vector4 colorAndIntensity; // RGB + Intensity
+        };
+
         struct LightingConstantBuffer
         {
-            Vector4 lightDirection;
-            Vector4 lightColor;
+            DirectionalLightGPUData directionalLights[MaxDirectionalLights];
             Vector4 ambientColor;
+
+            uint32_t directionalLightCount = 0;
+            float padding[3]{};
         };
+
         ComPtr<ID3D11Buffer> lightingConstantBuffer;
     };
 }

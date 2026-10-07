@@ -114,6 +114,7 @@
     <ClInclude Include="Renderer\Material.h" />
     <ClInclude Include="Renderer\Mesh.h" />
     <ClInclude Include="Renderer\RenderCommand.h" />
+    <ClInclude Include="Renderer\RenderData\RenderFrameData.h" />
     <ClInclude Include="Renderer\RenderLayer\OpaqueLayer.h" />
     <ClInclude Include="Renderer\RenderLayer\LayerScheduler.h" />
     <ClInclude Include="Renderer\RenderLayer\RenderLayer.h" />
