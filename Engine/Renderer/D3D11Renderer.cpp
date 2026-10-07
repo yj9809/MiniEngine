@@ -382,6 +382,8 @@ namespace Engine
 
 	void D3D11Renderer::BeginFrame(float r, float g, float b)
 	{
+		directionalLights.clear();
+
 		// FILP_DISCARD 방식은 Present() 후 렌더 타겟 바인딩이 해제되므로 매 프레임 재바인딩 필요.
 		context->OMSetRenderTargets(
 			1, 
@@ -445,5 +447,10 @@ namespace Engine
 	void D3D11Renderer::Submit(const RenderCommand& command)
 	{
 		renderCommands.emplace_back(command);
+	}
+
+	void D3D11Renderer::SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights)
+	{
+		directionalLights.assign(lights.begin(), lights.end());
 	}
 }

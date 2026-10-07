@@ -5,6 +5,7 @@
 #include "Component/Light/LightComponent.h"
 #include "Math/Vector3.h"
 #include "Lighting/DirectionalLight.h"
+#include "Lighting/RenderData/DirectionalLightRenderData.h"
 
 namespace Engine
 {
@@ -18,6 +19,8 @@ namespace Engine
         void SetIntensity(float value);
 
         Vector3 GetDirection() const;
+
+        DirectionalLightRenderData BuildRenderData() const;
 
     private:
         virtual void RegisterToLightSystem(LightingSystem& system) override;

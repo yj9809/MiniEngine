@@ -42,7 +42,7 @@ namespace Engine
 		}
 
 		// 메인 카메라의 뷰/투영 행렬을 렌더링 시스템에 전달.
-		renderingSystem->Render(mainCamera->GetViewMatrix(), mainCamera->GetProjectionMatrix());
+		renderingSystem->Render(mainCamera->GetViewMatrix(), mainCamera->GetProjectionMatrix(), lightingSystem.get());
 	}
 
 	void Level::AddNewActor(std::unique_ptr<Actor> actor)

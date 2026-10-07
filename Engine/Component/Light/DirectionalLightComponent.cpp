@@ -30,4 +30,14 @@ namespace Engine
     {
         return GetOwner().GetRootComponent()->GetForward();
     }
+
+    DirectionalLightRenderData DirectionalLightComponent::BuildRenderData() const
+    {
+        DirectionalLightRenderData renderData;
+        renderData.direction = GetDirection();
+        renderData.color = light.GetColor();
+        renderData.intensity = light.GetIntensity();
+
+        return renderData;
+    }
 }

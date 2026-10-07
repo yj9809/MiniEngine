@@ -40,6 +40,8 @@ namespace Engine
 		virtual void Render() override;
 			
 		virtual void Submit(const RenderCommand& command) override;
+
+		virtual void SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights) override;
 		
 		// 외부에서 정점/인덱스 버퍼를 생성하기 위한 함수.
 		virtual BufferHandle CreateVertexBuffer(const void* vertexData, UINT vertexDataSize) override;
@@ -106,6 +108,9 @@ namespace Engine
 		
 		// 텍스처 핸들 생성용 카운터.
 		TextureHandle nextTextureHandle = 1;
+
+		// Render() 함수 진행 전까지 DirectionalLightRenderData를 담아놓는 컨테이너.
+		std::vector<DirectionalLightRenderData> directionalLights;
 	};
 }
 
