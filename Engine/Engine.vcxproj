@@ -133,6 +133,7 @@
     <ClCompile Include="Component\Component.cpp" />
     <ClCompile Include="Component\Input\InputComponent.cpp" />
     <ClCompile Include="Component\Light\DirectionalLightComponent.cpp" />
+    <ClCompile Include="Component\Light\LightComponent.cpp" />
     <ClCompile Include="Component\Mesh\MeshRendererComponent.cpp" />
     <ClCompile Include="Component\Physics\BoxCollider.cpp" />
     <ClCompile Include="Component\Transform\TransformComponent.cpp" />

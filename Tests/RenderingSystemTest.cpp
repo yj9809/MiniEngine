@@ -31,6 +31,12 @@ namespace
             submittedCommands.push_back(command);
         }
 
+        void SubmitDirectionalLights(
+            const std::vector<Engine::DirectionalLightRenderData>& lights) override
+        {
+            submittedDirectionalLights.assign(lights.begin(), lights.end());
+        }
+
         void BeginFrame(float, float, float) override {}
         void EndFrame() override {}
         void GPUShutdown() override {}
@@ -63,6 +69,7 @@ namespace
 
     public:
         std::vector<Engine::RenderCommand> submittedCommands;
+        std::vector<Engine::DirectionalLightRenderData> submittedDirectionalLights;
         std::vector<Engine::BufferHandle> releasedBuffers;
         std::vector<Engine::TextureHandle> releasedTextures;
 
@@ -163,7 +170,7 @@ TEST(RenderingSystemTest, RegisteredComponentSubmitsOnceAndDuplicateRegistration
     level.ProcessAddAndDestroyActor();
     level.GetRenderingSystem().Register(actorPtr->GetMeshRenderer());
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
 
     EXPECT_EQ(renderer.submittedCommands.size(), 1);
     level.EndLevel();
@@ -184,9 +191,9 @@ TEST(RenderingSystemTest, DestroyedActorIsUnregisteredBeforeMemoryRelease)
     level.AddNewActor(std::move(actor));
     level.ProcessAddAndDestroyActor();
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
     actorPtr->DestroyForTest();
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(renderer.submittedCommands.size(), 1);
@@ -210,7 +217,7 @@ TEST(RenderingSystemTest, ClearBeforeComponentRemovalKeepsUnregisterSafe)
 
     level.GetRenderingSystem().Clear();
     actorPtr->DestroyForTest();
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
     level.ProcessAddAndDestroyActor();
 
     EXPECT_TRUE(renderer.submittedCommands.empty());
@@ -234,8 +241,8 @@ TEST(RenderingSystemTest, ComponentRegistersOnlyWithItsOwnerLevel)
     firstLevel.AddNewActor(std::make_unique<MeshActor>(mesh));
     firstLevel.ProcessAddAndDestroyActor();
 
-    firstLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
-    secondLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
+    firstLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    secondLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
 
     EXPECT_EQ(firstRenderer.submittedCommands.size(), 1);
     EXPECT_TRUE(secondRenderer.submittedCommands.empty());
@@ -253,7 +260,7 @@ TEST(RenderingSystemTest, ComponentWithoutMeshDoesNotSubmit)
     level.AddNewActor(std::make_unique<MeshActor>());
     level.ProcessAddAndDestroyActor();
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
 
     EXPECT_TRUE(renderer.submittedCommands.empty());
     level.EndLevel();
