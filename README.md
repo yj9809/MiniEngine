@@ -8,23 +8,23 @@
 
 ## 현재 상태
 
-기준 커밋: `363c20f` (2026-10-06) · 전체 75 commits
+기준 커밋: `c9bfdfd` (2026-10-07) · 전체 84 commits
 
-현재는 Notion 로드맵의 **5단계 — DX11 렌더러 심화**를 진행하고 있습니다. 텍스처가 적용된 OBJ 모델과 자유 시점 카메라 데모, Material, Lambert Diffuse, Uniform Ambient를 구현한 뒤 엔진 서비스와 객체 생명주기를 정리하고 있습니다. `ResourceManager`의 경로별 공유 캐시와 Level 소유 `RenderingSystem`의 등록·해제·정리 기반은 추가했지만, `MeshRendererComponent`가 이 경로를 사용해 매 프레임 `RenderCommand`를 제출하는 연결은 아직 설계·구현 중입니다.
+현재는 Notion 로드맵의 **5단계 — DX11 렌더러 심화**를 진행하고 있습니다. 텍스처가 적용된 OBJ 모델과 자유 시점 카메라 데모, Material, Lambert Diffuse, Uniform Ambient를 구현한 뒤 엔진 서비스와 객체 생명주기를 정리하고 있습니다. `ResourceManager`의 경로별 공유 캐시를 게임 오브젝트가 사용하고, Level 소유 `RenderingSystem`이 `MeshRendererComponent`를 수집해 매 프레임 `RenderCommand`를 제출하는 경로까지 연결했습니다. LightingSystem은 컴포넌트 등록·해제 수명은 정리했지만, 수집한 광원을 GPU 상수 버퍼와 셰이더 계산에 전달하는 통합이 남아 있습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
 | 영역 | 현재 수준 | 상태 |
 |---|---|---|
 | Win32 런타임 | 창, 메시지 루프, 고정 목표 프레임 루프 | 완료 |
-| Actor / Component | `Initialize` → `BeginPlay` 1회 디스패치, `Tick` · `OnDestroy`, 지연 추가/제거, Root Transform | 기반 완료 / 런타임 생성 경로 보강 중 |
+| Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy` 상태 디스패치, 지연 추가/제거, Root Transform | 기반 완료 / Initialize 이후 Component 추가 경로 보강 중 |
 | DX11 기반 | Device · SwapChain · RTV · DSV · Viewport · 상수 버퍼 | 완료 |
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
-| 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 캐시 기반 구현 / 소비 경로 연결 중 |
+| 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 완료 |
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
 | 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 완료 |
-| LightingSystem | Light 데이터와 Component 분리, Level 단위 등록·해제·정리 | 기반 구현 / 렌더 연동 미완료 |
-| RenderingSystem | Level 소유, `MeshRendererComponent` 중복 방지 등록·해제·정리 | 기반 구현 / Submit 연결 미완료 |
+| LightingSystem | Light 데이터와 Component 분리, Level 단위 등록·해제·정리 | 수명 경로 구현 / 렌더 연동 미완료 |
+| RenderingSystem | Level 소유, `MeshRendererComponent` 등록·해제, 명령 구성·제출 | 소비 경로 연결 완료 |
 | 충돌 | `BoxCollider`, AABB overlap, 등록 컨테이너 | 기반 구현 / 게임 루프 통합 미완료 |
 
 ## 무엇을 직접 구현했는가
@@ -33,7 +33,10 @@
 
 ```text
 MeshRendererComponent
-  └─ RenderCommand 제출
+  └─ BeginPlay 등록 / OnRemove 해제
+      ↓
+Level::Draw → RenderingSystem
+  └─ RenderCommand 구성 · 제출
       ├─ Buffer / Texture Handle
       ├─ World · View · Projection
       └─ Material BaseColor
@@ -49,6 +52,7 @@ Direct3D 11 DrawIndexed
 ```
 
 - `IRenderer`와 `D3D11Renderer`를 분리해 게임 코드가 D3D11 구현 세부사항을 직접 참조하지 않도록 구성했습니다.
+- `RenderingSystem`이 현재 Level에 등록된 `MeshRendererComponent`를 순회하고, 카메라의 View/Projection과 각 Actor의 World 행렬로 `RenderCommand`를 구성해 제출합니다.
 - 렌더 요청을 `RenderCommand`로 모은 뒤 Opaque/Wireframe 버킷에서 실행합니다. 현재 구조가 Render Target을 소유하는 진짜 RenderPass가 아니라는 점을 확인해 이름을 `RenderLayer`로 정정했습니다.
 - OBJ의 position/normal/UV를 파싱하고 중복 정점을 제거해 Vertex/Index Buffer를 생성합니다.
 - WIC로 이미지를 RGBA8로 변환하고 Texture2D/SRV를 생성해 픽셀 셰이더에서 샘플링합니다.
@@ -76,7 +80,8 @@ Level
 - 순회 중 컨테이너 무효화를 피하기 위해 Actor 추가·삭제를 프레임 경계에서 일괄 처리합니다.
 - 반복 `vector::erase`로 인한 O(n²) 삭제를 swap-and-pop으로 변경했습니다. 당시 개발 일지의 10,000개 일괄 삭제 측정은 1046ms에서 12ms로 감소했습니다.
 - “객체 구성”과 “런타임 진입”이 섞여 있던 문제를 분리해 `Initialize`와 `BeginPlay` 디스패치를 추가하고, 중복 호출·재진입·순서 역전을 상태로 차단했습니다.
-- 현재 Level에 대기 중인 Actor는 프레임 경계에서 `DispatchInitialize()` → `DispatchBeginPlay()` 순으로 진입합니다. 다만 `BeginPlay` 중 새로 생성한 Component가 같은 디스패치 경로를 자동으로 거치는 연결은 아직 보강 대상입니다.
+- 종료도 `DispatchOnDestroy()` → Actor `OnDestroy()` → Component `OnRemove()` 순으로 일원화하고, 중복 종료를 상태로 차단했습니다. 메시 렌더러와 광원 컴포넌트는 실제 등록했던 시스템에서 해제합니다.
+- 현재 Level에 대기 중인 Actor는 프레임 경계에서 `DispatchInitialize()` → `DispatchBeginPlay()` 순으로 진입합니다. 다만 `Initialize` 이후 새로 생성한 Component가 같은 디스패치 경로를 자동으로 거치는 연결은 아직 보강 대상입니다.
 
 ### 기반 시스템
 
@@ -92,19 +97,11 @@ Level
 
 ## 데모
 
-### 축별 회전
+### 회전 규칙과 확인 경계
 
-| X축 | Y축 | Z축 |
-|---|---|---|
-| ![X축 회전](Docs/Earth_X축%20회전.gif) | ![Y축 회전](Docs/Earth_Y축%20회전.gif) | ![Z축 회전](Docs/Earth_Z축%20회전.gif) |
+`TransformComponent`의 Euler 입력은 `Vector3(x, y, z) = Pitch, Yaw, Roll`이며 +X를 Forward로 사용합니다. 현재 행렬 구성은 이 좌표계와 회전 방향을 맞추기 위해 `Rotation(-Roll, -Pitch, Yaw)`를 사용합니다. 데모에서는 `1` / `2` / `3` 키로 Pitch / Yaw / Roll 회전을 각각 토글합니다.
 
-`1` / `2` / `3` 키로 각 축 회전을 토글합니다. 현재는 Z-up 왼손 좌표계와 ZYX 오일러 회전을 사용합니다.
-
-### 확인된 한계: 짐벌락
-
-![오일러 회전의 짐벌락](Docs/Earth_짐벌락%20현상.gif)
-
-두 축을 동시에 회전할 때 발생하는 짐벌락을 재현했습니다. 쿼터니언 도입 전까지는 알려진 한계로 유지합니다.
+기존 X/Y/Z 및 짐벌락 GIF는 이 의미 정리 전 기록입니다. 별도 캡처 폴더의 Pitch/Yaw/Roll GIF도 최종 Roll 부호 수정 `c9bfdfd` 전에 생성되어 최신 HEAD 실행 증거로 게시하지 않았습니다. 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있으며, 현재 규칙을 반영한 새 실행 캡처가 필요합니다.
 
 ## 빌드와 검증
 
@@ -113,6 +110,7 @@ Level
 - Windows 10/11
 - Visual Studio 2026 Community 또는 MSVC v145 호환 환경
 - Windows SDK 10
+- vcpkg manifest mode (`vcpkg.json`의 GoogleTest 의존성)
 - x64
 
 ### 빌드 절차
@@ -122,23 +120,30 @@ Level
 3. `Game` 프로젝트를 시작 프로젝트로 설정합니다.
 4. 빌드 후 실행 파일 옆으로 복사된 `Asset/`과 `Shader/`를 사용해 실행합니다.
 
+테스트는 같은 솔루션의 `Tests` 프로젝트가 `LevelTest.cpp`와 `RenderingSystemTest.cpp`를 포함한 전체 테스트 소스를 빌드하도록 구성되어 있습니다. 이 문서 갱신에서는 별도 빌드나 실행을 수행하지 않았습니다.
+
 ### 검증 현황
 
-기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. `LevelTest.cpp`는 현재 `Tests.vcxproj`에서 빌드 제외되어 이 실행 대상에 포함되지 않았습니다. 아래 캡처는 해당 시점의 실행 기록이며, 최신 기준 커밋 `363c20f`의 ResourceManager / RenderingSystem 변경을 포함해 다시 실행한 독립 검증 결과는 아닙니다.
+기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 그 시점의 실행 기록이며, 현재 기준 커밋 `c9bfdfd`의 전체 회귀 결과가 아닙니다.
 
-현재 테스트 소스에는 Level 테스트를 포함해 총 98개 케이스가 있습니다.
+현재 테스트 소스에는 총 106개 케이스가 선언되어 있고, `Tests.vcxproj`는 Level 테스트를 다시 포함하며 `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
 | Vector2 / 3 / 4 | 2 / 19 / 18 | 산술, 내적·외적, 정규화, 상수 |
 | Matrix4 | 21 | 변환, 역행렬, LookAt, 투영 |
 | Time | 17 | 스무딩, clamp, TimeScale, Pause/Resume |
-| Lifecycle | 9 | 호출 순서, 1회 보장, 재진입·순서 역전 차단 |
-| Level | 12 | Actor 추가·제거, owner, 대량 처리 — 현재 프로젝트에서 빌드 제외 |
+| Lifecycle | 11 | 호출 순서, 1회 보장, 재진입·순서 역전, 종료 순서 |
+| Level | 12 | Actor 추가·제거, owner, 대량 처리 — 빌드 대상에 재포함 |
+| RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
 
-`Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출하지만, 현재 프로젝트 구성으로 빌드되는 대상은 Level 12개를 제외한 86개입니다. 전체 98개를 실행하려면 먼저 `LevelTest.cpp`의 빌드 포함 여부와 현재 생명주기 변경에 대한 호환성을 검토해야 합니다. 최신 HEAD 빌드와 86개 테스트 역시 별도의 독립 재검증이 남아 있습니다.
+2026-10-06 캡처에서는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 각 항목의 `OK`를 확인했습니다. 이는 두 스위트의 별도 실행 증거이며, 전체 106개 또는 최신 HEAD의 통합 통과 증거는 아닙니다. 최신 HEAD 빌드, 전체 테스트 실행, Windows 데모 실행과 성능 측정은 별도 재검증이 남아 있습니다.
 
-| Lifecycle (9) | Matrix4 (21) |
+| Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) |
+|---|---|
+| ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) |
+
+| Lifecycle (과거 9) | Matrix4 (21) |
 |---|---|
 | ![Lifecycle 테스트 9개 통과](Docs/LifecycleTests.png) | ![Matrix4 테스트 21개 통과](Docs/Matrix4Tests.png) |
 
@@ -171,7 +176,7 @@ Level
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | Light 데이터 계층, 생명주기 디스패치, ResourceManager와 RenderingSystem 기반 | `5c6a8fe` · `dbb7a12` · `96be1c9` · `363c20f` |
+| 2026-10 | ResourceManager 소비 경로, RenderingSystem 통합, 종료 생명주기, 등록 해제 검증, Pitch/Yaw/Roll 규칙 | `363c20f` · `381b4c2` · `7508012` · `57b74c2` · `c9bfdfd` |
 
 ## 로드맵
 
@@ -180,7 +185,7 @@ Notion 개발 로드맵을 기준으로 진행합니다.
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | 1~4.8 | 코어 · Input · Component · DX11 기초 · Time · RenderLayer | 완료 |
-| 5 | Transform · Camera · Mesh · Texture · Material · LightingSystem | 진행 중 |
+| 5 | Transform · Camera · Mesh · Texture · Material · RenderingSystem · LightingSystem | 진행 중 |
 | 5.5 | Render Texture + Post-Processing | 예정 |
 | 5.6 | LightingSystem 중간 데모와 GIF | 예정 |
 | 6 | Deferred Rendering과 실제 RenderPass/RenderGraph | 예정 |
@@ -188,17 +193,7 @@ Notion 개발 로드맵을 기준으로 진행합니다.
 | 8 | AABB 충돌 고도화와 필요 시 BVH | 기반 구현 / 후속 예정 |
 | 9~13 | ResourceManager · Level · 메모리 · 직렬화 · 미니 게임 | ResourceManager 기반 구현 / 나머지 예정 |
 
-현재의 바로 다음 목표는 새 서비스와 기존 렌더 경로의 end-to-end 연결을 완성하는 것입니다.
-
-```text
-MeshRendererComponent 초기화
-→ Level의 ResourceManager에서 Mesh / Texture 공유
-→ RenderingSystem 등록·해제
-→ 매 프레임 RenderCommand 생성
-→ IRenderer::Submit
-```
-
-그다음 LightingSystem의 광원 수집·GPU 변환·Shader 계산을 같은 흐름에 연결하고, 최신 조명 데모와 전체 회귀 테스트를 실행합니다.
+현재의 바로 다음 목표는 LightingSystem의 광원 수집·GPU 변환·Shader 계산을 완성된 렌더 명령 흐름에 연결하는 것입니다. 이어서 Initialize 이후 Component 추가의 생명주기 규칙을 정하고, 최신 회전 규칙을 반영한 데모와 전체 106개 회귀 테스트를 실행합니다.
 
 ## 프로젝트 구조
 
