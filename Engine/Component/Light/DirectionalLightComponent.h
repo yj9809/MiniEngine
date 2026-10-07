@@ -2,31 +2,29 @@
 
 #include "Common/Common.h"
 #include "Common/RTTI.h"
-#include "Component/Component.h"
+#include "Component/Light/LightComponent.h"
 #include "Math/Vector3.h"
 #include "Lighting/DirectionalLight.h"
 
 namespace Engine
 {
-    class LightingSystem;
-
-    class ENGINE_API DirectionalLightComponent : public Component
+    class ENGINE_API DirectionalLightComponent : public LightComponent
     {
-        RTTI_DECLARATIONS(DirectionalLightComponent, Component)
+        RTTI_DECLARATIONS(DirectionalLightComponent, LightComponent)
 
     public:
         void SetColor(const Vector3& color);
 
         void SetIntensity(float value);
 
-    protected:
-        virtual void BeginPlay() override;
+        Vector3 GetDirection() const;
 
-        virtual void OnRemove() override;
+    private:
+        virtual void RegisterToLightSystem(LightingSystem& system) override;
+
+        virtual void UnregisterFromLightSystem(LightingSystem& system) override;
 
     private:
         DirectionalLight light;
-
-        LightingSystem* registeredSystem = nullptr;
     };
 }

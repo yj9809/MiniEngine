@@ -42,7 +42,16 @@ namespace Engine
 		virtual void Initialize();
 		
 		// 컴포넌트가 초기화까지 끝나면 BeginPlay()가 호출된다. Tick()이 호출되기 전에 한 번만 호출된다.
-		virtual void BeginPlay();	
+		virtual void BeginPlay();
+
+	private:
+		// Component가 런타임 시스템에 자동 등록되기 위한 엔진 내부 훅.
+		// DispatchBeginPlay()에서 호출되며, BeginPlay()보다 먼저 호출.
+		virtual void RegisterWithSystem();
+
+		// Component가 런타임 시스템에서 자동 제거되기 위한 엔진 내부 훅.
+		// DispatchOnRemove()에서 호출되며, OnRemove()보다 먼저 호출.
+		virtual void UnregisterFromSystem();
 
 	private:
 		Actor* owner = nullptr;

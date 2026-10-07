@@ -1,11 +1,21 @@
 #include "DirectionalLightComponent.h"
 
 #include "Actor/Actor.h"
-#include "Level/Level.h"
+#include "Component/Transform/TransformComponent.h"
 #include "System/LightingSystem.h"
 
 namespace Engine
 {
+    void DirectionalLightComponent::RegisterToLightSystem(LightingSystem& system)
+    {
+        system.Register(this);
+    }
+
+    void DirectionalLightComponent::UnregisterFromLightSystem(LightingSystem& system)
+    {
+        system.Unregister(this);
+    }
+
     void DirectionalLightComponent::SetColor(const Vector3& color)
     {
         light.SetColor(color);
@@ -16,35 +26,8 @@ namespace Engine
         light.SetIntensity(value);
     }
 
-    void DirectionalLightComponent::BeginPlay()
+    Vector3 DirectionalLightComponent::GetDirection() const
     {
-        Component::BeginPlay();
-
-        // LightingSystem에 중복 등록 방지.
-        if (registeredSystem != nullptr)
-        {
-            return;
-        }
-
-        Level* ownerLevel = GetOwner().GetOwner();
-
-        if (!ownerLevel)
-        {
-            return;
-        }
-
-        LightingSystem* lightingSystem = ownerLevel->GetLightingSystem();
-        lightingSystem->RegisterDirectionalLight(this);
-        registeredSystem = lightingSystem;
-    }
-
-    void DirectionalLightComponent::OnRemove()
-    {
-        if (registeredSystem != nullptr)
-        {
-            registeredSystem->UnregisterDirectionalLight(this);
-            registeredSystem = nullptr;
-        }
-        Component::OnRemove();
+        return GetOwner().GetRootComponent()->GetForward();
     }
 }

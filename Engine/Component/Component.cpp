@@ -36,6 +36,7 @@ namespace Engine
 
 		lifecycleState = LifecycleState::EndingPlay;
 		
+		UnregisterFromSystem();
 		OnRemove();
 
 		lifecycleState = LifecycleState::HasEndedPlay;
@@ -74,6 +75,7 @@ namespace Engine
 		
 		lifecycleState = LifecycleState::BeginningPlay;
 		
+		RegisterWithSystem();
 		BeginPlay();
 				
 		lifecycleState = LifecycleState::HasBegunPlay;
@@ -85,6 +87,16 @@ namespace Engine
 	}
 
 	void Component::Tick(float deltaTime)
+	{
+
+	}
+
+	void Component::RegisterWithSystem()
+	{
+
+	}
+
+	void Component::UnregisterFromSystem()
 	{
 
 	}

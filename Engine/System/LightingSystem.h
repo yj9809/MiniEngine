@@ -2,15 +2,16 @@
 
 #include <vector>
 
-#include "Component/Light/DirectionalLightComponent.h"
-
 namespace Engine
 {
+    class DirectionalLightComponent;
+
     class LightingSystem
     {
     public:
-        void RegisterDirectionalLight(const DirectionalLightComponent* directionalLight);
-        void UnregisterDirectionalLight(const DirectionalLightComponent* directionalLight);
+        // DirectionalLightComponent를 등록/해제하는 메서드
+        void Register(const DirectionalLightComponent* lightComponent);
+        void Unregister(const DirectionalLightComponent* lightComponent);
 
         void Clear();
         

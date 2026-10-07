@@ -2,20 +2,27 @@
 
 #include <algorithm>
 
+#include "Component/Light/DirectionalLightComponent.h"
+
 namespace Engine
 {
-    void LightingSystem::RegisterDirectionalLight(const DirectionalLightComponent* directionalLight)
+    void LightingSystem::Register(const DirectionalLightComponent* lightComponent)
     {
-        if(std::find(directionalLights.begin(), directionalLights.end(), directionalLight) == directionalLights.end())
+        if(lightComponent == nullptr)
         {
-            directionalLights.push_back(directionalLight);
+            return;
+        }
+
+        const auto it = std::find(directionalLights.begin(), directionalLights.end(), lightComponent);
+        if(it == directionalLights.end())
+        {
+            directionalLights.push_back(lightComponent);
         }
     }
 
-    void LightingSystem::UnregisterDirectionalLight(const DirectionalLightComponent* directionalLight)
+    void LightingSystem::Unregister(const DirectionalLightComponent* lightComponent)
     {
-        auto it = std::find(directionalLights.begin(), directionalLights.end(), directionalLight);
-        
+        const auto it = std::find(directionalLights.begin(), directionalLights.end(), lightComponent);
         if(it != directionalLights.end())
         {
             directionalLights.erase(it);

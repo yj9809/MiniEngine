@@ -7,14 +7,24 @@ namespace Engine
     class ENGINE_API Light
     {
     public:
-        void SetColor(const Vector3& color)
+        inline void SetColor(const Vector3& color)
         {
             this->color = color;
         }
 
-        void SetIntensity(float value)
+        inline  void SetIntensity(float value)
         {
             intensity = value;
+        }
+
+        inline const Vector3 GetColor() const
+        {
+            return color;
+        }
+
+        inline float GetIntensity() const
+        {
+            return intensity;
         }
 
     private:
