@@ -173,11 +173,13 @@ xcopy /Y /E /I "$(SolutionDir)Game\Asset" "$(OutDir)Asset"</Command>
   <ItemGroup>
     <ClCompile Include="Actor\CameraActor.cpp" />
     <ClCompile Include="Actor\TestMeshActor.cpp" />
+    <ClCompile Include="DirectionalLightActor.cpp" />
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Actor\CameraActor.h" />
     <ClInclude Include="Actor\TestMeshActor.h" />
+    <ClInclude Include="DirectionalLightActor.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

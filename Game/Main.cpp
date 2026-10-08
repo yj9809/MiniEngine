@@ -1,5 +1,6 @@
 #include "Actor/CameraActor.h"
 #include "Actor/TestMeshActor.h"
+#include "Actor/DirectionalLightActor.h"
 #include "Engine/Engine.h"
 #include "Level/Level.h"
 #include "Core/Input.h"
@@ -17,6 +18,9 @@ int main()
 	
 	auto testMsh = std::make_unique<TestMeshActor>();
 	levelPtr->AddNewActor(std::move(testMsh));
+
+	auto directionalLight = std::make_unique<DirectionalLightActor>();
+	levelPtr->AddNewActor(std::move(directionalLight));
 	
 	engine.Run();
 }
