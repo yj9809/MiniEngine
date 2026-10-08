@@ -1,10 +1,12 @@
 #pragma once
 
+#include <memory>
+#include <variant>
+#include <optional>
+
 #include "Common/Common.h"
 #include "Core/Input.h"
-
-#include <memory>
-
+#include "EngineInitialization.h"
 
 namespace Engine
 {
@@ -12,11 +14,13 @@ namespace Engine
 	class Win32Window;
 	class IRenderer;
 	class ResourceManager;
+	
+	class Engine;
+	using EngineCreateResult = std::variant<std::unique_ptr<Engine>, EngineInitError>;
 
 	// 엔진의 진입점이자 최상위 관리자 클래스.
 	// 게임 루프(Run), 설정 로드(LoadSettings), 레벨 전환(SetNewLevel)을 담당한다.
-	// 사용 측 게임 프로젝트는 Engine을 상속하거나 직접 인스턴스를 생성해 사용한다.
-	class ENGINE_API Engine
+	class ENGINE_API Engine final
 	{
 		// Settings.txt에서 읽어오는 런타임 설정값.
 		struct Settings
@@ -32,8 +36,15 @@ namespace Engine
 		};
 
 	public:
-		Engine();
-		~Engine();
+		// 완전히 초기화된 Engine 또는 초기화 실패 정보를 반환한다.
+		[[nodiscard]] static EngineCreateResult Create();
+		
+		~Engine() noexcept;
+		
+		Engine(const Engine&) = delete;
+		Engine& operator=(const Engine&) = delete;
+		Engine(Engine&&) = delete;
+		Engine& operator=(Engine&&) = delete;
 
 		// 게임 루프를 시작한다. isQuit가 true가 될 때까지 블로킹된다.
 		void Run();
@@ -47,9 +58,12 @@ namespace Engine
 		
 		inline Level* GetMainLevel() const { return mainLevel.get(); }
 
-	protected:
-		// 엔진 초기화. 생성자에서 호출된다.
-		void Initialize();
+	private:
+		// 객체의 메모리만 할당하고, 실제 초기화는 Initialize()에서 수행한다.
+		Engine() noexcept = default;
+		
+		// 엔진 초기화. Create()에서 호출된다.
+		[[nodiscard]] std::optional<EngineInitError> Initialize();
 
 		// Setting/Settings.txt를 읽어 settings를 채운다.
 		// 파일이 없으면 기본값으로 새로 생성한다.
@@ -60,13 +74,14 @@ namespace Engine
 
 		// 현재 레벨의 Draw를 호출한다.
 		void Draw();
-
-	private:
+		
+		// 커서를 창 내부로 제한한다.
 		void ClampCursor(RECT* windowRect);
 
+		// 커서를 창의 중심으로 이동시킨다.
 		void CenterCursor(RECT* windowRect);
 
-	protected:
+	private:
 		// true가 되면 Run()의 루프가 종료된다. static으로 선언해 어디서든 QuitEngine()으로 설정 가능.
 		inline static bool isQuit = false;
 

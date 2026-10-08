@@ -15,12 +15,21 @@ namespace fs = std::filesystem;
 
 namespace Engine
 {
-	Engine::Engine()
+	EngineCreateResult Engine::Create()
 	{
-		Initialize();
+		// make_unique는 private 생성자에 접근할 수 없으므로,
+		// 여기서는 직접 new로 생성 후 unique_ptr에 담는다.
+		auto engine = std::unique_ptr<Engine>(new Engine());
+		
+		if (auto error = engine->Initialize(); error.has_value())
+		{
+			return std::move(*error);
+		}
+		
+		return std::move(engine);
 	}
 
-	Engine::~Engine()
+	Engine::~Engine() noexcept
 	{
 		if (mainLevel)
 		{
@@ -141,19 +150,94 @@ namespace Engine
 		mainLevel->BeginPlay();
 	}
 
-	void Engine::Initialize()
+	std::optional<EngineInitError> Engine::Initialize()
 	{
-		LoadSettings();
+		try
+		{
+			LoadSettings();
+			
+			if (settings.frameRate <= 0.0f || settings.width <= 0 || settings.height <= 0)
+			{
+				return EngineInitError
+				{
+					EngineInitialization::Settings,
+					"Settings values must be greater than zero."
+				};
+			}
+		}
+		catch (const std::exception& e)
+		{
+			return EngineInitError
+			{
+				EngineInitialization::Settings,
+				std::string("Failed to load settings: ") + e.what()
+			};
+		}
 
-		// 출력 창 생성 및 초기화.
-		window = std::make_unique<Win32Window>(settings.width, settings.height, L"Mini Engine");
-
-		// 렌더러 생성 및 초기화.
-		// 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
-		renderer = std::make_unique<D3D11Renderer>();
-		renderer->GPUInit(window->GetHwnd(), settings.width, settings.height);
+		try
+		{
+			// 출력 창 생성 및 초기화.
+			window = std::make_unique<Win32Window>(settings.width, settings.height, L"Eden Engine");
+		}
+		catch (const std::exception& e)
+		{
+			return EngineInitError
+			{
+				EngineInitialization::Window,
+				std::string("Failed to create window: ") + e.what()
+			};
+		}
 		
-		resourceManager = std::make_unique<ResourceManager>(*renderer);
+		if (window->GetHwnd() == nullptr)
+		{
+			return EngineInitError
+			{
+				EngineInitialization::Window,
+				"Failed to create Win32 window."
+			};
+		}
+
+		try
+		{
+			// 렌더러 생성 및 초기화.
+			// 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
+			auto initializedRenderer = std::make_unique<D3D11Renderer>();
+			
+			if (!initializedRenderer->GPUInit(window->GetHwnd(), settings.width, settings.height))
+			{
+				return EngineInitError
+				{
+					EngineInitialization::Renderer,
+					"Failed to initialize D3D11 renderer."
+				};
+			}
+			
+			// 초기화에 성공한 렌더러만 Engine에 연결.
+			renderer = std::move(initializedRenderer);
+		}
+		catch (const std::exception& e)
+		{
+			return EngineInitError
+			{
+				EngineInitialization::Renderer,
+				std::string("Failed to initialize renderer: ") + e.what()
+			};
+		}
+
+		try
+		{
+			resourceManager = std::make_unique<ResourceManager>(*renderer);
+		}
+		catch (const std::exception& e)
+		{
+			return EngineInitError
+			{
+				EngineInitialization::Resource,
+				std::string("Failed to initialize resource manager: ") + e.what()
+			};
+		}
+		
+		return std::nullopt;
 	}
 
 	void Engine::LoadSettings()

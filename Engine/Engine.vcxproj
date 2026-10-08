@@ -102,6 +102,7 @@
     <ClInclude Include="Core\Time.h" />
     <ClInclude Include="Core\Win32Window.h" />
     <ClInclude Include="Engine\Engine.h" />
+    <ClInclude Include="Engine\EngineInitialization.h" />
     <ClInclude Include="Level\Level.h" />
     <ClInclude Include="Lighting\DirectionalLight.h" />
     <ClInclude Include="Lighting\Light.h" />

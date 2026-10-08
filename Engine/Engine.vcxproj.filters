@@ -18,6 +18,9 @@
     <ClInclude Include="Engine\Engine.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\EngineInitialization.h">
+        <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="Level\Level.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
