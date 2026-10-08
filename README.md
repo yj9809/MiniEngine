@@ -8,23 +8,26 @@
 
 ## 현재 상태
 
-기준 커밋: `f3e58f3` (2026-10-07) · 전체 89 commits
+코드 확인 기준: [`2dbab22`](https://github.com/yj9809/MiniEngine/commit/2dbab22b77ef95f40e5d8cdbaf61f6899c25e440) (2026-10-09 문서 점검)
 
-현재는 Notion 로드맵의 **5단계 — DX11 렌더러 심화**를 진행하고 있습니다. `ResourceManager`의 공유 캐시와 Level 소유 `RenderingSystem`으로 메시 렌더 명령을 제출하는 경로에 이어, `DirectionalLightComponent`의 방향·색상·강도를 프레임 데이터로 수집해 OpaqueLayer의 GPU 상수 버퍼와 픽셀 셰이더까지 전달하는 코드 경로를 연결했습니다. 다만 CPU에서는 등록된 방향광 전체를 수집하지만 현재 GPU 업로드는 첫 번째 방향광 1개로 제한되며, 게임 데모의 광원 생성과 최신 실행 검증은 남아 있습니다.
+현재는 개편된 Notion 로드맵의 **0단계 — 기존 기반 정리와 보강**을 진행하고 있습니다. `DirectionalLightActor`를 Game에 배치해 기존 광원 전달 경로를 데모에서 소비하도록 연결했고, `Engine::Create()`가 초기화된 엔진 또는 단계별 오류를 반환하도록 생성과 초기화를 분리했습니다. Game은 생성 결과를 확인한 뒤에만 게임 루프에 진입합니다.
+
+현재 GPU 업로드는 첫 방향광 1개로 제한됩니다. Bootstrap의 실패 전파·부분 초기화 정리·종료 계약, 런타임 Component 추가 정책과 최신 실행 검증은 남아 있습니다. 구현 존재와 통합·빌드·테스트·실행 검증을 구분하며, 개발 중인 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
 | 영역 | 현재 수준 | 상태 |
 |---|---|---|
-| Win32 런타임 | 창, 메시지 루프, 고정 목표 프레임 루프 | 완료 |
+| Win32 런타임 | 창, 메시지 루프, 목표 프레임 루프 | 기반 구현 / 실패·종료 경로 보강 중 |
+| Engine Bootstrap | `Create()` → 단계별 `Initialize()` 결과 → Game의 오류 분기 | 코드 연결 / 실패 주입·최신 실행 검증 대기 |
 | Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy` 상태 디스패치, 지연 추가/제거, Root Transform | 기반 완료 / Initialize 이후 Component 추가 경로 보강 중 |
 | DX11 기반 | Device · SwapChain · RTV · DSV · Viewport · 상수 버퍼 | 완료 |
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
 | 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 완료 |
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
-| 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 기존 데모 구현 / 현재 경로 재검증 필요 |
+| 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 화면 자료 확인 / 최신 SHA 실행 검증 대기 |
 | LightingSystem | 공통 등록 훅, Level 단위 등록·해제, 방향·색상·강도 수집 | CPU 프레임 데이터 연결 완료 |
-| RenderingSystem | 메시 명령과 방향광 프레임 데이터를 렌더러에 제출 | 코드 연결 완료 / 실행 미검증 |
+| RenderingSystem | 메시 명령과 방향광 프레임 데이터를 렌더러에 제출 | Game 방향광 배치 연결 / 최신 실행 검증 대기 |
 | 방향광 GPU 경로 | 최대 4개 배열 상수 버퍼, 개수 기반 셰이더 누적 | 첫 번째 방향광 1개만 업로드 |
 | 충돌 | `BoxCollider`, AABB overlap, 등록 컨테이너 | 기반 구현 / 게임 루프 통합 미완료 |
 
@@ -94,6 +97,14 @@ Level
 - 종료도 `DispatchOnDestroy()` → Actor `OnDestroy()` → Component `OnRemove()` 순으로 일원화하고, 중복 종료를 상태로 차단했습니다. 메시 렌더러와 광원 컴포넌트는 실제 등록했던 시스템에서 해제합니다.
 - 현재 Level에 대기 중인 Actor는 프레임 경계에서 `DispatchInitialize()` → `DispatchBeginPlay()` 순으로 진입합니다. 다만 `Initialize` 이후 새로 생성한 Component가 같은 디스패치 경로를 자동으로 거치는 연결은 아직 보강 대상입니다.
 
+### 엔진 생성과 초기화
+
+- `Engine::Create()`는 `std::variant<std::unique_ptr<Engine>, EngineInitError>`를 반환합니다. 생성자는 비공개이고, 초기화는 Settings → Window → Renderer → Resource 순으로 수행합니다.
+- `Game/Main.cpp`는 `EngineInitError`이면 메시지를 `stderr`에 출력하고 실패 종료하며, 성공한 엔진으로 Level을 구성한 뒤 `Run()`을 호출합니다.
+- 정상 종료 코드는 Level → ResourceManager → Renderer 순으로 정리합니다. 부분 초기화 실패의 정리 계약과 정확히 한 번 종료되는지는 별도 검증 대상입니다.
+- 아직 설정 파일 열기 실패를 오류로 반환하지 않으며, `Win32Window` 소멸자에는 창/클래스 해제 코드가 없습니다. D3D 오류 경로의 `__debugbreak()`도 남아 있어 디버거 없는 실패 반환을 보장한 상태는 아닙니다.
+- Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. Level 전환의 null 입력·실패·프레임 경계 정책은 미완료입니다.
+
 ### 기반 시스템
 
 | 시스템 | 구현 내용 |
@@ -107,6 +118,14 @@ Level
 | System | Level 소유 Lighting / RenderingSystem, 생명주기 등록·해제, CPU 프레임 데이터 전달 |
 
 ## 데모
+
+### 방향광 데모
+
+![방향광 데모의 지구 렌더링 화면](Docs/directional-light-after.gif)
+
+`DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
+
+이 GIF는 저장소에 제공된 화면 자료입니다. 여러 프레임의 지구 출력은 확인했으나, 캡처 창 제목은 `Mini Engine`이고 현재 Bootstrap 코드는 `Eden Engine`을 사용합니다. 캡처 당시 SHA·빌드 구성을 확인할 수 없어 최신 `b210cdf` 이후 Bootstrap 실행 성공이나 Color/Intensity 변경·다중 광원 검증의 근거로 확대하지 않습니다.
 
 ### 회전 규칙과 확인 경계
 
@@ -135,7 +154,7 @@ Level
 
 ### 검증 현황
 
-기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 그 시점의 실행 기록이며, 현재 기준 커밋 `f3e58f3`의 전체 회귀 결과가 아닙니다.
+기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 그 시점의 실행 기록이며, 현재 코드 확인 기준의 전체 회귀 결과가 아닙니다.
 
 현재 테스트 소스에는 총 106개 케이스가 선언되어 있고, `Tests.vcxproj`는 Level 테스트를 다시 포함하며 `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다.
 
@@ -148,7 +167,7 @@ Level
 | Level | 12 | Actor 추가·제거, owner, 대량 처리 — 빌드 대상에 재포함 |
 | RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
 
-2026-10-06 캡처에서는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 각 항목의 `OK`를 확인했습니다. 이는 두 스위트의 별도 실행 증거이며, 전체 106개 또는 최신 HEAD의 통합 통과 증거는 아닙니다. 이후 테스트 선언 수는 106개로 유지됐고, RenderingSystem 테스트용 렌더러에 방향광 제출 인터페이스가 추가됐지만 광원 데이터의 수집·GPU 전달을 확인하는 새 테스트 단언은 없습니다. 최신 HEAD 빌드, 전체 테스트 실행, Windows 데모 실행과 성능 측정은 별도 재검증이 남아 있습니다.
+2026-10-06 캡처에서는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 각 항목의 `OK`를 확인했습니다. 이는 두 스위트의 별도 실행 증거이며, 전체 106개 또는 최신 HEAD의 통합 통과 증거는 아닙니다. 이후 테스트 선언 수는 106개로 유지됐고, RenderingSystem 테스트용 렌더러에 방향광 제출 인터페이스가 추가됐지만 광원 데이터의 수집·GPU 전달을 확인하는 새 테스트 단언은 없습니다. 최신 로드맵(2026-10-09)은 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록합니다. 이번 점검에서는 해당 실행 로그나 최신 SHA에 대응하는 결과 파일을 확인하지 못했으므로 **문서에 남은 통과 기록**과 **직접 재실행한 결과**를 구분합니다. Debug 최종 링크와 변경된 Bootstrap의 실제 Game 실행은 로드맵에서도 미완료입니다. 이후 `4a756a7`은 데모 코드, `2dbab22`는 GIF를 변경했으며 최신 SHA의 전체 검증 결과는 확인되지 않았습니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) |
 |---|---|
@@ -188,24 +207,30 @@ Level
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 광원 등록 공통화와 첫 방향광 GPU 전달 | `381b4c2` · `7508012` · `c9bfdfd` · `3a09184` · `c109d60` · `f3e58f3` |
+| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 광원 등록 공통화와 첫 방향광 GPU 전달, DirectionalLightActor, Engine 생성/초기화 분리 | `381b4c2` · `7508012` · `c9bfdfd` · `3a09184` · `c109d60` · `f3e58f3` · `ab373a3` · `b210cdf` |
 
 ## 로드맵
 
-Notion 개발 로드맵을 기준으로 진행합니다.
+[최신 Notion 개발 로드맵](https://app.notion.com/p/3218d1fa63aa817ab92eddf6e8e86b24)의 2026-10-08 개편 구조를 기준으로 진행합니다. 개발 일지와 DEVLOG의 기존 1~5-7 단계명은 당시 구현 이력이며 현재 단계 번호와 구분합니다.
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 1~4.8 | 코어 · Input · Component · DX11 기초 · Time · RenderLayer | 완료 |
-| 5 | Transform · Camera · Mesh · Texture · Material · RenderingSystem · LightingSystem | 진행 중 |
-| 5.5 | Render Texture + Post-Processing | 예정 |
-| 5.6 | LightingSystem 중간 데모와 GIF | 예정 |
-| 6 | Deferred Rendering과 실제 RenderPass/RenderGraph | 예정 |
-| 7 | PBR | 예정 |
-| 8 | AABB 충돌 고도화와 필요 시 BVH | 기반 구현 / 후속 예정 |
-| 9~13 | ResourceManager · Level · 메모리 · 직렬화 · 미니 게임 | ResourceManager 기반 구현 / 나머지 예정 |
+| 0 | 기존 기반 보강 · Bootstrap/Shutdown · Logging Foundation | 진행 중 |
+| 1 | 엔진 데이터 계층·변환 규칙 · Environment Lighting | 예정 |
+| 2 | Quaternion Transform · Transform 계층 | 예정 |
+| 3 | Forward Lighting 기준선 | 예정 |
+| 4 | RenderPass · HDR · Shadow · 공용 DebugDraw | 예정 |
+| 5 | Deferred Rendering | 예정 |
+| 6 | PBR · glTF 정적 Asset · Environment Lighting | 예정 |
+| 7 | 안정적인 Type Registry 기반 Scene과 Resource | 예정 |
+| 8 | Runtime Engine Tools | 예정 |
+| 9 | Input Mapping · Collision · Character Runtime | 예정 |
+| 10 | Skeletal Animation | 예정 |
+| 11 | 별도 Action Framework | 예정 |
+| 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
+| 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-현재의 바로 다음 목표는 게임 데모에 방향광을 생성해 새 전달 경로를 실행 검증하고, GPU 업로드를 상수 버퍼 용량인 최대 4개까지 확장하며 관련 테스트를 추가하는 것입니다. 이어서 Initialize 이후 Component 추가의 생명주기 규칙을 정하고, 최신 회전·조명 데모와 전체 106개 회귀 테스트를 실행합니다.
+다음 순서는 **남은 기반 보강 → 기존 `Engine::Log` 확장 → Data Contract v1**입니다. 먼저 Bootstrap 실패·종료 계약과 런타임 생성/제거 정책을 고정하고 최신 빌드·테스트·Game 실행을 검증합니다. 다중 광원 업로드와 Ambient Albedo 중복 곱셈, Quaternion·고급 렌더링은 후속 단계에서 다룹니다. 측정된 필요성이 없는 범용 RenderGraph·BVH·Custom Allocator는 선행하지 않습니다.
 
 ## 프로젝트 구조
 
