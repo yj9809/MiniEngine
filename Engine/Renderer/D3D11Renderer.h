@@ -29,15 +29,13 @@ namespace Engine
 	{
 	public:
 		D3D11Renderer() = default;
-		~D3D11Renderer() = default;
+		~D3D11Renderer() noexcept override;
 
 		virtual bool GPUInit(HWND hwnd, int width, int height) override;
 		
 		virtual void BeginFrame(float r, float g, float b) override;
 
 		virtual void EndFrame() override;
-
-		virtual void GPUShutdown() override;
 
 		virtual void Render() override;
 			
@@ -74,6 +72,8 @@ namespace Engine
 		// Step.5 Viewport 설정.
 		void InitViewport(int width, int height) const;
 		
+		void Shutdown() noexcept;
+
 	private:
 		// GPU와 연결되는 기본 디바이스 객체.
 		ComPtr<ID3D11Device> device;
@@ -113,6 +113,9 @@ namespace Engine
 
 		// 모든 레이어에서 읽을 수 있는 프레임 단위 조명 데이터.
 		RenderFrameData frameData;
+
+		bool isInitialized = false;
+		bool isComInitialized = false;
 	};
 }
 

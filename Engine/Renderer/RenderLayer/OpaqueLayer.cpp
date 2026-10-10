@@ -1,29 +1,44 @@
 ﻿#include "OpaqueLayer.h"
 
 #include <d3dcompiler.h>
-#include <cassert>
-#include <cstring>
+#include <stdexcept>
 
 namespace Engine
 {
     OpaqueLayer::OpaqueLayer(ID3D11Device* device)
     {
-        bool isShaders = InitShaders(device);
-        assert(isShaders && "Failed to initialize shaders for OpaquePass");
-        bool isConstantBuffer = CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer);
-        assert(isConstantBuffer && "Failed to create constant buffer for OpaquePass");
+        if (!device)
+        {
+            throw std::invalid_argument("Device pointer is null in OpaqueLayer constructor");
+        }
+
+        if (!InitShaders(device))
+        {
+            throw std::runtime_error("OpaqueLayer shader initialization failed");
+        }
+
+        if (!CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer))
+        {
+            throw std::runtime_error("OpaqueLayer constant buffer creation failed");
+        }
 
         // 픽셀 셰이더에 전달할 상수 버퍼 생성.
-        bool isMaterialBuffer = CreateConstantBuffer(device, sizeof(MaterialConstantBuffer), materialConstantBuffer);
-        assert(isMaterialBuffer && "Failed to create material constant buffer for OpaquePass");
+        if (!CreateConstantBuffer(device, sizeof(MaterialConstantBuffer), materialConstantBuffer))
+        {
+            throw std::runtime_error("OpaqueLayer material constant buffer creation failed");
+        }
 
         // 정점 셰이더에 전달할 월드 행렬 상수 버퍼 생성.
-        bool isWorldBuffer = CreateConstantBuffer(device, sizeof(Matrix4), worldConstantBuffer);
-        assert(isWorldBuffer && "Failed to create world constant buffer for OpaquePass");
+        if (!CreateConstantBuffer(device, sizeof(Matrix4), worldConstantBuffer))
+        {
+            throw std::runtime_error("OpaqueLayer world constant buffer creation failed");
+        }
 
         // 픽셀 셰이더에 전달할 조명 상수 버퍼 생성.
-        bool isLightingBuffer = CreateConstantBuffer(device, sizeof(LightingConstantBuffer), lightingConstantBuffer);
-        assert(isLightingBuffer && "Failed to create lighting constant buffer for OpaquePass");
+        if (!CreateConstantBuffer(device, sizeof(LightingConstantBuffer), lightingConstantBuffer))
+        {
+            throw std::runtime_error("OpaqueLayer lighting constant buffer creation failed");
+        }
 
         // 샘플링 규칙 생성용 설명서.
         D3D11_SAMPLER_DESC samplerDesc = {};
@@ -33,9 +48,11 @@ namespace Engine
         samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP; // W 좌표 범위 밖의 텍스처 샘플링 시 반복.
         samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS; // 비교 함수는 사용하지 않으므로 항상 통과하도록 설정.
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX; // 최대 LOD 설정.
-        
-        bool isSamplerState = SUCCEEDED(device->CreateSamplerState(&samplerDesc, &samplerState));
-        assert(isSamplerState && "Failed to create sampler state for OpaquePass");
+
+        if (FAILED(device->CreateSamplerState(&samplerDesc, &samplerState)))
+        {
+            throw std::runtime_error("Failed to create sampler state for OpaqueLayer");
+        }
     }
 
     void OpaqueLayer::Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData)
@@ -46,7 +63,7 @@ namespace Engine
         context->PSSetConstantBuffers(0, 1, materialConstantBuffer.GetAddressOf());
         // 정점 셰이더에 월드 행렬 상수 버퍼 등록.
         context->VSSetConstantBuffers(1, 1, worldConstantBuffer.GetAddressOf());
-        
+
         #pragma region Lighting 상수 버퍼 업데이트.
         LightingConstantBuffer lightingBuffer{};
         lightingBuffer.ambientColor = Vector4(0.1f, 0.1f, 0.1f, 1.0f); // 어두운 환경 조명.
@@ -80,7 +97,7 @@ namespace Engine
         // 셰이더 바인딩: 이후 Draw 호출에서 이 셰이더로 처리.
         context->VSSetShader(vertexShader.Get(), nullptr, 0);
         context->PSSetShader(pixelShader.Get(), nullptr, 0);
-        
+
         // 샘플링 규칙 등록.
         context->PSSetSamplers(0, 1, samplerState.GetAddressOf());
     }
@@ -134,9 +151,16 @@ namespace Engine
 
         // 셰이더 .cso 파일 로드.
         HRESULT hr = D3DReadFileToBlob(L"Shader/MeshVertexShader.cso", &vsBlod);
-        FAILCHECK(hr, L"Failed to read VertexShader.cso", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
+
         hr = D3DReadFileToBlob(L"Shader/MeshPixelShader.cso", &psBlod);
-        FAILCHECK(hr, L"Failed to read PixelShader.cso", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // 셰이더 객체 생성.
         hr = device->CreateVertexShader(
@@ -145,14 +169,21 @@ namespace Engine
             nullptr,
             &vertexShader
         );
-        FAILCHECK(hr, L"Failed to create vertex shader", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
+
         hr = device->CreatePixelShader(
             psBlod->GetBufferPointer(),
             psBlod->GetBufferSize(),
             nullptr,
             &pixelShader
         );
-        FAILCHECK(hr, L"Failed to create pixel shader", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // Input Layout 생성.
         D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
@@ -185,6 +216,7 @@ namespace Engine
                 0
             }
         };
+
         // Input 레이아웃 추가시 NumElements 값도 추가해주어야 한다.
         hr = device->CreateInputLayout(
             layoutDesc,
@@ -193,8 +225,7 @@ namespace Engine
             vsBlod->GetBufferSize(),
             &inputLayout
         );
-        FAILCHECK(hr, L"Failed to create input layout", false)
 
-        return true;
+        return SUCCEEDED(hr);
     }
 }

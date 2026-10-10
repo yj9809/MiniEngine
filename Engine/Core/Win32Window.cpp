@@ -10,11 +10,15 @@ namespace Engine
 		: width(width), height(height), title(title)
 	{
 		hInstance = GetModuleHandle(nullptr);
-		Init();
+		if (!Init())
+		{
+			Shutdown();
+		}
 	}
 
-	Win32Window::~Win32Window()
+	Win32Window::~Win32Window() noexcept
 	{
+		Shutdown();
 	}
 
 	bool Win32Window::Init()
@@ -26,7 +30,9 @@ namespace Engine
 		wc.hInstance = hInstance;
 		wc.lpszClassName = className.c_str();
 
-		if (!RegisterClassEx(&wc))
+		registeredClass = RegisterClassEx(&wc);
+
+		if (!registeredClass)
 		{
 			MessageBox(nullptr, L"Failed to register window class!", L"Error", MB_OK | MB_ICONERROR);
 			return false;
@@ -67,6 +73,21 @@ namespace Engine
 		UpdateWindow(hwnd);
 
 		return true;
+	}
+
+	void Win32Window::Shutdown() noexcept
+	{
+		if (hwnd)
+		{
+			DestroyWindow(hwnd);
+			hwnd = nullptr;
+		}
+
+		if (registeredClass)
+		{
+			UnregisterClass(className.c_str(), hInstance);
+			registeredClass = 0;
+		}
 	}
 
 	LRESULT Win32Window::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

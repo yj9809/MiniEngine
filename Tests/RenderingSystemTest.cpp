@@ -39,7 +39,6 @@ namespace
 
         void BeginFrame(float, float, float) override {}
         void EndFrame() override {}
-        void GPUShutdown() override {}
         void Render() override {}
 
         Engine::BufferHandle CreateVertexBuffer(const void*, UINT) override

@@ -27,10 +27,7 @@ namespace Engine
         cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 
         HRESULT hr = device->CreateBuffer(&cbDesc, nullptr, &buffer);
-
-        FAILCHECK(hr, L"Failed to create constant buffer", false)
-
-        return true;
+        return SUCCEEDED(hr);
     }
 
     void RenderLayer::UpdateConstantBuffer(ID3D11DeviceContext* context, const RenderCommand& command)

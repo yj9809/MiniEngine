@@ -1,18 +1,31 @@
 ﻿#include "WireframeLayer.h"
 
 #include <d3dcompiler.h>
-#include <cassert>
+#include <stdexcept>
 
 namespace Engine
 {
     WireframeLayer::WireframeLayer(ID3D11Device* device)
     {
-        assert(InitShaders(device) && "Failed to initialize shaders for WireframePass");
-        assert(InitRasterizer(device) && "Failed to initialize rasterizer for WireframePass");
-        assert(
-            CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer)
-            && "Failed to create constant buffer for WireframePass"
-        );
+        if (!device)
+        {
+            throw std::invalid_argument("WireframeLayer requires a valid device.");
+        }
+
+        if (!InitShaders(device))
+        {
+            throw std::runtime_error("WireframeLayer shader initialization failed.");
+        }
+
+        if (!InitRasterizer(device))
+        {
+            throw std::runtime_error("WireframeLayer rasterizer initialization failed.");
+        }
+
+        if (!CreateConstantBuffer(device, sizeof(Matrix4), wvpConstantBuffer))
+        {
+            throw std::runtime_error("WireframeLayer constant buffer creation failed.");
+        }
     }
 
     void WireframeLayer::Prepare(ID3D11DeviceContext* context, const RenderFrameData& frameData)
@@ -53,11 +66,9 @@ namespace Engine
         rsDesc.CullMode = D3D11_CULL_BACK; // 뒷면.
         
         // 래스터라이저 생성.
-        HRESULT hs = device->CreateRasterizerState(&rsDesc, &wireframeRasterizer);
+        HRESULT hr = device->CreateRasterizerState(&rsDesc, &wireframeRasterizer);
         
-        FAILCHECK(hs, L"Failed to create wireframe rasterizer", false)
-        
-        return true;
+        return SUCCEEDED(hr);
     }
 
     bool WireframeLayer::InitShaders(ID3D11Device* device)
@@ -68,9 +79,15 @@ namespace Engine
 
         // 셰이더 .cso 파일 로드.
         HRESULT hr = D3DReadFileToBlob(L"Shader/WireframeVertexShader.cso", &vsBlod);
-        FAILCHECK(hr, L"Failed to read VertexShader.cso", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
         hr = D3DReadFileToBlob(L"Shader/WireframePixelShader.cso", &psBlod);
-        FAILCHECK(hr, L"Failed to read PixelShader.cso", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // 셰이더 객체 생성.
         hr = device->CreateVertexShader(
@@ -79,14 +96,20 @@ namespace Engine
             nullptr,
             &vertexShader
         );
-        FAILCHECK(hr, L"Failed to create vertex shader", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
         hr = device->CreatePixelShader(
             psBlod->GetBufferPointer(),
             psBlod->GetBufferSize(),
             nullptr,
             &pixelShader
         );
-        FAILCHECK(hr, L"Failed to create pixel shader", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // Input Layout 생성.
         D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
@@ -109,8 +132,7 @@ namespace Engine
             vsBlod->GetBufferSize(),
             &inputLayout
         );
-        FAILCHECK(hr, L"Failed to create input layout", false)
 
-        return true;
+        return SUCCEEDED(hr);
     }
 }

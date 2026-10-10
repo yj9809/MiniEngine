@@ -42,19 +42,26 @@ namespace Engine
     {
         if (mainLevel)
         {
-            mainLevel->EndLevel();
-            mainLevel.reset();
+            try
+            {
+                mainLevel->EndLevel();
+            }
+            catch (const std::exception& e)
+            {
+                OutputDebugStringA("Exception in EndLevel(): ");
+                OutputDebugStringA(e.what());
+                OutputDebugStringA("\n");
+            }
+            catch (...)
+            {
+                OutputDebugStringA("Unknown exception in EndLevel()\n");
+            }
         }
-        if (resourceManager)
-        {
-            resourceManager->Clear();
-            resourceManager.reset();
-        }
-        if (renderer)
-        {
-            renderer->GPUShutdown();
-            renderer.reset();
-        }
+
+        mainLevel.reset();
+        resourceManager.reset();
+        renderer.reset();
+        window.reset();
     }
 
     void Engine::Run()

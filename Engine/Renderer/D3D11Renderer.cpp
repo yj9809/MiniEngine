@@ -10,49 +10,71 @@
 
 namespace Engine
 {
+    D3D11Renderer::~D3D11Renderer() noexcept
+    {
+        Shutdown();
+    }
+
     bool D3D11Renderer::GPUInit(HWND hwnd, int width, int height)
     {
-        // Step.1 Device + DeviceContext 생성.
-        if (!InitDevice())
+        if (isInitialized)
         {
             return false;
         }
 
-        // Step.2 SwapChain 생성.
-        if (!InitSwapChain(hwnd, width, height))
+        // 이전 초기화 시도가 실패해 일부 자원이 남을 경우를 대비하여 정리.
+        Shutdown();
+
+        auto fail = [this]() noexcept
         {
+            Shutdown();
             return false;
-        }
+        };
 
-        // Step.3 RenderTargetView 생성.
-        if (!InitRenderTargetView())
+        try
         {
-            return false;
-        }
+            if (!InitDevice())
+            {
+                return fail();
+            }
 
-        // Step.4 Depth Stencil View 생성.
-        if (!InitDepthStencilView(width, height))
+            if (!InitSwapChain(hwnd, width, height))
+            {
+                return fail();
+            }
+
+            if (!InitRenderTargetView())
+            {
+                return fail();
+            }
+
+            if (!InitDepthStencilView(width, height))
+            {
+                return fail();
+            }
+
+            InitViewport(width, height);
+
+            layerScheduler.RegisterPassScheduler(RenderLayerType::Opaque, std::make_unique<OpaqueLayer>(device.Get()));
+            layerScheduler.RegisterPassScheduler(RenderLayerType::Wireframe, std::make_unique<WireframeLayer>(device.Get()));
+
+            const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+
+            if (FAILED(hr))
+            {
+                Shutdown();
+                FAILCHECK(hr, L"Failed COM initialization", false)
+            }
+
+            isComInitialized = true;
+            isInitialized = true;
+            return true;
+        }
+        catch (...)
         {
-            return false;
+            Shutdown();
+            throw;
         }
-
-        // Step.5 Viewport 설정.
-        InitViewport(width, height);
-
-        // Step.6 PassScheduler 설정.
-        layerScheduler.RegisterPassScheduler(
-            RenderLayerType::Opaque, std::make_unique<OpaqueLayer>(device.Get())
-        );
-        layerScheduler.RegisterPassScheduler(
-            RenderLayerType::Wireframe, std::make_unique<WireframeLayer>(device.Get())
-        );
-
-        // WIC 쓰기 전 COM 초기화를 한 번 진행해줘야 한다.
-        HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-
-        FAILCHECK(hr, L"Failed COM initialization", false)
-
-        return true;
     }
 
     bool D3D11Renderer::InitDevice()
@@ -405,12 +427,21 @@ namespace Engine
         swapChain->Present(1, 0);
     }
 
-    void D3D11Renderer::GPUShutdown()
+    void D3D11Renderer::Shutdown() noexcept
     {
-        // 생성 역순으로 해제.
-        // ComPtr이라 스마트 포인터로 자동 해제가 되지만 명시적 해제가 필요할 경우 사용.
+        if (context)
+        {
+            context->ClearState();
+            context->Flush();
+        }
+
+        renderCommands.clear();
+        frameData.directionalLights.clear();
+
         bufferMap.clear();
         textureMap.clear();
+        layerScheduler.Clear();
+
         depthStencilState.Reset();
         depthStencilView.Reset();
         depthStencilTexture.Reset();
@@ -418,7 +449,16 @@ namespace Engine
         swapChain.Reset();
         context.Reset();
         device.Reset();
-        CoUninitialize();
+
+        nextBufferHandle = 1;
+        nextTextureHandle = 1;
+        isInitialized = false;
+
+        if (isComInitialized)
+        {
+            CoUninitialize();
+            isComInitialized = false;
+        }
     }
 
     void D3D11Renderer::Render()

@@ -24,4 +24,9 @@ namespace Engine
         // 못 찾으면 nullptr 반환.
         return nullptr;
     }
+
+    void LayerScheduler::Clear() noexcept
+    {
+        passMap.clear();
+    }
 }

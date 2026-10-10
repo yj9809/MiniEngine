@@ -22,6 +22,8 @@ namespace Engine
         
         // 해당 Pass Type에 RenderPass 반환 함수.
         RenderLayer* GetPass(RenderLayerType type) const;
+
+        void Clear() noexcept;
     private:
         // 각 패스마다 RenderPass를 저장하는 맵.
         std::unordered_map<RenderLayerType, std::unique_ptr<RenderLayer>> passMap;

@@ -185,6 +185,7 @@ xcopy /Y /E /I "$(SolutionDir)Bin\$(Configuration)\Game\Shader" "$(OutDir)Shader
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FailingStartupLevel.cpp" />
     <ClCompile Include="LevelTest.cpp" />
     <ClCompile Include="LifecycleTest.cpp" />
     <ClCompile Include="Main.cpp" />

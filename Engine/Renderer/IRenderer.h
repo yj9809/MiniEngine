@@ -30,9 +30,6 @@ namespace Engine
 		// 프레임 종료 -> back buffer를 front buffer와 교체.
 		virtual void EndFrame() = 0;
 
-		// GPU 해제.
-		virtual void GPUShutdown() = 0;
-
 		// 렌더링 명령 실행 함수.
 		virtual void Render() = 0;
 		
