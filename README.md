@@ -8,18 +8,18 @@
 
 ## 현재 상태
 
-기준 커밋: [`7007af8`](https://github.com/yj9809/MiniEngine/commit/7007af8fc3a0cca076cf01736d6b3817f0755f32) (2026-10-10)
+기준 커밋: [`9e6ce70`](https://github.com/yj9809/MiniEngine/commit/9e6ce701a88d1eebf10534baa2b4179bc66ea23f) (2026-10-11)
 
 현재는 개편된 Notion 로드맵의 **0단계 — 기존 기반 정리와 보강**을 진행하고 있습니다. `DirectionalLightActor`를 Game에 배치해 기존 광원 전달 경로를 데모에서 소비하도록 연결했고, `Engine::Create(EngineCreateInfo)`가 시작 Level의 소유권까지 받아 초기화된 엔진 또는 단계별 오류를 반환하도록 구성했습니다. Game은 시작 Actor를 Level에 배치해 넘기고, 생성 결과를 확인한 뒤에만 게임 루프에 진입합니다.
 
-현재 GPU 업로드는 첫 방향광 1개로 제한됩니다. Bootstrap에는 null 시작 Level 거부와 `Run()` 전 초기 Actor 활성화 검증이 추가됐지만, 나머지 실패 주입·부분 초기화 정리·종료 계약, 런타임 Component 추가 정책과 최신 Game 실행 검증은 남아 있습니다. 구현 존재와 통합·빌드·테스트·실행 검증을 구분하며, 개발 중인 범용 엔진 전체의 완성을 의미하지 않습니다.
+현재 GPU 업로드는 첫 방향광 1개로 제한됩니다. Bootstrap은 Window와 Renderer의 부분 초기화 자원을 각 객체가 정리하도록 보강했고, 시작 Level 초기화 실패 뒤 다시 Engine을 생성하는 회귀 테스트를 추가했습니다. 다만 모든 D3D 실패 지점의 주입·정확한 종료 순서 계측, 런타임 Component 추가 정책과 최신 Game 실행 검증은 남아 있습니다. 구현 존재와 통합·빌드·테스트·실행 검증을 구분하며, 개발 중인 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
 | 영역 | 현재 수준 | 상태 |
 |---|---|---|
-| Win32 런타임 | 창, 메시지 루프, 목표 프레임 루프 | 기반 구현 / 실패·종료 경로 보강 중 |
-| Engine Bootstrap | `Create(EngineCreateInfo)` → 단계별 초기화 → 시작 Level 활성화 → Game의 오류 분기 | 시작 Level 계약·단위 테스트 2개 / 나머지 실패·종료 경로 검증 중 |
+| Win32 런타임 | 창, 메시지 루프, 목표 프레임 루프, HWND·등록 클래스 RAII 정리 | 구현 / Window 실패 주입 검증 대기 |
+| Engine Bootstrap | `Create(EngineCreateInfo)` → 단계별 초기화 → 시작 Level 활성화 → Game의 오류 분기 | 부분 초기화 정리 연결·초기화 테스트 3개 / 전체 실패 지점 검증 중 |
 | Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy` 상태 디스패치, 지연 추가/제거, Root Transform | 기반 완료 / Initialize 이후 Component 추가 경로 보강 중 |
 | DX11 기반 | Device · SwapChain · RTV · DSV · Viewport · 상수 버퍼 | 완료 |
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
@@ -102,8 +102,10 @@ Level
 - `Engine::Create(EngineCreateInfo)`는 `std::variant<std::unique_ptr<Engine>, EngineInitError>`를 반환합니다. 생성자는 비공개이고, 초기화는 Settings → Window → Renderer → Resource → StartupLevel 순으로 수행합니다.
 - `Game/Main.cpp`는 Camera, TestMesh, DirectionalLight Actor를 넣은 시작 Level을 `EngineCreateInfo`로 넘깁니다. Engine은 서비스 연결 → `BeginPlay()` → 대기 Actor 처리까지 마친 뒤 생성 결과를 반환하며, Game은 성공한 경우에만 `Run()`을 호출합니다.
 - null 시작 Level은 창 생성 전에 `StartupLevel` 오류로 거부합니다. 초기 Actor의 `Initialize` → `BeginPlay` 순서를 `Run()` 호출 전에 검증하는 테스트도 추가했습니다.
-- 정상 종료 코드는 Level → ResourceManager → Renderer 순으로 정리합니다. 부분 초기화 실패의 정리 계약과 정확히 한 번 종료되는지는 별도 검증 대상입니다.
-- 아직 설정 파일 열기 실패를 오류로 반환하지 않으며, `Win32Window` 소멸자에는 창/클래스 해제 코드가 없습니다. D3D 오류 경로의 `__debugbreak()`도 남아 있어 디버거 없는 실패 반환을 보장한 상태는 아닙니다.
+- `Win32Window`는 소멸자에서 HWND와 등록 클래스를 정리합니다. `D3D11Renderer`도 소멸자에서 Layer·GPU 리소스·COM을 정리하며, `Engine`은 Level → ResourceManager → Renderer → Window 순으로 소유 객체를 해제합니다.
+- Opaque/Wireframe Layer의 필수 초기화를 `assert()` 표현식 밖으로 옮겼습니다. 생성 실패는 예외로 Renderer와 Engine 경계까지 전달돼 `EngineInitError::Renderer`로 변환됩니다.
+- 시작 Level의 `BeginPlay()`가 실패한 뒤 두 번째 Engine 생성이 성공하는 회귀 테스트로 한 실패 경로의 자원 반환을 확인했습니다. 모든 D3D 단계의 실패 주입과 정확한 해제 순서 계측까지 끝난 것은 아닙니다.
+- 아직 설정 파일 열기 실패를 오류로 반환하지 않으며, 일부 D3D 초기화와 런타임 리소스 생성에는 MessageBox·`__debugbreak()`를 포함한 `FAILCHECK` 경로가 남아 있습니다.
 - Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. Level 전환의 null 입력·실패·프레임 경계 정책은 미완료입니다.
 
 ### 기반 시스템
@@ -155,13 +157,13 @@ Level
 3. `Game` 프로젝트를 시작 프로젝트로 설정합니다.
 4. 빌드 후 실행 파일 옆으로 복사된 `Asset/`과 `Shader/`를 사용해 실행합니다.
 
-테스트는 같은 솔루션의 `Tests` 프로젝트가 `LevelTest.cpp`와 `RenderingSystemTest.cpp`를 포함한 전체 테스트 소스를 빌드하도록 구성되어 있습니다. 테스트 빌드 후에는 구성에 맞는 Engine·GoogleTest DLL과 Game Shader 폴더를 출력 디렉터리로 복사합니다. `LightComponent.cpp`도 Engine 프로젝트 빌드 대상에 등록되어 있습니다. 기준 커밋의 전체 빌드·실행 결과는 아직 README에 추가하지 않았습니다.
+테스트는 같은 솔루션의 `Tests` 프로젝트가 `LevelTest.cpp`, `RenderingSystemTest.cpp`, `FailingStartupLevel.cpp`를 포함한 전체 테스트 소스를 빌드하도록 구성되어 있습니다. 테스트 빌드 후에는 구성에 맞는 Engine·GoogleTest DLL과 Game Shader 폴더를 출력 디렉터리로 복사합니다. `LightComponent.cpp`도 Engine 프로젝트 빌드 대상에 등록되어 있습니다.
 
 ### 검증 현황
 
 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
-현재 테스트 소스에는 총 108개 케이스가 선언되어 있고, `Tests.vcxproj`는 Level 테스트를 포함하며 `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다.
+현재 테스트 소스에는 총 109개 케이스가 선언되어 있고, `Tests.vcxproj`는 Level 테스트와 시작 Level 실패 회귀 테스트를 포함하며 `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
@@ -170,20 +172,24 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | Time | 17 | 스무딩, clamp, TimeScale, Pause/Resume |
 | Lifecycle | 11 | 호출 순서, 1회 보장, 재진입·순서 역전, 종료 순서 |
 | Level | 12 | Actor 추가·제거, owner, 대량 처리 — 빌드 대상에 재포함 |
-| EngineInitialization | 2 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화 순서 |
+| EngineInitialization | 3 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화, 시작 Level 실패 후 재생성 |
 | RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-10 Release 실행에서는 `EngineInitializationTest` 2개가 모두 통과했습니다. 현재 소스에는 이 둘을 더한 108개가 선언되어 있지만, 이 캡처에는 빌드 SHA와 전체 실행 결과를 함께 남기지 않았습니다. 전체 108개 통과와 실제 Game 실행은 별도 검증 대상으로 유지합니다.
+2026-10-10 Release 실행 캡처에서는 당시 `EngineInitializationTest` 2개가 모두 통과했습니다. 2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과가 기록돼 있습니다. 이번 문서 점검에서 이를 재실행하지 않았고 저장소에는 전체 실행 로그나 캡처가 없으므로, 아래 두 테스트의 화면 증거와 109개 전체 통과 기록을 구분합니다. 실제 Game/HLSL 실행도 별도 검증 대상으로 유지합니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) |
 |---|---|
 | ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) |
 
-| EngineInitialization (2, Release, 2026-10-10) | 실행 결과 |
-|---|---|
-| `NullStartupLevelFailsBeforeWindowCreation` — null 시작 Level을 창 생성 전에 `StartupLevel` 오류로 반환<br><br>`CreateActivatesInitialActorBeforeRun` — `Run()` 전에 초기 Actor의 `Initialize` → `BeginPlay` 순서 보장<br><br>두 테스트 모두 `OK` | ![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png) |
+| EngineInitialization 테스트 | 검증 내용 | 확인 범위 |
+|---|---|---|
+| `NullStartupLevelFailsBeforeWindowCreation` | null 시작 Level을 창 생성 전에 `StartupLevel` 오류로 반환 | 아래 Release 캡처에서 `OK` 확인 |
+| `CreateActivatesInitialActorBeforeRun` | `Run()` 전에 초기 Actor의 `Initialize` → `BeginPlay` 순서 보장 | 아래 Release 캡처에서 `OK` 확인 |
+| `StartupLevelFailureReleasesResourcesForNextCreate` | 시작 Level 실패 후 다음 Engine 생성 성공 | 코드와 개발 일지의 Debug / Release 109개 통과 기록 확인, 저장소 실행 캡처 없음 |
+
+![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png)
 
 | Lifecycle (과거 9) | Matrix4 (21) |
 |---|---|
@@ -219,7 +225,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 광원 등록 공통화와 첫 방향광 GPU 전달, DirectionalLightActor, Engine 생성/초기화 분리와 시작 Level 계약 | `381b4c2` · `7508012` · `c9bfdfd` · `3a09184` · `c109d60` · `f3e58f3` · `ab373a3` · `b210cdf` · `b133a24` |
+| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 광원 등록 공통화와 첫 방향광 GPU 전달, DirectionalLightActor, Engine 생성/초기화 분리와 부분 초기화 RAII 정리 | `381b4c2` · `7508012` · `c9bfdfd` · `3a09184` · `c109d60` · `f3e58f3` · `ab373a3` · `b210cdf` · `b133a24` · `9e6ce70` |
 
 ## 로드맵
 
@@ -242,7 +248,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-다음 순서는 **남은 기반 보강 → 기존 `Engine::Log` 확장 → Data Contract v1**입니다. 먼저 Bootstrap 실패·종료 계약과 런타임 생성/제거 정책을 고정하고 최신 빌드·테스트·Game 실행을 검증합니다. 다중 광원 업로드와 Ambient Albedo 중복 곱셈, Quaternion·고급 렌더링은 후속 단계에서 다룹니다. 측정된 필요성이 없는 범용 RenderGraph·BVH·Custom Allocator는 선행하지 않습니다.
+다음 순서는 **남은 기반 보강 → 기존 `Engine::Log` 확장 → Data Contract v1**입니다. 먼저 남아 있는 D3D 실패 전파, Level 전환과 런타임 생성/제거 정책을 고정하고 최신 Game/HLSL 실행을 검증합니다. 다중 광원 업로드와 Ambient Albedo 중복 곱셈, Quaternion·고급 렌더링은 후속 단계에서 다룹니다. 측정된 필요성이 없는 범용 RenderGraph·BVH·Custom Allocator는 선행하지 않습니다.
 
 ## 프로젝트 구조
 
