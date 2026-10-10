@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
 #include "Level/Level.h"
 #include "Actor/Actor.h"
+#include "Engine/Engine.h"
+#include "Engine/EngineInitialization.h"
 
-using namespace Engine;
 
 class TestActor final : public Engine::Actor
 {
@@ -13,6 +14,35 @@ public:
     }
 };
 
+struct StartupActorLifecycleProbe
+{
+    int nextOrder = 0;
+    int initializeOrder = 0;
+    int beginPlayOrder = 0;
+};
+
+class StartupLifecycleActor final : public Engine::Actor
+{
+public:
+    explicit StartupLifecycleActor(StartupActorLifecycleProbe& probe)
+        : probe(probe)
+    {
+    }
+
+    void Initialize() override
+    {
+        probe.initializeOrder = ++probe.nextOrder;
+    }
+
+    void BeginPlay() override
+    {
+        probe.beginPlayOrder = ++probe.nextOrder;
+    }
+
+private:
+    StartupActorLifecycleProbe& probe;
+};
+
 // Test-only access to Level-owned actor containers.
 class InspectableLevel final : public Engine::Level
 {
@@ -21,7 +51,7 @@ public:
     int GetPendingActorCount() const { return static_cast<int>(actorsToAdd.size()); }
 
     // Non-owning access to actors managed by the Level.
-    Actor* GetActor(int index) const { return actors[index].get(); }
+    Engine::Actor* GetActor(int index) const { return actors[index].get(); }
     TestActor* GetTestActor(int index) const { return static_cast<TestActor*>(actors[index].get()); }
 };
 
@@ -196,4 +226,46 @@ TEST(LevelTest, Performance_AddAndDestroy_Repeated)
     }
 
     EXPECT_EQ(level.GetActorCount(), 0);
+}
+
+// null Startup Level Test.
+TEST(EngineInitializationTest, NullStartupLevelFailsBeforeWindowCreation)
+{
+    Engine::EngineCreateInfo createInfo;
+
+    auto result = Engine::Engine::Create(std::move(createInfo));
+
+    const auto* error =
+        std::get_if<Engine::EngineInitError>(&result);
+
+    ASSERT_NE(error, nullptr);
+    EXPECT_EQ(
+        error->engineInitialization,
+        Engine::EngineInitialization::StartupLevel);
+}
+
+TEST(EngineInitializationTest, CreateActivatesInitialActorBeforeRun)
+{
+    StartupActorLifecycleProbe probe;
+    auto startupLevel = std::make_unique<Engine::Level>();
+    startupLevel->AddNewActor(
+        std::make_unique<StartupLifecycleActor>(probe));
+
+    Engine::EngineCreateInfo createInfo;
+    createInfo.startupLevel = std::move(startupLevel);
+
+    auto result = Engine::Engine::Create(std::move(createInfo));
+
+    if (const auto* error = std::get_if<Engine::EngineInitError>(&result))
+    {
+        FAIL() << error->errorMessage;
+    }
+
+    const auto* engine =
+        std::get_if<std::unique_ptr<Engine::Engine>>(&result);
+
+    ASSERT_NE(engine, nullptr);
+    ASSERT_NE(engine->get(), nullptr);
+    EXPECT_EQ(probe.initializeOrder, 1);
+    EXPECT_EQ(probe.beginPlayOrder, 2);
 }

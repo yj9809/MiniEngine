@@ -36,8 +36,8 @@ namespace Engine
 		};
 
 	public:
-		// 완전히 초기화된 Engine 또는 초기화 실패 정보를 반환한다.
-		[[nodiscard]] static EngineCreateResult Create();
+		// Core Bootstrap과 Startup Level 활성화를 완료한 Engine을 반환한다.
+		[[nodiscard]] static EngineCreateResult Create(EngineCreateInfo createInfo);
 		
 		~Engine() noexcept;
 		
@@ -63,7 +63,7 @@ namespace Engine
 		Engine() noexcept = default;
 		
 		// 엔진 초기화. Create()에서 호출된다.
-		[[nodiscard]] std::optional<EngineInitError> Initialize();
+		[[nodiscard]] std::optional<EngineInitError> Initialize(EngineCreateInfo createInfo);
 
 		// Setting/Settings.txt를 읽어 settings를 채운다.
 		// 파일이 없으면 기본값으로 새로 생성한다.

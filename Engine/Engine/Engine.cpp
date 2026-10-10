@@ -15,332 +15,364 @@ namespace fs = std::filesystem;
 
 namespace Engine
 {
-	EngineCreateResult Engine::Create()
-	{
-		// make_unique는 private 생성자에 접근할 수 없으므로,
-		// 여기서는 직접 new로 생성 후 unique_ptr에 담는다.
-		auto engine = std::unique_ptr<Engine>(new Engine());
-		
-		if (auto error = engine->Initialize(); error.has_value())
-		{
-			return std::move(*error);
-		}
-		
-		return std::move(engine);
-	}
+    EngineCreateResult Engine::Create(EngineCreateInfo createInfo)
+    {
+        if (!createInfo.startupLevel)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::StartupLevel,
+                "Startup level must not be null."
+            };
+        }
 
-	Engine::~Engine() noexcept
-	{
-		if (mainLevel)
-		{
-			mainLevel->EndLevel();
-			mainLevel.reset();
-		}
-		if (resourceManager)
-		{
-			resourceManager->Clear();
-			resourceManager.reset();
-		}
-		if (renderer)
-		{
-			renderer->GPUShutdown();
-			renderer.reset();
-		}
-	}
+        // make_unique는 private 생성자에 접근할 수 없으므로,
+        // 여기서는 직접 new로 생성 후 unique_ptr에 담는다.
+        auto engine = std::unique_ptr<Engine>(new Engine());
 
-	void Engine::Run()
-	{
-		// QueryPerformanceFrequency: 초당 카운터 틱 수. CPU마다 다르므로 런타임에 조회한다.
-		LARGE_INTEGER frequency;
-		QueryPerformanceFrequency(&frequency);
+        if (auto error = engine->Initialize(std::move(createInfo)); error.has_value())
+        {
+            return std::move(*error);
+        }
 
-		// 프레임 계산용 변수.
-		int64_t currentTime = 0;
-		int64_t lastTime = 0;
+        return std::move(engine);
+    }
 
-		// 루프 진입 전 초기 시간을 동일하게 설정해 첫 deltaTime이 0이 되도록 한다.
-		LARGE_INTEGER time;
-		QueryPerformanceCounter(&time);
+    Engine::~Engine() noexcept
+    {
+        if (mainLevel)
+        {
+            mainLevel->EndLevel();
+            mainLevel.reset();
+        }
+        if (resourceManager)
+        {
+            resourceManager->Clear();
+            resourceManager.reset();
+        }
+        if (renderer)
+        {
+            renderer->GPUShutdown();
+            renderer.reset();
+        }
+    }
 
-		// 엔진 시작 직전에는 두 시간 값을 동일하게 설정.
-		currentTime = time.QuadPart;
-		lastTime = time.QuadPart;
+    void Engine::Run()
+    {
+        // QueryPerformanceFrequency: 초당 카운터 틱 수. CPU마다 다르므로 런타임에 조회한다.
+        LARGE_INTEGER frequency;
+        QueryPerformanceFrequency(&frequency);
 
-		// frameRate가 0이면 기본값 120으로 보정.
-		settings.frameRate = settings.frameRate == 0.0f ? 120.0f : settings.frameRate;
-		float oneFrameTime = 1.0f / settings.frameRate;
-		
-		// Time에 하드 클램프 값 설정.
-		Time::SetMaxDeltaTime(oneFrameTime * 10);
+        // 프레임 계산용 변수.
+        int64_t currentTime = 0;
+        int64_t lastTime = 0;
 
-		// 고정 프레임레이트 루프.
-		// deltaTime이 목표 프레임 시간(oneFrameTime)을 넘었을 때만 Tick/Draw를 실행한다.
-		// busy-wait 방식이므로 CPU를 점유하지만, Sleep보다 정밀한 타이밍을 보장한다.
-		while (!isQuit)
-		{
-			// 하드웨어 타이머로 시간 구하기.
-			QueryPerformanceCounter(&time);
-			currentTime = time.QuadPart;
+        // 루프 진입 전 초기 시간을 동일하게 설정해 첫 deltaTime이 0이 되도록 한다.
+        LARGE_INTEGER time;
+        QueryPerformanceCounter(&time);
 
-			// (currentTime - lastTime) 틱을 frequency로 나누면 초 단위 경과 시간이 된다.
-			float deltaTime = static_cast<float>(currentTime - lastTime);
-			deltaTime /= static_cast<float>(frequency.QuadPart);
+        // 엔진 시작 직전에는 두 시간 값을 동일하게 설정.
+        currentTime = time.QuadPart;
+        lastTime = time.QuadPart;
 
-			MSG msg = {};
-			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
-			{
-				if (msg.message == WM_QUIT)
-				{
-					isQuit = true;
-				}
+        // frameRate가 0이면 기본값 120으로 보정.
+        settings.frameRate = settings.frameRate == 0.0f ? 120.0f : settings.frameRate;
+        float oneFrameTime = 1.0f / settings.frameRate;
 
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
+        // Time에 하드 클램프 값 설정.
+        Time::SetMaxDeltaTime(oneFrameTime * 10);
 
-			if (deltaTime >= oneFrameTime)
-			{
-				// 시간 업데이트.
-				Time::Update(deltaTime);
-				
-				// 업데이트 및 그리기 함수 호출.
-				// TimeScale이 적용된 시간으로 Tick 업데이트.
-				Tick(Time::GetDeltaTime());
-				Draw();
+        // 고정 프레임레이트 루프.
+        // deltaTime이 목표 프레임 시간(oneFrameTime)을 넘었을 때만 Tick/Draw를 실행한다.
+        // busy-wait 방식이므로 CPU를 점유하지만, Sleep보다 정밀한 타이밍을 보장한다.
+        while (!isQuit)
+        {
+            // 하드웨어 타이머로 시간 구하기.
+            QueryPerformanceCounter(&time);
+            currentTime = time.QuadPart;
 
-				// Tick/Draw 완료 후 액터 추가·제거를 일괄 처리한다.
-				// 순회 중 배열을 수정하지 않기 위해 프레임 끝으로 미룬다.
-				if (mainLevel)
-				{
-					mainLevel->ProcessAddAndDestroyActor();
-				}
+            // (currentTime - lastTime) 틱을 frequency로 나누면 초 단위 경과 시간이 된다.
+            float deltaTime = static_cast<float>(currentTime - lastTime);
+            deltaTime /= static_cast<float>(frequency.QuadPart);
 
-				if (Input::GetIsMouseClamped())
-				{
-					RECT windowRect = window->GetWindowRect();
-					ClampCursor(&windowRect);
-					CenterCursor(&windowRect);
-				}
+            MSG msg = {};
+            while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+            {
+                if (msg.message == WM_QUIT)
+                {
+                    isQuit = true;
+                }
 
-				Input::SetPreviousMousePosition();
-				Input::ResetKeyState();
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
 
-				// 마지막 시간 업데이트.
-				lastTime = currentTime;
-			}
-		}
-	}
+            if (deltaTime >= oneFrameTime)
+            {
+                // 시간 업데이트.
+                Time::Update(deltaTime);
 
-	void Engine::QuitEngine()
-	{
-		isQuit = true;
-	}
+                // 업데이트 및 그리기 함수 호출.
+                // TimeScale이 적용된 시간으로 Tick 업데이트.
+                Tick(Time::GetDeltaTime());
+                Draw();
 
-	void Engine::SetNewLevel(std::unique_ptr<Level> level)
-	{
-		// 기존 레벨이 있으면 먼저 정리한다(액터 전부 해제).
-		if (mainLevel)
-		{
-			mainLevel->EndLevel();
-		}
+                // Tick/Draw 완료 후 액터 추가·제거를 일괄 처리한다.
+                // 순회 중 배열을 수정하지 않기 위해 프레임 끝으로 미룬다.
+                if (mainLevel)
+                {
+                    mainLevel->ProcessAddAndDestroyActor();
+                }
 
-		level->AttachServices(*renderer, *resourceManager);
-		
-		mainLevel = std::move(level);
-		mainLevel->BeginPlay();
-	}
+                if (Input::GetIsMouseClamped())
+                {
+                    RECT windowRect = window->GetWindowRect();
+                    ClampCursor(&windowRect);
+                    CenterCursor(&windowRect);
+                }
 
-	std::optional<EngineInitError> Engine::Initialize()
-	{
-		try
-		{
-			LoadSettings();
-			
-			if (settings.frameRate <= 0.0f || settings.width <= 0 || settings.height <= 0)
-			{
-				return EngineInitError
-				{
-					EngineInitialization::Settings,
-					"Settings values must be greater than zero."
-				};
-			}
-		}
-		catch (const std::exception& e)
-		{
-			return EngineInitError
-			{
-				EngineInitialization::Settings,
-				std::string("Failed to load settings: ") + e.what()
-			};
-		}
+                Input::SetPreviousMousePosition();
+                Input::ResetKeyState();
 
-		try
-		{
-			// 출력 창 생성 및 초기화.
-			window = std::make_unique<Win32Window>(settings.width, settings.height, L"Eden Engine");
-		}
-		catch (const std::exception& e)
-		{
-			return EngineInitError
-			{
-				EngineInitialization::Window,
-				std::string("Failed to create window: ") + e.what()
-			};
-		}
-		
-		if (window->GetHwnd() == nullptr)
-		{
-			return EngineInitError
-			{
-				EngineInitialization::Window,
-				"Failed to create Win32 window."
-			};
-		}
+                // 마지막 시간 업데이트.
+                lastTime = currentTime;
+            }
+        }
+    }
 
-		try
-		{
-			// 렌더러 생성 및 초기화.
-			// 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
-			auto initializedRenderer = std::make_unique<D3D11Renderer>();
-			
-			if (!initializedRenderer->GPUInit(window->GetHwnd(), settings.width, settings.height))
-			{
-				return EngineInitError
-				{
-					EngineInitialization::Renderer,
-					"Failed to initialize D3D11 renderer."
-				};
-			}
-			
-			// 초기화에 성공한 렌더러만 Engine에 연결.
-			renderer = std::move(initializedRenderer);
-		}
-		catch (const std::exception& e)
-		{
-			return EngineInitError
-			{
-				EngineInitialization::Renderer,
-				std::string("Failed to initialize renderer: ") + e.what()
-			};
-		}
+    void Engine::QuitEngine()
+    {
+        isQuit = true;
+    }
 
-		try
-		{
-			resourceManager = std::make_unique<ResourceManager>(*renderer);
-		}
-		catch (const std::exception& e)
-		{
-			return EngineInitError
-			{
-				EngineInitialization::Resource,
-				std::string("Failed to initialize resource manager: ") + e.what()
-			};
-		}
-		
-		return std::nullopt;
-	}
+    void Engine::SetNewLevel(std::unique_ptr<Level> level)
+    {
+        // 기존 레벨이 있으면 먼저 정리한다(액터 전부 해제).
+        if (mainLevel)
+        {
+            mainLevel->EndLevel();
+        }
 
-	void Engine::LoadSettings()
-	{
-		fs::path path = "Setting/Settings.txt";
-		fs::path dir = path.parent_path();
+        level->AttachServices(*renderer, *resourceManager);
 
-		// 폴더가 없으면 생성.
-		if (!dir.empty() && !fs::exists(dir))
-		{
-			fs::create_directory(path.parent_path());
-		}
+        mainLevel = std::move(level);
+        mainLevel->BeginPlay();
+    }
 
-		if (!fs::exists(path))
-		{
-			// 파일이 없으면 현재 기본값으로 새로 만든다.
-			std::ofstream file(path);
-			if (file.is_open())
-			{
-				file << "FrameRate: " << settings.frameRate << "\n";
-				file << "Width: " << settings.width << "\n";
-				file << "Height: " << settings.height << "\n";
-				file.close();
-			}
+    std::optional<EngineInitError> Engine::Initialize(EngineCreateInfo createInfo)
+    {
+        try
+        {
+            LoadSettings();
 
-		}
-		else
-		{
-			// 한 줄씩 읽어 "키: 값" 형식으로 파싱한다.
-			// substr의 오프셋은 각 키 문자열 길이 + 공백 1칸이다("FrameRate: " = 11자 → substr(11)).
-			std::ifstream file(path);
-			if (file.is_open())
-			{
-				std::string line;
-				while (std::getline(file, line))
-				{
-					if (line.find("FrameRate:") == 0)
-					{
-						settings.frameRate = static_cast<float>(std::stoi(line.substr(10)));
-					}
-					else if (line.find("Width:") == 0)
-					{
-						settings.width = std::stoi(line.substr(6));
-					}
-					else if (line.find("Height:") == 0)
-					{
-						settings.height = std::stoi(line.substr(7));
-					}
-				}
-				file.close();
-			}
-		}
-	}
+            if (settings.frameRate <= 0.0f || settings.width <= 0 || settings.height <= 0)
+            {
+                return EngineInitError
+                {
+                    EngineInitialization::Settings,
+                    "Settings values must be greater than zero."
+                };
+            }
+        }
+        catch (const std::exception& e)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::Settings,
+                std::string("Failed to load settings: ") + e.what()
+            };
+        }
 
-	void Engine::Tick(float deltaTime)
-	{
-		if (!mainLevel)
-		{
-			return;
-		}
+        try
+        {
+            // 출력 창 생성 및 초기화.
+            window = std::make_unique<Win32Window>(settings.width, settings.height, L"Eden Engine");
+        }
+        catch (const std::exception& e)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::Window,
+                std::string("Failed to create window: ") + e.what()
+            };
+        }
 
-		mainLevel->Tick(deltaTime);
-	}
+        if (window->GetHwnd() == nullptr)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::Window,
+                "Failed to create Win32 window."
+            };
+        }
 
-	void Engine::Draw()
-	{
-		if (!renderer)
-		{
-			return;
-		}
+        try
+        {
+            // 렌더러 생성 및 초기화.
+            // 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
+            auto initializedRenderer = std::make_unique<D3D11Renderer>();
 
-		// 출력 창 배경색 지정.
-		renderer->BeginFrame(0.8f, 0.8f, 0.8f);
-		
-		if (mainLevel)
-		{
-			mainLevel->Draw();
-		}
-		
-		// 오브젝트 렌더링.
-		renderer->Render();
+            if (!initializedRenderer->GPUInit(window->GetHwnd(), settings.width, settings.height))
+            {
+                return EngineInitError
+                {
+                    EngineInitialization::Renderer,
+                    "Failed to initialize D3D11 renderer."
+                };
+            }
 
-		renderer->EndFrame();
-	}
+            // 초기화에 성공한 렌더러만 Engine에 연결.
+            renderer = std::move(initializedRenderer);
+        }
+        catch (const std::exception& e)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::Renderer,
+                std::string("Failed to initialize renderer: ") + e.what()
+            };
+        }
 
-	void Engine::ClampCursor(RECT* windowRect)
-	{
-		ClipCursor(windowRect);
+        try
+        {
+            resourceManager = std::make_unique<ResourceManager>(*renderer);
+        }
+        catch (const std::exception& e)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::Resource,
+                std::string("Failed to initialize resource manager: ") + e.what()
+            };
+        }
 
-		ShowCursor(windowRect == nullptr);
-	}
+        try
+        {
+            // 먼저 Engine이 소유권을 가진다.
+            // 이후 단계에서 실패해도 Engine 소멸자가 Level을 정리할 수 있다.
+            mainLevel = std::move(createInfo.startupLevel);
 
-	void Engine::CenterCursor(RECT* windowRect)
-	{
-		if (windowRect)
-		{
-			Vector2 centerPosition;
-			centerPosition.x = (windowRect->left + windowRect->right) / 2.0f;
-			centerPosition.y = (windowRect->top + windowRect->bottom) / 2.0f;
+            // Actor가 리소스를 사용하는 Initialize()를 실행하기 전에
+            // Renderer와 ResourceManager를 Level에 연결한다.
+            mainLevel->AttachServices(*renderer, *resourceManager);
 
-			SetCursorPos(static_cast<int>(centerPosition.x), static_cast<int>(centerPosition.y));
+            mainLevel->BeginPlay();
 
-			Input::SetMousePosition(centerPosition);
-		}
-	}
+            // 실행 전에 구성된 초기 Actor를 첫 Tick 이전에 활성화한다.
+            mainLevel->ProcessAddAndDestroyActor();
+        }
+        catch (const std::exception& e)
+        {
+            return EngineInitError
+            {
+                EngineInitialization::StartupLevel,
+                std::string("Failed to initialize startup level: ") + e.what()
+            };
+        }
+
+        return std::nullopt;
+    }
+
+    void Engine::LoadSettings()
+    {
+        fs::path path = "Setting/Settings.txt";
+        fs::path dir = path.parent_path();
+
+        // 폴더가 없으면 생성.
+        if (!dir.empty() && !fs::exists(dir))
+        {
+            fs::create_directory(path.parent_path());
+        }
+
+        if (!fs::exists(path))
+        {
+            // 파일이 없으면 현재 기본값으로 새로 만든다.
+            std::ofstream file(path);
+            if (file.is_open())
+            {
+                file << "FrameRate: " << settings.frameRate << "\n";
+                file << "Width: " << settings.width << "\n";
+                file << "Height: " << settings.height << "\n";
+                file.close();
+            }
+        }
+        else
+        {
+            // 한 줄씩 읽어 "키: 값" 형식으로 파싱한다.
+            // substr의 오프셋은 각 키 문자열 길이 + 공백 1칸이다("FrameRate: " = 11자 → substr(11)).
+            std::ifstream file(path);
+            if (file.is_open())
+            {
+                std::string line;
+                while (std::getline(file, line))
+                {
+                    if (line.find("FrameRate:") == 0)
+                    {
+                        settings.frameRate = static_cast<float>(std::stoi(line.substr(10)));
+                    }
+                    else if (line.find("Width:") == 0)
+                    {
+                        settings.width = std::stoi(line.substr(6));
+                    }
+                    else if (line.find("Height:") == 0)
+                    {
+                        settings.height = std::stoi(line.substr(7));
+                    }
+                }
+                file.close();
+            }
+        }
+    }
+
+    void Engine::Tick(float deltaTime)
+    {
+        if (!mainLevel)
+        {
+            return;
+        }
+
+        mainLevel->Tick(deltaTime);
+    }
+
+    void Engine::Draw()
+    {
+        if (!renderer)
+        {
+            return;
+        }
+
+        // 출력 창 배경색 지정.
+        renderer->BeginFrame(0.8f, 0.8f, 0.8f);
+
+        if (mainLevel)
+        {
+            mainLevel->Draw();
+        }
+
+        // 오브젝트 렌더링.
+        renderer->Render();
+
+        renderer->EndFrame();
+    }
+
+    void Engine::ClampCursor(RECT* windowRect)
+    {
+        ClipCursor(windowRect);
+
+        ShowCursor(windowRect == nullptr);
+    }
+
+    void Engine::CenterCursor(RECT* windowRect)
+    {
+        if (windowRect)
+        {
+            Vector2 centerPosition;
+            centerPosition.x = (windowRect->left + windowRect->right) / 2.0f;
+            centerPosition.y = (windowRect->top + windowRect->bottom) / 2.0f;
+
+            SetCursorPos(static_cast<int>(centerPosition.x), static_cast<int>(centerPosition.y));
+
+            Input::SetMousePosition(centerPosition);
+        }
+    }
 }

@@ -11,7 +11,16 @@
 
 int main()
 {
-	auto createResult = Engine::Engine::Create();
+	auto startupLevel = std::make_unique<Engine::Level>();
+
+	startupLevel->AddNewActor(std::make_unique<CameraActor>());
+	startupLevel->AddNewActor(std::make_unique<TestMeshActor>());
+	startupLevel->AddNewActor(std::make_unique<DirectionalLightActor>());
+
+	Engine::EngineCreateInfo createInfo;
+	createInfo.startupLevel = std::move(startupLevel);
+
+	auto createResult = Engine::Engine::Create(std::move(createInfo));
 	
 	if (const auto* error = std::get_if<Engine::EngineInitError>(&createResult))
 	{
@@ -24,19 +33,6 @@ int main()
 	}
 
 	auto engine = std::move(std::get<std::unique_ptr<Engine::Engine>>(createResult));
-	
-	auto level = std::make_unique<Engine::Level>();
-	Engine::Level* levelPtr = level.get();
-	engine->SetNewLevel(std::move(level));
-
-	auto Camera = std::make_unique<CameraActor>();
-	levelPtr->AddNewActor(std::move(Camera));
-	
-	auto testMsh = std::make_unique<TestMeshActor>();
-	levelPtr->AddNewActor(std::move(testMsh));
-
-	auto directionalLight = std::make_unique<DirectionalLightActor>();
-	levelPtr->AddNewActor(std::move(directionalLight));
 	
 	engine->Run();
 	return EXIT_SUCCESS;

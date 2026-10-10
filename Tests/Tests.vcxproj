@@ -91,10 +91,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)Bin\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)Bin\$(Configuration)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediate\$(Configuration)\$(ProjectName)\</IntDir>
+    <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -155,7 +157,8 @@ xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\bin\gtest.dll"
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
-xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\bin\gtest.dll" "$(OutDir)"</Command>
+xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\bin\gtest.dll" "$(OutDir)"
+xcopy /Y /E /I "$(SolutionDir)Bin\$(Configuration)\Game\Shader" "$(OutDir)Shader"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -177,7 +180,8 @@ xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\debug\bin\gtes
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Y "$(SolutionDir)Bin\$(Configuration)\Engine\Engine.dll" "$(OutDir)"
-xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\bin\gtest.dll" "$(OutDir)"</Command>
+xcopy /Y "$(SolutionDir)vcpkg_installed\$(MiniEngineVcpkgTriplet)\bin\gtest.dll" "$(OutDir)"
+xcopy /Y /E /I "$(SolutionDir)Bin\$(Configuration)\Game\Shader" "$(OutDir)Shader"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
