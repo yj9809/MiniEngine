@@ -131,7 +131,11 @@ Level
 
 `TransformComponent`의 Euler 입력은 `Vector3(x, y, z) = Pitch, Yaw, Roll`이며 +X를 Forward로 사용합니다. 현재 행렬 구성은 이 좌표계와 회전 방향을 맞추기 위해 `Rotation(-Roll, -Pitch, Yaw)`를 사용합니다. 데모에서는 `1` / `2` / `3` 키로 Pitch / Yaw / Roll 회전을 각각 토글합니다.
 
-기존 X/Y/Z 및 짐벌락 GIF는 이 의미 정리 전 기록입니다. 별도 캡처 폴더의 Pitch/Yaw/Roll GIF도 최종 Roll 부호 수정 `c9bfdfd` 전에 생성되어 최신 HEAD 실행 증거로 게시하지 않았습니다. 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있으며, 현재 규칙을 반영한 새 실행 캡처가 필요합니다.
+![Roll 회전 실행 화면](Docs/Roll_Rotation.gif)
+
+`Roll_Rotation.gif`은 2026-10-10에 제공된 89프레임 실행 캡처입니다. 지구가 연속 회전하는 화면은 확인했지만, 캡처에 입력 키·빌드 SHA가 표시되지 않아 현재 `main`과 동일 빌드였는지 또는 정확한 회전 방향을 독립 검증하는 근거로 확대하지 않습니다.
+
+기존 X/Y/Z 및 짐벌락 GIF는 이 의미 정리 전 기록입니다. 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있습니다.
 
 ## 빌드와 검증
 
