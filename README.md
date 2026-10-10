@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-코드 확인 기준: [`7007af8`](https://github.com/yj9809/MiniEngine/commit/7007af8fc3a0cca076cf01736d6b3817f0755f32) (2026-10-10 문서 점검)
+기준 커밋: [`7007af8`](https://github.com/yj9809/MiniEngine/commit/7007af8fc3a0cca076cf01736d6b3817f0755f32) (2026-10-10)
 
 현재는 개편된 Notion 로드맵의 **0단계 — 기존 기반 정리와 보강**을 진행하고 있습니다. `DirectionalLightActor`를 Game에 배치해 기존 광원 전달 경로를 데모에서 소비하도록 연결했고, `Engine::Create(EngineCreateInfo)`가 시작 Level의 소유권까지 받아 초기화된 엔진 또는 단계별 오류를 반환하도록 구성했습니다. Game은 시작 Actor를 Level에 배치해 넘기고, 생성 결과를 확인한 뒤에만 게임 루프에 진입합니다.
 
@@ -25,7 +25,7 @@
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
 | 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 완료 |
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
-| 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 화면 자료 확인 / 최신 SHA 실행 검증 대기 |
+| 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 실행 화면 기록 / 최신 코드 실행 기록 없음 |
 | LightingSystem | 공통 등록 훅, Level 단위 등록·해제, 방향·색상·강도 수집 | CPU 프레임 데이터 연결 완료 |
 | RenderingSystem | 메시 명령과 방향광 프레임 데이터를 렌더러에 제출 | Game 방향광 배치 연결 / 최신 실행 검증 대기 |
 | 방향광 GPU 경로 | 최대 4개 배열 상수 버퍼, 개수 기반 셰이더 누적 | 첫 번째 방향광 1개만 업로드 |
@@ -67,7 +67,7 @@ RenderingSystem → D3D11Renderer::RenderFrameData
 - Component 생명주기의 비공개 시스템 훅이 `BeginPlay` 직전에 등록하고 `OnRemove` 직전에 해제합니다. `LightComponent`가 Level의 `LightingSystem` 연결을 공통 처리하고, 구체 광원은 타입별 등록·해제만 구현합니다.
 - `DirectionalLightComponent`는 Root Transform의 +X Forward를 방향으로 사용하고, 색상·강도와 함께 CPU 렌더 데이터로 변환합니다. `LightingSystem`이 등록된 방향광 전체를 수집해 `RenderingSystem`과 `D3D11Renderer`의 프레임 데이터로 전달합니다.
 - OpaqueLayer와 HLSL의 방향광 배열 용량은 4개지만 현재 업로드 구현은 목록의 첫 번째 광원만 0번 슬롯에 기록하고 개수를 1로 설정합니다. 셰이더는 전달된 개수만큼 누적하도록 구성되어 있으나 다중 광원 업로드는 아직 연결되지 않았습니다.
-- 렌더 요청을 `RenderCommand`로 모은 뒤 Opaque/Wireframe 버킷에서 실행합니다. 현재 구조가 Render Target을 소유하는 진짜 RenderPass가 아니라는 점을 확인해 이름을 `RenderLayer`로 정정했습니다.
+- 렌더 요청을 `RenderCommand`로 모은 뒤 Opaque/Wireframe 버킷에서 실행합니다. 현재 구조는 Render Target을 소유하는 진짜 RenderPass가 아니므로 이름을 `RenderLayer`로 정정했습니다.
 - OBJ의 position/normal/UV를 파싱하고 중복 정점을 제거해 Vertex/Index Buffer를 생성합니다.
 - WIC로 이미지를 RGBA8로 변환하고 Texture2D/SRV를 생성해 픽셀 셰이더에서 샘플링합니다.
 - Material의 BaseColor와 Texture를 렌더 명령으로 전달하고, Lambert Diffuse와 Uniform Ambient를 적용하는 셰이더 경로를 구현했습니다.
@@ -101,7 +101,7 @@ Level
 
 - `Engine::Create(EngineCreateInfo)`는 `std::variant<std::unique_ptr<Engine>, EngineInitError>`를 반환합니다. 생성자는 비공개이고, 초기화는 Settings → Window → Renderer → Resource → StartupLevel 순으로 수행합니다.
 - `Game/Main.cpp`는 Camera, TestMesh, DirectionalLight Actor를 넣은 시작 Level을 `EngineCreateInfo`로 넘깁니다. Engine은 서비스 연결 → `BeginPlay()` → 대기 Actor 처리까지 마친 뒤 생성 결과를 반환하며, Game은 성공한 경우에만 `Run()`을 호출합니다.
-- null 시작 Level은 창 생성 전에 `StartupLevel` 오류로 거부하고, 초기 Actor의 `Initialize` → `BeginPlay` 순서를 `Run()` 호출 전 확인하는 테스트를 선언합니다.
+- null 시작 Level은 창 생성 전에 `StartupLevel` 오류로 거부합니다. 초기 Actor의 `Initialize` → `BeginPlay` 순서를 `Run()` 호출 전에 검증하는 테스트도 추가했습니다.
 - 정상 종료 코드는 Level → ResourceManager → Renderer 순으로 정리합니다. 부분 초기화 실패의 정리 계약과 정확히 한 번 종료되는지는 별도 검증 대상입니다.
 - 아직 설정 파일 열기 실패를 오류로 반환하지 않으며, `Win32Window` 소멸자에는 창/클래스 해제 코드가 없습니다. D3D 오류 경로의 `__debugbreak()`도 남아 있어 디버거 없는 실패 반환을 보장한 상태는 아닙니다.
 - Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. Level 전환의 null 입력·실패·프레임 경계 정책은 미완료입니다.
@@ -126,15 +126,15 @@ Level
 
 `DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
 
-이 GIF는 저장소에 제공된 화면 자료입니다. 여러 프레임의 지구 출력은 확인했으나, 캡처 창 제목은 `Mini Engine`이고 현재 Bootstrap 코드는 `Eden Engine`을 사용합니다. 캡처 당시 SHA·빌드 구성을 확인할 수 없어 최신 `7007af8`의 시작 Level 경로나 Color/Intensity 변경·다중 광원 검증의 근거로 확대하지 않습니다.
+이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 최신 `7007af8`의 시작 Level 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
 
-### 회전 규칙과 확인 경계
+### 회전 규칙과 실행 기록
 
 `TransformComponent`의 Euler 입력은 `Vector3(x, y, z) = Pitch, Yaw, Roll`이며 +X를 Forward로 사용합니다. 현재 행렬 구성은 이 좌표계와 회전 방향을 맞추기 위해 `Rotation(-Roll, -Pitch, Yaw)`를 사용합니다. 데모에서는 `1` / `2` / `3` 키로 Pitch / Yaw / Roll 회전을 각각 토글합니다.
 
 ![Roll 회전 실행 화면](Docs/Roll_Rotation.gif)
 
-`Roll_Rotation.gif`은 2026-10-10에 제공된 89프레임 실행 캡처입니다. 지구가 연속 회전하는 화면은 확인했지만, 캡처에 입력 키·빌드 SHA가 표시되지 않아 현재 `main`과 동일 빌드였는지 또는 정확한 회전 방향을 독립 검증하는 근거로 확대하지 않습니다.
+`Roll_Rotation.gif`은 2026-10-10에 기록한 89프레임 실행 캡처입니다. 입력 키와 빌드 SHA를 화면에 함께 남기지 않아 현재 `main`의 재현 결과로 분류하지 않았습니다. 다음 캡처에서는 축 입력과 기준 커밋을 함께 기록할 예정입니다.
 
 기존 X/Y/Z 및 짐벌락 GIF는 이 의미 정리 전 기록입니다. 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있습니다.
 
@@ -155,11 +155,11 @@ Level
 3. `Game` 프로젝트를 시작 프로젝트로 설정합니다.
 4. 빌드 후 실행 파일 옆으로 복사된 `Asset/`과 `Shader/`를 사용해 실행합니다.
 
-테스트는 같은 솔루션의 `Tests` 프로젝트가 `LevelTest.cpp`와 `RenderingSystemTest.cpp`를 포함한 전체 테스트 소스를 빌드하도록 구성되어 있습니다. 테스트 빌드 후에는 구성에 맞는 Engine·GoogleTest DLL과 Game Shader 폴더를 출력 디렉터리로 복사합니다. `LightComponent.cpp`도 Engine 프로젝트 빌드 대상에 등록되어 있습니다. 이 문서 갱신에서는 별도 빌드나 실행을 수행하지 않았습니다.
+테스트는 같은 솔루션의 `Tests` 프로젝트가 `LevelTest.cpp`와 `RenderingSystemTest.cpp`를 포함한 전체 테스트 소스를 빌드하도록 구성되어 있습니다. 테스트 빌드 후에는 구성에 맞는 Engine·GoogleTest DLL과 Game Shader 폴더를 출력 디렉터리로 복사합니다. `LightComponent.cpp`도 Engine 프로젝트 빌드 대상에 등록되어 있습니다. 기준 커밋의 전체 빌드·실행 결과는 아직 README에 추가하지 않았습니다.
 
 ### 검증 현황
 
-기존 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 확인했습니다. 2026-10-05 기록에서는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 그 시점의 실행 기록이며, 현재 코드 확인 기준의 전체 회귀 결과가 아닙니다.
+OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
 현재 테스트 소스에는 총 108개 케이스가 선언되어 있고, `Tests.vcxproj`는 Level 테스트를 포함하며 `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다.
 
@@ -173,15 +173,17 @@ Level
 | EngineInitialization | 2 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화 순서 |
 | RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
 
-2026-10-06 캡처에서는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 각 항목의 `OK`를 확인했습니다. 이는 두 스위트의 별도 실행 증거이며, 당시 전체 106개의 통합 통과 증거는 아닙니다. 최신 로드맵(2026-10-09)은 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록하지만, 이번 점검에서는 그 실행 로그를 확인하지 못했습니다.
+2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-10에 제공된 Release 캡처에서는 `EngineInitializationTest` 2개의 `OK`를 확인했습니다. 현재 소스는 이 둘을 더한 108개를 선언하지만, 캡처에 빌드 SHA와 전체 실행 결과가 없어 최신 HEAD의 전체 108개 통과나 실제 Game 실행 증거로 확대하지 않습니다. 이 문서 갱신에서도 빌드·테스트·Game 실행을 직접 수행하지 않았습니다.
+2026-10-10 Release 실행에서는 `EngineInitializationTest` 2개가 모두 통과했습니다. 현재 소스에는 이 둘을 더한 108개가 선언되어 있지만, 이 캡처에는 빌드 SHA와 전체 실행 결과를 함께 남기지 않았습니다. 전체 108개 통과와 실제 Game 실행은 별도 검증 대상으로 유지합니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) |
 |---|---|
 | ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) |
 
-![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png)
+| EngineInitialization (2, Release, 2026-10-10) | 실행 결과 |
+|---|---|
+| `NullStartupLevelFailsBeforeWindowCreation` — null 시작 Level을 창 생성 전에 `StartupLevel` 오류로 반환<br><br>`CreateActivatesInitialActorBeforeRun` — `Run()` 전에 초기 Actor의 `Initialize` → `BeginPlay` 순서 보장<br><br>두 테스트 모두 `OK` | ![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png) |
 
 | Lifecycle (과거 9) | Matrix4 (21) |
 |---|---|
