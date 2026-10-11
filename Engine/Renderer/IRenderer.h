@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <vector>
 
+#include "RendererInitialization.h"
 #include "Lighting/RenderData/DirectionalLightRenderData.h"
 
 namespace Engine
@@ -14,8 +15,8 @@ namespace Engine
 	public:
 		virtual ~IRenderer() = default;
 
-		// GPU 초기화. 성공하면 true 반환.
-		virtual bool GPUInit(HWND hwnd, int width, int height) = 0;
+		// GPU 초기화. 성공하면 빈 결과를, 실패하면 단계별 오류를 반환한다.
+		[[nodiscard]] virtual RendererInitResult GPUInit(HWND hwnd, int width, int height) = 0;
 
 		// 렌더링 요청 함수.
 		virtual void Submit(const RenderCommand& command) = 0;

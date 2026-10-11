@@ -31,7 +31,7 @@ namespace Engine
 		D3D11Renderer() = default;
 		~D3D11Renderer() noexcept override;
 
-		virtual bool GPUInit(HWND hwnd, int width, int height) override;
+		[[nodiscard]] virtual RendererInitResult GPUInit(HWND hwnd, int width, int height) override;
 		
 		virtual void BeginFrame(float r, float g, float b) override;
 

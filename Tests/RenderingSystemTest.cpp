@@ -24,7 +24,7 @@ namespace
     class RecordingRenderer final : public Engine::IRenderer
     {
     public:
-        bool GPUInit(HWND, int, int) override { return true; }
+        Engine::RendererInitResult GPUInit(HWND, int, int) override { return std::nullopt; }
 
         void Submit(const Engine::RenderCommand& command) override
         {

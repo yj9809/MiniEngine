@@ -215,12 +215,14 @@ namespace Engine
             // 출력 창이 먼저 만들어진 뒤에 HWND를 넘거야 하기 때문에 반드시 출력 창 생성 후 호출.
             auto initializedRenderer = std::make_unique<D3D11Renderer>();
 
-            if (!initializedRenderer->GPUInit(window->GetHwnd(), settings.width, settings.height))
+            auto error = initializedRenderer->GPUInit(window->GetHwnd(), settings.width, settings.height);
+
+            if (error.has_value())
             {
                 return EngineInitError
                 {
                     EngineInitialization::Renderer,
-                    "Failed to initialize D3D11 renderer."
+                    error->errorMessage
                 };
             }
 

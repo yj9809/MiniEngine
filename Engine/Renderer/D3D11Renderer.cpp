@@ -3,6 +3,8 @@
 #include <d3d11.h>
 #include <wincodec.h>
 
+#include <exception>
+
 #include "Common/Common.h"
 #include "RenderLayer/OpaqueLayer.h"
 #include "RenderLayer/RenderLayerType.h"
@@ -15,60 +17,106 @@ namespace Engine
         Shutdown();
     }
 
-    bool D3D11Renderer::GPUInit(HWND hwnd, int width, int height)
+    RendererInitResult D3D11Renderer::GPUInit(HWND hwnd, int width, int height)
     {
         if (isInitialized)
         {
-            return false;
+            return RendererInitError
+            {
+                RendererInitialization::InvalidState,
+                "D3D11Renderer is already initialized."
+            };
         }
 
         // 이전 초기화 시도가 실패해 일부 자원이 남을 경우를 대비하여 정리.
         Shutdown();
 
-        auto fail = [this]() noexcept
+        auto fail = [this](RendererInitialization initialization)
         {
             Shutdown();
-            return false;
+
+            std::string errorMessage = "";
+
+            switch (initialization)
+            {
+                case RendererInitialization::Device:
+                    errorMessage = "Failed to create D3D11 Device.";
+                    break;
+                case RendererInitialization::SwapChain:
+                    errorMessage = "Failed to create SwapChain.";
+                    break;
+                case RendererInitialization::RenderTarget:
+                    errorMessage = "Failed to create Render Target View.";
+                    break;
+                case RendererInitialization::DepthStencil:
+                    errorMessage = "Failed to create Depth Stencil View.";
+                    break;
+                case RendererInitialization::RenderLayer:
+                    errorMessage = "Failed to initialize Render Layer.";
+                    break;
+                case RendererInitialization::PlatformRuntime:
+                    errorMessage = "Failed to initialize Platform Runtime.";
+                    break;
+            }
+
+            return RendererInitError
+            {
+                initialization,
+                errorMessage
+            };
         };
 
         try
         {
             if (!InitDevice())
             {
-                return fail();
+                return fail(RendererInitialization::Device);
             }
 
             if (!InitSwapChain(hwnd, width, height))
             {
-                return fail();
+                return fail(RendererInitialization::SwapChain);
             }
 
             if (!InitRenderTargetView())
             {
-                return fail();
+                return fail(RendererInitialization::RenderTarget);
             }
 
             if (!InitDepthStencilView(width, height))
             {
-                return fail();
+                return fail(RendererInitialization::DepthStencil);
             }
 
             InitViewport(width, height);
 
-            layerScheduler.RegisterPassScheduler(RenderLayerType::Opaque, std::make_unique<OpaqueLayer>(device.Get()));
-            layerScheduler.RegisterPassScheduler(RenderLayerType::Wireframe, std::make_unique<WireframeLayer>(device.Get()));
+            try
+            {
+                layerScheduler.RegisterPassScheduler(
+                    RenderLayerType::Opaque,
+                    std::make_unique<OpaqueLayer>(device.Get())
+                );
+
+                layerScheduler.RegisterPassScheduler(
+                    RenderLayerType::Wireframe,
+                    std::make_unique<WireframeLayer>(device.Get())
+                );
+            }
+            catch (const std::exception&)
+            {
+                return fail(RendererInitialization::RenderLayer);
+            }
 
             const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 
             if (FAILED(hr))
             {
-                Shutdown();
-                FAILCHECK(hr, L"Failed COM initialization", false)
+                return fail(RendererInitialization::PlatformRuntime);
             }
 
             isComInitialized = true;
             isInitialized = true;
-            return true;
+            return std::nullopt;
         }
         catch (...)
         {
@@ -99,7 +147,10 @@ namespace Engine
             &context // DeviceContext 반환.
         );
 
-        FAILCHECK(hr, L"Failed create D3D11 Device", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         return true;
     }
@@ -111,12 +162,18 @@ namespace Engine
         // 같은 GPU를 공유하는 것을 보장하기 위해 새로 만들지 않고 꺼내옴.
         ComPtr<IDXGIDevice> dxgiDevice;
         HRESULT hr = device->QueryInterface(__uuidof(IDXGIDevice), &dxgiDevice);
-        FAILCHECK(hr, L"Failed dxgi device", false);
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // IDXGIDevice ->IDXGIAdapter (실제 GPU 어댑터).
         ComPtr<IDXGIAdapter> dxgiAdapter;
         hr = dxgiDevice->GetAdapter(&dxgiAdapter);
-        FAILCHECK(hr, L"Failed get dxgi adapter", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // DX11.1부터 CreateSwapChain 방식을 사용하지 않는 관계로 CreateSwapChainForHwnd를 사용할 예정.
         // IDXGFactory도 2버전으로 사용.
@@ -141,7 +198,10 @@ namespace Engine
 
         ComPtr<IDXGIFactory2> dxgiFactpory;
         hr = dxgiAdapter->GetParent(__uuidof(IDXGIFactory2), &dxgiFactpory);
-        FAILCHECK(hr, L"Failed get dxgi factory", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // Step.3 SwapChain 생성.
         DXGI_SWAP_CHAIN_DESC1 scDesc = {};
@@ -163,7 +223,10 @@ namespace Engine
             nullptr, // 출력 모니터 지정 (nullptr일 경우 기본).
             &swapChain // IDXGISwapChain1 반환.
         );
-        FAILCHECK(hr, L"Failed create swap chain", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         return true;
     }
@@ -175,12 +238,18 @@ namespace Engine
         // 0 = 첫 번째 back buffer.
         ComPtr<ID3D11Texture2D> backBuffer;
         HRESULT hr = swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), &backBuffer);
-        FAILCHECK(hr, L"Failed get back buffer", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // back buffer 텍스처를 Render Target View로 감싸기.
         // Device한테 Render Target View 알림.
         hr = device->CreateRenderTargetView(backBuffer.Get(), nullptr, &renderTargetView);
-        FAILCHECK(hr, L"Failed create render target view", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         return true;
     }
@@ -200,7 +269,10 @@ namespace Engine
         textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL; // 깊이-스텐실 버퍼로 바인딩.
 
         HRESULT hr = device->CreateTexture2D(&textureDesc, nullptr, &depthStencilTexture);
-        FAILCHECK(hr, L"Failed create depth stencil Texture", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // Step.2 Depth Stencil View 생성.
         D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
@@ -208,7 +280,10 @@ namespace Engine
         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D; // Texture2D로 액세스.
 
         hr = device->CreateDepthStencilView(depthStencilTexture.Get(), &dsvDesc, &depthStencilView);
-        FAILCHECK(hr, L"Failed create depth stencil view", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // Step.3 Depth Stencil State 생성.
         D3D11_DEPTH_STENCIL_DESC dsDesc = {};
@@ -218,7 +293,10 @@ namespace Engine
         dsDesc.StencilEnable = false; // 스텐실 테스트 비활성화.
 
         hr = device->CreateDepthStencilState(&dsDesc, &depthStencilState);
-        FAILCHECK(hr, L"Failed create depth stencil state", false)
+        if (FAILED(hr))
+        {
+            return false;
+        }
 
         // 깊이-스텐실 상태 설정.
         context->OMSetDepthStencilState(depthStencilState.Get(), 0);
