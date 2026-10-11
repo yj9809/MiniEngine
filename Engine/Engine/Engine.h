@@ -3,6 +3,7 @@
 #include <memory>
 #include <variant>
 #include <optional>
+#include <filesystem>
 
 #include "Common/Common.h"
 #include "Core/Input.h"
@@ -65,9 +66,9 @@ namespace Engine
 		// 엔진 초기화. Create()에서 호출된다.
 		[[nodiscard]] std::optional<EngineInitError> Initialize(EngineCreateInfo createInfo);
 
-		// Setting/Settings.txt를 읽어 settings를 채운다.
+		// 전달된 경로의 설정 파일을 읽어 settings를 채운다.
 		// 파일이 없으면 기본값으로 새로 생성한다.
-		void LoadSettings();
+		[[nodiscard]] std::optional<EngineInitError> LoadSettings(const std::filesystem::path& path);
 
 		// 입력 갱신 및 현재 레벨의 Tick을 호출한다.
 		void Tick(float deltaTime);

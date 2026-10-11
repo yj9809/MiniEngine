@@ -1,7 +1,9 @@
 #include "Engine.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <utility>
+#include <cmath>
 #include <Windows.h>
 
 #include "Core/Input.h"
@@ -170,15 +172,9 @@ namespace Engine
     {
         try
         {
-            LoadSettings();
-
-            if (settings.frameRate <= 0.0f || settings.width <= 0 || settings.height <= 0)
+            if (auto error = LoadSettings(createInfo.settingsPath); error.has_value())
             {
-                return EngineInitError
-                {
-                    EngineInitialization::Settings,
-                    "Settings values must be greater than zero."
-                };
+                return error;
             }
         }
         catch (const std::exception& e)
@@ -280,55 +276,110 @@ namespace Engine
         return std::nullopt;
     }
 
-    void Engine::LoadSettings()
+    std::optional<EngineInitError> Engine::LoadSettings(const std::filesystem::path& path)
     {
-        fs::path path = "Setting/Settings.txt";
-        fs::path dir = path.parent_path();
-
-        // 폴더가 없으면 생성.
-        if (!dir.empty() && !fs::exists(dir))
+        auto makeError = [](std::string message) -> std::optional<EngineInitError>
         {
-            fs::create_directory(path.parent_path());
+            return EngineInitError
+            {
+                EngineInitialization::Settings,
+                std::move(message)
+            };
+        };
+
+        if (path.empty())
+        {
+            return makeError("Settings path must not be empty.");
         }
 
-        if (!fs::exists(path))
+        Settings loadedSettings = settings;
+        const fs::path directory = path.parent_path();
+
+        if (!directory.empty())
         {
-            // 파일이 없으면 현재 기본값으로 새로 만든다.
-            std::ofstream file(path);
-            if (file.is_open())
+            std::error_code errorCode;
+            fs::create_directories(directory, errorCode);
+
+            if (errorCode)
             {
-                file << "FrameRate: " << settings.frameRate << "\n";
-                file << "Width: " << settings.width << "\n";
-                file << "Height: " << settings.height << "\n";
-                file.close();
+                return makeError("Failed to create settings directory: " + errorCode.message());
+            }
+        }
+
+        std::error_code errorCode;
+        const bool fileExists = fs::exists(path, errorCode);
+
+        if (errorCode)
+        {
+            return makeError("Failed to inspect settings path: " + errorCode.message());
+        }
+
+        if (!fileExists)
+        {
+            std::ofstream file(path, std::ios::trunc);
+
+            if (!file.is_open())
+            {
+                return makeError("Failed to create settings file: " + path.string());
+            }
+
+            file << "FrameRate: " << loadedSettings.frameRate << "\n";
+            file << "Width: " << loadedSettings.width << "\n";
+            file << "Height: " << loadedSettings.height << "\n";
+            file.flush();
+
+            if (!file)
+            {
+                return makeError("Failed to write default settings to file: " + path.string());
             }
         }
         else
         {
-            // 한 줄씩 읽어 "키: 값" 형식으로 파싱한다.
-            // substr의 오프셋은 각 키 문자열 길이 + 공백 1칸이다("FrameRate: " = 11자 → substr(11)).
             std::ifstream file(path);
-            if (file.is_open())
+
+            if (!file.is_open())
             {
-                std::string line;
-                while (std::getline(file, line))
+                return makeError("Failed to open settings file: " + path.string());
+            }
+
+            std::string line;
+
+            while (std::getline(file, line))
+            {
+                if (line.find("FrameRate:") == 0)
                 {
-                    if (line.find("FrameRate:") == 0)
-                    {
-                        settings.frameRate = static_cast<float>(std::stoi(line.substr(10)));
-                    }
-                    else if (line.find("Width:") == 0)
-                    {
-                        settings.width = std::stoi(line.substr(6));
-                    }
-                    else if (line.find("Height:") == 0)
-                    {
-                        settings.height = std::stoi(line.substr(7));
-                    }
+                    loadedSettings.frameRate =
+                        std::stof(line.substr(10));
                 }
-                file.close();
+                else if (line.find("Width:") == 0)
+                {
+                    loadedSettings.width =
+                        std::stoi(line.substr(6));
+                }
+                else if (line.find("Height:") == 0)
+                {
+                    loadedSettings.height =
+                        std::stoi(line.substr(7));
+                }
+            }
+
+            if (file.bad())
+            {
+                return makeError("Failed while reading settings file: " + path.string());
             }
         }
+
+        if (!std::isfinite(loadedSettings.frameRate) ||
+            loadedSettings.frameRate <= 0.0f ||
+            loadedSettings.width <= 0 ||
+            loadedSettings.height <= 0)
+        {
+            return makeError(
+                "Settings values must be finite and greater than zero.");
+        }
+
+        settings = loadedSettings;
+        return std::nullopt;
     }
 
     void Engine::Tick(float deltaTime)

@@ -1,4 +1,12 @@
 #include <gtest/gtest.h>
+
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <system_error>
+#include <utility>
+#include <variant>
+
 #include "Level/Level.h"
 #include "Actor/Actor.h"
 #include "Engine/Engine.h"
@@ -228,7 +236,83 @@ TEST(LevelTest, Performance_AddAndDestroy_Repeated)
     EXPECT_EQ(level.GetActorCount(), 0);
 }
 
-// null Startup Level Test.
+// Engine initialization failure coverage.
+class EngineSettingsInitializationTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        tempDirectory = std::filesystem::temp_directory_path() /
+            "MiniEngine_EngineSettingsInitializationTest";
+
+        std::error_code errorCode;
+        std::filesystem::remove_all(tempDirectory, errorCode);
+        ASSERT_FALSE(errorCode) << errorCode.message();
+
+        std::filesystem::create_directories(tempDirectory, errorCode);
+        ASSERT_FALSE(errorCode) << errorCode.message();
+    }
+
+    void TearDown() override
+    {
+        std::error_code errorCode;
+        std::filesystem::remove_all(tempDirectory, errorCode);
+        EXPECT_FALSE(errorCode) << errorCode.message();
+    }
+
+    std::filesystem::path tempDirectory;
+};
+
+TEST_F(
+    EngineSettingsInitializationTest,
+    SettingsPathIsDirectoryReturnsSettingsError)
+{
+    ::Engine::EngineCreateInfo createInfo;
+    createInfo.startupLevel = std::make_unique<::Engine::Level>();
+    createInfo.settingsPath = tempDirectory;
+
+    auto result = ::Engine::Engine::Create(std::move(createInfo));
+
+    const auto* error = std::get_if<::Engine::EngineInitError>(&result);
+
+    ASSERT_NE(error, nullptr);
+    EXPECT_EQ(
+        error->engineInitialization,
+        ::Engine::EngineInitialization::Settings);
+}
+
+TEST_F(
+    EngineSettingsInitializationTest,
+    MalformedSettingsReturnsSettingsError)
+{
+    const std::filesystem::path settingsPath =
+        tempDirectory / "MalformedSettings.txt";
+
+    {
+        std::ofstream settingsFile(settingsPath);
+        ASSERT_TRUE(settingsFile.is_open());
+
+        settingsFile << "FrameRate: abc\n";
+        settingsFile << "Width: 1280\n";
+        settingsFile << "Height: 720\n";
+
+        ASSERT_TRUE(settingsFile.good());
+    }
+
+    ::Engine::EngineCreateInfo createInfo;
+    createInfo.startupLevel = std::make_unique<::Engine::Level>();
+    createInfo.settingsPath = settingsPath;
+
+    auto result = ::Engine::Engine::Create(std::move(createInfo));
+
+    const auto* error = std::get_if<::Engine::EngineInitError>(&result);
+
+    ASSERT_NE(error, nullptr);
+    EXPECT_EQ(
+        error->engineInitialization,
+        ::Engine::EngineInitialization::Settings);
+}
+
 TEST(EngineInitializationTest, NullStartupLevelFailsBeforeWindowCreation)
 {
     Engine::EngineCreateInfo createInfo;
