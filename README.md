@@ -103,7 +103,7 @@ Level
 - `Game/Main.cpp`는 Camera, TestMesh, DirectionalLight Actor를 넣은 시작 Level을 `EngineCreateInfo`로 넘깁니다. Engine은 서비스 연결 → `BeginPlay()` → 대기 Actor 처리까지 마친 뒤 생성 결과를 반환하며, Game은 성공한 경우에만 `Run()`을 호출합니다.
 - null 시작 Level은 창 생성 전에 `StartupLevel` 오류로 거부합니다. 초기 Actor의 `Initialize` → `BeginPlay` 순서를 `Run()` 호출 전에 검증하는 테스트도 추가했습니다.
 - `Win32Window`는 소멸자에서 HWND와 등록 클래스를 정리합니다. `D3D11Renderer`도 소멸자에서 Layer·GPU 리소스·COM을 정리하며, `Engine`은 Level → ResourceManager → Renderer → Window 순으로 소유 객체를 해제합니다.
-- Opaque/Wireframe Layer의 필수 초기화를 `assert()` 표현식 밖으로 옮겼습니다. 생성 실패는 예외로 Renderer와 Engine 경계까지 전달돼 `EngineInitError::Renderer`로 변환됩니다.
+- Opaque/Wireframe Layer의 필수 초기화를 `assert()` 표현식 밖으로 옮겼습니다. 생성 실패는 예외로 Renderer와 Engine 경계까지 전달돼 `EngineInitialization::Renderer` 단계의 `EngineInitError`로 변환됩니다.
 - 시작 Level의 `BeginPlay()`가 실패한 뒤 두 번째 Engine 생성이 성공하는 회귀 테스트로 한 실패 경로의 자원 반환을 확인했습니다. 모든 D3D 단계의 실패 주입과 정확한 해제 순서 계측까지 끝난 것은 아닙니다.
 - 아직 설정 파일 열기 실패를 오류로 반환하지 않으며, 일부 D3D 초기화와 런타임 리소스 생성에는 MessageBox·`__debugbreak()`를 포함한 `FAILCHECK` 경로가 남아 있습니다.
 - Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. Level 전환의 null 입력·실패·프레임 경계 정책은 미완료입니다.
@@ -128,7 +128,7 @@ Level
 
 `DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
 
-이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 최신 `7007af8`의 시작 Level 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
+이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `9e6ce70`의 시작 Level 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
 
 ### 회전 규칙과 실행 기록
 
@@ -177,19 +177,21 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-10 Release 실행 캡처에서는 당시 `EngineInitializationTest` 2개가 모두 통과했습니다. 2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과가 기록돼 있습니다. 이번 문서 점검에서 이를 재실행하지 않았고 저장소에는 전체 실행 로그나 캡처가 없으므로, 아래 두 테스트의 화면 증거와 109개 전체 통과 기록을 구분합니다. 실제 Game/HLSL 실행도 별도 검증 대상으로 유지합니다.
+2026-10-10 Release 실행 캡처에는 당시 `EngineInitializationTest` 2개의 통과 결과를 남겼습니다. 2026-10-11 Release 실행 캡처에는 새 회귀 테스트를 포함한 현재 스위트 3개의 통과 결과를 남겼습니다. 두 캡처는 해당 스위트만 실행한 기록입니다.
+
+2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과를 기록했습니다. 저장소에는 전체 실행 로그나 캡처를 남기지 않았으므로 스위트 캡처와 전체 통과 기록을 구분합니다. 실제 Game/HLSL 실행은 별도 검증 대상으로 유지합니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) |
 |---|---|
 | ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) |
 
-| EngineInitialization 테스트 | 검증 내용 | 확인 범위 |
-|---|---|---|
-| `NullStartupLevelFailsBeforeWindowCreation` | null 시작 Level을 창 생성 전에 `StartupLevel` 오류로 반환 | 아래 Release 캡처에서 `OK` 확인 |
-| `CreateActivatesInitialActorBeforeRun` | `Run()` 전에 초기 Actor의 `Initialize` → `BeginPlay` 순서 보장 | 아래 Release 캡처에서 `OK` 확인 |
-| `StartupLevelFailureReleasesResourcesForNextCreate` | 시작 Level 실패 후 다음 Engine 생성 성공 | 코드와 개발 일지의 Debug / Release 109개 통과 기록 확인, 저장소 실행 캡처 없음 |
+| EngineInitialization (2, Release, 2026-10-10) | 실행 결과 |
+|---|---|
+| `NullStartupLevelFailsBeforeWindowCreation` — null 시작 Level을 창 생성 전에 `StartupLevel` 오류로 반환<br><br>`CreateActivatesInitialActorBeforeRun` — `Run()` 전에 초기 Actor의 `Initialize` → `BeginPlay` 순서 보장<br><br>두 테스트 모두 `OK` | ![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png) |
 
-![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png)
+| 시작 Level 실패 후 재생성 (Release, 2026-10-11) | EngineInitialization 3개 실행 결과 |
+|---|---|
+| `StartupLevelFailureReleasesResourcesForNextCreate` — `BeginPlay()` 예외로 첫 Engine 생성이 `EngineInitialization::StartupLevel` 오류를 반환한 뒤, 다음 Engine 생성이 성공하는지 검증<br><br>오른쪽 캡처는 이 테스트를 포함한 현재 스위트 3개의 결과이며 전체 109개 실행 화면은 아님 | ![EngineInitialization Release 테스트 3개 실행 결과](Docs/EngineInitializationTestsReleaseLatest.png) |
 
 | Lifecycle (과거 9) | Matrix4 (21) |
 |---|---|
