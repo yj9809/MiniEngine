@@ -177,21 +177,11 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-10 Release 실행 캡처에는 당시 `EngineInitializationTest` 2개의 통과 결과를 남겼습니다. 2026-10-11 Release 실행 캡처에는 새 회귀 테스트를 포함한 현재 스위트 3개의 통과 결과를 남겼습니다. 두 캡처는 해당 스위트만 실행한 기록입니다.
-
 2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과를 기록했습니다. 저장소에는 전체 실행 로그나 캡처를 남기지 않았으므로 스위트 캡처와 전체 통과 기록을 구분합니다. 실제 Game/HLSL 실행은 별도 검증 대상으로 유지합니다.
 
-| Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) |
-|---|---|
-| ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) |
-
-| EngineInitialization (2, Release, 2026-10-10) | 실행 결과 |
-|---|---|
-| `NullStartupLevelFailsBeforeWindowCreation` — null 시작 Level을 창 생성 전에 `StartupLevel` 오류로 반환<br><br>`CreateActivatesInitialActorBeforeRun` — `Run()` 전에 초기 Actor의 `Initialize` → `BeginPlay` 순서 보장<br><br>두 테스트 모두 `OK` | ![EngineInitialization Release 테스트 2개 실행 결과](Docs/EngineInitializationTestsRelease.png) |
-
-| 시작 Level 실패 후 재생성 (Release, 2026-10-11) | EngineInitialization 3개 실행 결과 |
-|---|---|
-| `StartupLevelFailureReleasesResourcesForNextCreate` — `BeginPlay()` 예외로 첫 Engine 생성이 `EngineInitialization::StartupLevel` 오류를 반환한 뒤, 다음 Engine 생성이 성공하는지 검증<br><br>오른쪽 캡처는 이 테스트를 포함한 현재 스위트 3개의 결과이며 전체 109개 실행 화면은 아님 | ![EngineInitialization Release 테스트 3개 실행 결과](Docs/EngineInitializationTestsReleaseLatest.png) |
+| Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
+|---|---|---|
+| ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) | ![EngineInitialization Release 테스트 3개 실행 결과](Docs/EngineInitializationTestsReleaseLatest.png) |
 
 | Lifecycle (과거 9) | Matrix4 (21) |
 |---|---|
