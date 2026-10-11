@@ -90,6 +90,14 @@ namespace Engine
 	
 	void Level::EndLevel()
 	{
+		if (hasEnded)
+		{
+			return;
+		}
+
+		// 콜백 안에서 EndLevel()이 재호출돼도 막을 수 있도록 실제 정리보다 먼저 설정한다.
+		hasEnded = true;
+
 		for (auto& actor : actors)
 		{
 			actor->DispatchOnDestroy();
@@ -110,7 +118,6 @@ namespace Engine
 		}
 		
 		mainCamera = nullptr;
-		
 		actors.clear();
 		actorsToAdd.clear();
 	}

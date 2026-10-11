@@ -45,7 +45,8 @@ namespace Engine
         void ProcessAddAndDestroyActor();
 
         // 레벨 전환 시 호출. 보유한 모든 액터를 즉시 해제한다.
-        virtual void EndLevel();
+        // 한 번 종료된 Level은 다시 활성화하지 않는다.
+        void EndLevel();
 
         inline void SetMainCamera(CameraComponent* camera) { mainCamera = camera; }
         inline CameraComponent* GetMainCamera() const { return mainCamera; }
@@ -76,5 +77,7 @@ namespace Engine
         
         // 이 Level의 렌더 대상 목록을 소유.
         std::unique_ptr<RenderingSystem> renderingSystem;
+
+        bool hasEnded = false;
     };
 }

@@ -22,6 +22,24 @@ public:
     }
 };
 
+class DestroyCountingActor final : public Engine::Actor
+{
+public:
+    explicit DestroyCountingActor(int& destroyCount)
+        : destroyCount(destroyCount)
+    {
+    }
+
+protected:
+    void OnDestroy() override
+    {
+        ++destroyCount;
+    }
+
+private:
+    int& destroyCount;
+};
+
 struct StartupActorLifecycleProbe
 {
     int nextOrder = 0;
@@ -171,6 +189,23 @@ TEST(LevelTest, EndLevel_ClearsPendingActors)
 
     EXPECT_EQ(level.GetPendingActorCount(), 0);
 }
+
+TEST(LevelTest, EndLevel_CalledTwiceDestroysActorOnlyOnce)
+{
+    InspectableLevel level;
+    int destroyCount = 0;
+
+    level.AddNewActor(std::make_unique<DestroyCountingActor>(destroyCount));
+    level.ProcessAddAndDestroyActor();
+
+    level.EndLevel();
+    level.EndLevel();
+
+    EXPECT_EQ(destroyCount, 1);
+    EXPECT_EQ(level.GetActorCount(), 0);
+    EXPECT_EQ(level.GetPendingActorCount(), 0);
+}
+
 // Bulk lifecycle coverage.
 
 TEST(LevelTest, Performance_Add1000Actors)
