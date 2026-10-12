@@ -8,11 +8,11 @@
 
 ## 현재 상태
 
-기준 커밋: [`b25aa9c`](https://github.com/yj9809/MiniEngine/commit/b25aa9cea3b709aa2468e83d9e63b5fb5498c771) (2026-10-12)
+기준 커밋: [`3bbe504`](https://github.com/yj9809/MiniEngine/commit/3bbe504c674aed1de584412d5a6e70d81fb0af50) (2026-10-13)
 
 현재는 개편된 Notion 로드맵의 **0단계 — 기존 기반 정리와 보강**을 진행하고 있습니다. `DirectionalLightActor`를 Game에 배치해 기존 광원 전달 경로를 데모에서 소비하도록 연결했고, `Engine::Create(EngineCreateInfo)`가 시작 Level의 소유권까지 받아 초기화된 엔진 또는 단계별 오류를 반환하도록 구성했습니다. Game은 시작 Actor를 Level에 배치해 넘기고, 생성 결과를 확인한 뒤에만 게임 루프에 진입합니다.
 
-현재 GPU 업로드는 첫 방향광 1개로 제한됩니다. Bootstrap은 설정 경로 주입과 파일 I/O·값 오류 반환, Level 중복 종료 방지, Renderer 초기화 단계별 오류 반환까지 코드로 연결했습니다. 다만 최신 코드의 빌드·전체 테스트 실행, D3D 단계별 실패 주입·정확한 정리 순서 계측, 런타임 Component 추가 정책과 Game 실행 검증은 남아 있습니다. 구현 존재와 통합·빌드·테스트·실행 검증을 구분하며, 개발 중인 범용 엔진 전체의 완성을 의미하지 않습니다.
+현재 GPU 업로드는 첫 방향광 1개로 제한됩니다. Bootstrap은 설정·Renderer 실패 반환과 Level 중복 종료 방지를 연결했고, Actor·Component·Level 정리 중 예외가 발생해도 남은 정리를 계속 시도하도록 보강했습니다. Level 전환은 요청 결과·대기 Level 소유권·단계 오류와 활성화·종료 도우미까지 정의했지만, `ProcessPendingLevelChange()`가 비어 있고 게임 루프에서도 호출되지 않아 실제 프레임 경계 전환은 아직 통합되지 않았습니다. 최신 코드의 빌드·전체 테스트·Game/HLSL 실행도 검증 대기입니다. 구현 존재와 통합·빌드·테스트·실행 검증을 구분하며, 개발 중인 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
@@ -20,7 +20,8 @@
 |---|---|---|
 | Win32 런타임 | 창, 메시지 루프, 목표 프레임 루프, HWND·등록 클래스 RAII 정리 | 구현 / Window 실패 주입 검증 대기 |
 | Engine Bootstrap | `Create(EngineCreateInfo)` → Settings·Renderer 단계 오류 → 시작 Level 활성화 → Game의 오류 분기 | 실패 전파 코드 연결·관련 테스트 6개 구성 / 최신 전체 실행 검증 대기 |
-| Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy` 상태 디스패치, 지연 추가/제거, Root Transform | 기반 완료 / Initialize 이후 Component 추가 경로 보강 중 |
+| Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy`, 실패 상태, 정리 예외 수집, Root Transform | 종료 안전성 보강 / 실패 경로 테스트·런타임 Component 정책 대기 |
+| Level 전환 | 요청 결과, pending Level 소유권, 단계 오류, 활성화·종료 도우미 | 기반 구현 / 프레임 경계 처리·Game 연결·테스트 미완료 |
 | DX11 기반 | Device · SwapChain · RTV · DSV · Viewport · 상수 버퍼 | 완료 |
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
 | 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 완료 |
@@ -95,6 +96,7 @@ Level
 - 반복 `vector::erase`로 인한 O(n²) 삭제를 swap-and-pop으로 변경했습니다. 당시 개발 일지의 10,000개 일괄 삭제 측정은 1046ms에서 12ms로 감소했습니다.
 - “객체 구성”과 “런타임 진입”이 섞여 있던 문제를 분리해 `Initialize`와 `BeginPlay` 디스패치를 추가하고, 중복 호출·재진입·순서 역전을 상태로 차단했습니다.
 - 종료도 `DispatchOnDestroy()` → Actor `OnDestroy()` → Component `OnRemove()` 순으로 일원화하고, 중복 종료를 상태로 차단했습니다. 메시 렌더러와 광원 컴포넌트는 실제 등록했던 시스템에서 해제합니다.
+- `InitializationFailed`와 `BeginPlayFailed` 상태를 추가해 부분 활성화 실패 후에도 제거 디스패치에 진입할 수 있게 했습니다. `CleanupExceptionCollector`는 Actor·Component·Level의 각 정리 작업을 모두 시도한 뒤 처음 발생한 예외를 다시 전달합니다.
 - 현재 Level에 대기 중인 Actor는 프레임 경계에서 `DispatchInitialize()` → `DispatchBeginPlay()` 순으로 진입합니다. 다만 `Initialize` 이후 새로 생성한 Component가 같은 디스패치 경로를 자동으로 거치는 연결은 아직 보강 대상입니다.
 
 ### 엔진 생성과 초기화
@@ -109,7 +111,7 @@ Level
 - `Level::EndLevel()`은 종료 상태를 정리 전에 기록하고 재호출을 무시합니다. 파생 Level이 가상 재정의로 가드를 우회하지 못하도록 비가상 함수로 고정했습니다.
 - `D3D11Renderer::GPUInit()`은 Device, SwapChain, RenderTarget, DepthStencil, RenderLayer, PlatformRuntime 실패를 `RendererInitError`로 구분합니다. Engine 외부에는 `EngineInitialization::Renderer`와 오류 메시지로 변환되므로 Renderer의 세부 enum 자체는 Game까지 전달되지 않습니다.
 - 초기화 경로의 기존 `FAILCHECK`는 제거됐지만 런타임 Buffer·Texture 생성과 `Map()` 실패 정책은 아직 통일되지 않았습니다.
-- Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. Level 전환의 null 입력·실패·프레임 경계 정책은 미완료입니다.
+- Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. `RequestLevelChange()`는 null·busy·accepted를 구분하고 accepted일 때만 pending Level 소유권을 가져오며, 활성화 단계 오류와 `ConsumeLevelTransitionError()`도 정의했습니다. 다만 `ProcessPendingLevelChange()`는 비어 있고 `Run()`에서 호출되지 않으며 `TryActivateLevel()`도 실제 전환과 시작 Level 초기화에서 사용되지 않습니다. 따라서 Level 전환은 API 기반만 구현된 상태입니다.
 
 ### 기반 시스템
 
@@ -131,7 +133,7 @@ Level
 
 `DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
 
-이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `b25aa9c`의 시작 Level 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
+이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `3bbe504`의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
 
 ### 회전 규칙과 실행 기록
 
@@ -181,7 +183,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과를 기록했습니다. 이후 설정·중복 종료 테스트 3개와 Renderer 오류 계약이 추가됐지만, 최신 `b25aa9c`의 빌드와 112개 전체 실행 기록은 확인하지 못했습니다. 저장소에 있는 최신 캡처는 EngineInitialization 3개만 보여 주므로 최신 전체 회귀와 실제 Game/HLSL 실행은 별도 검증 대상으로 유지합니다.
+2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과를 기록했습니다. 이후 설정·중복 종료 테스트 3개, Renderer 오류 계약과 생명주기 실패·Level 전환 기반이 추가됐지만, 최신 `3bbe504`의 빌드와 112개 전체 실행 기록은 확인하지 못했습니다. 새 커밋에는 테스트 변경이 없습니다. 저장소에 있는 최신 캡처는 EngineInitialization 3개만 보여 주므로 최신 전체 회귀와 실제 Game/HLSL 실행은 별도 검증 대상으로 유지합니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
@@ -221,7 +223,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 첫 방향광 GPU 전달, Engine 생성/초기화 분리, 설정·Renderer 실패 전파와 중복 종료 방지 | `381b4c2` · `7508012` · `c9bfdfd` · `c109d60` · `f3e58f3` · `b210cdf` · `b133a24` · `9e6ce70` · `4d60975` · `5bee38c` · `b25aa9c` |
+| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 첫 방향광 GPU 전달, Engine 생성/초기화 분리, 설정·Renderer 실패 전파, 정리 예외 수집과 Level 전환 기반 | `381b4c2` · `7508012` · `c9bfdfd` · `c109d60` · `f3e58f3` · `b210cdf` · `b133a24` · `9e6ce70` · `4d60975` · `5bee38c` · `b25aa9c` · `3bbe504` |
 
 ## 로드맵
 
@@ -244,12 +246,13 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-다음 순서는 **남은 기반 보강 → 기존 `Engine::Log` 확장 → Data Contract v1**입니다. 먼저 최신 Debug / Release 빌드와 112개 테스트, 실제 Game/HLSL 실행을 검증하고 Level 전환과 런타임 생성/제거 정책을 고정합니다. Renderer 세부 실패 정보의 외부 노출 범위와 런타임 GPU 오류 정책도 Logging Foundation 전에 정리합니다. 다중 광원 업로드와 Ambient Albedo 중복 곱셈, Quaternion·고급 렌더링은 후속 단계에서 다룹니다.
+다음 순서는 **남은 기반 보강 → 기존 `Engine::Log` 확장 → Data Contract v1**입니다. 먼저 `ProcessPendingLevelChange()`를 프레임 경계에 연결하고 전환 성공·실패·정리 정책을 테스트로 고정한 뒤, 최신 Debug / Release 빌드와 112개 테스트, 실제 Game/HLSL 실행을 검증합니다. 런타임 Component 생성 정책과 Renderer 세부 실패 정보·런타임 GPU 오류 정책도 Logging Foundation 전에 정리합니다. 다중 광원 업로드와 Ambient Albedo 중복 곱셈, Quaternion·고급 렌더링은 후속 단계에서 다룹니다.
 
 ## 프로젝트 구조
 
 ```text
 Engine/
+├─ Common/         # 공통 생명주기 상태와 정리 예외 수집
 ├─ Actor/          # Actor 생명주기와 Component 소유
 ├─ Component/      # Transform, Camera, Mesh, Input, Physics, Light
 ├─ Core/           # Win32, Input, Time, Log
