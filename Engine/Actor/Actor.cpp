@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "Common/CleanupExceptionCollector.h"
 #include "Component/Transform/TransformComponent.h"
 #include "Level/Level.h"
 
@@ -24,12 +25,21 @@ namespace Engine
         }
         
         lifecycleState = LifecycleState::Initializing;
-        
-        Initialize();
-        
-        for (auto & component : components)
+
+        try
         {
-            component->DispatchInitialize();
+            Initialize();
+        
+            for (auto & component : components)
+            {
+                component->DispatchInitialize();
+            }
+        }
+        catch (...)
+        {
+            // DispatchOnDestroy()가 Component 정리를 수행할 수 있게 한다.
+            lifecycleState = LifecycleState::InitializationFailed;
+            throw;
         }
         
         lifecycleState = LifecycleState::Initialized;
@@ -48,12 +58,21 @@ namespace Engine
         }
         
         lifecycleState = LifecycleState::BeginningPlay;
-        
-        BeginPlay();
-        
-        for (auto& component : components)
+
+        try
         {
-            component->DispatchBeginPlay();
+            BeginPlay();
+        
+            for (auto& component : components)
+            {
+                component->DispatchBeginPlay();
+            }
+        }
+        catch (...)
+        {
+            // BeginPlay가 일부 실행됐으므로 OnDestroy까지 수행할 수 있게 한다.
+            lifecycleState = LifecycleState::BeginPlayFailed;
+            throw;
         }
         
         lifecycleState = LifecycleState::HasBegunPlay;
@@ -85,22 +104,32 @@ namespace Engine
             return;
         }
 
-        const bool hasBegunPlay = (lifecycleState == LifecycleState::HasBegunPlay);
+        CleanupExceptionCollector cleanup;
+        const bool shouldCallOnDestroy =
+            lifecycleState == LifecycleState::HasBegunPlay ||
+            lifecycleState == LifecycleState::BeginPlayFailed;
 
         lifecycleState = LifecycleState::EndingPlay;
         isActive = false;
 
-        if(hasBegunPlay)
+        if (shouldCallOnDestroy)
         {
-            OnDestroy();
+            cleanup.Try([&]()
+            {
+                OnDestroy();
+            });
         }
 
         for (auto& component : components)
         {
-            component->DispatchOnRemove();
+            cleanup.Try([&]()
+            {
+                component->DispatchOnRemove();
+            });
         }
 
         lifecycleState = LifecycleState::HasEndedPlay;
+        cleanup.RethrowIfAny();
     }
 
     void Actor::OnDestroy()

@@ -1,103 +1,126 @@
 #include "Component.h"
 
 #include <cassert>
+#include "Common/CleanupExceptionCollector.h"
 
 namespace Engine
 {
-	void Component::DispatchOnAdd(Actor& newOwner)
-	{
-		if(owner != nullptr)
-		{
-			 assert(false && "Component is already attached to an Actor.");
-        	return;
-		}
+    void Component::DispatchOnAdd(Actor& newOwner)
+    {
+        if (owner != nullptr)
+        {
+            assert(false && "Component is already attached to an Actor.");
+            return;
+        }
 
-		owner = &newOwner;
-		OnAdd();
-	}
+        owner = &newOwner;
+        OnAdd();
+    }
 
-	void Component::OnAdd()
-	{
+    void Component::OnAdd()
+    {
+    }
 
-	}
+    void Component::DispatchOnRemove()
+    {
+        if (lifecycleState == LifecycleState::Initializing || lifecycleState == LifecycleState::BeginningPlay)
+        {
+            assert(false && "Remove during lifecycle transition is not supported.");
+            return;
+        }
 
-	void Component::DispatchOnRemove()
-	{
-		if(lifecycleState == LifecycleState::Initializing || lifecycleState == LifecycleState::BeginningPlay)
-		{
-			assert(false && "Remove during lifecycle transition is not supported.");
-			return;
-		}
+        if (lifecycleState == LifecycleState::EndingPlay || lifecycleState == LifecycleState::HasEndedPlay)
+        {
+            return;
+        }
 
-		if(lifecycleState == LifecycleState::EndingPlay || lifecycleState == LifecycleState::HasEndedPlay)
-		{
-			return;
-		}
+        CleanupExceptionCollector cleanup;
 
-		lifecycleState = LifecycleState::EndingPlay;
-		
-		UnregisterFromSystem();
-		OnRemove();
+        lifecycleState = LifecycleState::EndingPlay;
 
-		lifecycleState = LifecycleState::HasEndedPlay;
-	}
+        cleanup.Try([&]()
+        {
+            UnregisterFromSystem();
+        });
 
-	void Component::OnRemove()
-	{
+        cleanup.Try([&]()
+        {
+            OnRemove();
+        });
 
-	}
-	
-	void Component::DispatchInitialize()
-	{
-		if (lifecycleState != LifecycleState::Constructed)
-		{
-			return;
-		}
-		
-		lifecycleState = LifecycleState::Initializing;
+        lifecycleState = LifecycleState::HasEndedPlay;
 
-		Initialize();
+        cleanup.RethrowIfAny();
+    }
 
-		lifecycleState = LifecycleState::Initialized;
-	}
-	
-	void Component::Initialize()
-	{
+    void Component::OnRemove()
+    {
+    }
 
-	}
+    void Component::DispatchInitialize()
+    {
+        if (lifecycleState != LifecycleState::Constructed)
+        {
+            return;
+        }
 
-	void Component::DispatchBeginPlay()
-	{
-		if (lifecycleState != LifecycleState::Initialized)
-		{
-			return;
-		}
-		
-		lifecycleState = LifecycleState::BeginningPlay;
-		
-		RegisterWithSystem();
-		BeginPlay();
-				
-		lifecycleState = LifecycleState::HasBegunPlay;
-	}
+        lifecycleState = LifecycleState::Initializing;
 
-	void Component::BeginPlay()
-	{
+        try
+        {
+            Initialize();
+        }
+        catch (...)
+        {
+            // 전이 상태에서 벗어나 DispatchOnRemove()가 정리할 수 있게 한다.
+            lifecycleState = LifecycleState::InitializationFailed;
+            throw;
+        }
 
-	}
+        lifecycleState = LifecycleState::Initialized;
+    }
 
-	void Component::Tick(float deltaTime)
-	{
+    void Component::Initialize()
+    {
+    }
 
-	}
+    void Component::DispatchBeginPlay()
+    {
+        if (lifecycleState != LifecycleState::Initialized)
+        {
+            return;
+        }
 
-	void Component::RegisterWithSystem()
-	{
+        lifecycleState = LifecycleState::BeginningPlay;
 
-	}
+        try
+        {
+            RegisterWithSystem();
+            BeginPlay();
+        }
+        catch (...)
+        {
+            // 등록이 일부 진행됐을 수 있으므로 제거 가능한 상태로 만든다.
+            lifecycleState = LifecycleState::BeginPlayFailed;
+            throw;
+        }
 
-	void Component::UnregisterFromSystem()
-	{
+        lifecycleState = LifecycleState::HasBegunPlay;
+    }
 
-	}
+    void Component::BeginPlay()
+    {
+    }
+
+    void Component::Tick(float deltaTime)
+    {
+    }
+
+    void Component::RegisterWithSystem()
+    {
+    }
+
+    void Component::UnregisterFromSystem()
+    {
+    }
 }

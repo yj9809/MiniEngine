@@ -85,6 +85,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Actor\Actor.h" />
+    <ClInclude Include="Common\CleanupExceptionCollector.h" />
     <ClInclude Include="Common\Common.h" />
     <ClInclude Include="Common\LifecycleState.h" />
     <ClInclude Include="Common\RTTI.h" />
@@ -104,6 +105,7 @@
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\EngineInitialization.h" />
     <ClInclude Include="Level\Level.h" />
+    <ClInclude Include="Level\LevelTransition.h" />
     <ClInclude Include="Lighting\DirectionalLight.h" />
     <ClInclude Include="Lighting\Light.h" />
     <ClInclude Include="Math\Matrix4.h" />

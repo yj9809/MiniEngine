@@ -4,6 +4,7 @@
 #include <fstream>
 #include <utility>
 #include <cmath>
+#include <exception>
 #include <Windows.h>
 
 #include "Core/Input.h"
@@ -42,25 +43,10 @@ namespace Engine
 
     Engine::~Engine() noexcept
     {
-        if (mainLevel)
-        {
-            try
-            {
-                mainLevel->EndLevel();
-            }
-            catch (const std::exception& e)
-            {
-                OutputDebugStringA("Exception in EndLevel(): ");
-                OutputDebugStringA(e.what());
-                OutputDebugStringA("\n");
-            }
-            catch (...)
-            {
-                OutputDebugStringA("Unknown exception in EndLevel()\n");
-            }
-        }
-
-        mainLevel.reset();
+        // Reject new level requests from cleanup callbacks during engine shutdown.
+        isLevelTransitionInProgress = true;
+        ShutdownLevel(pendingLevel);
+        ShutdownLevel(mainLevel);
         resourceManager.reset();
         renderer.reset();
         window.reset();
@@ -154,18 +140,34 @@ namespace Engine
         isQuit = true;
     }
 
-    void Engine::SetNewLevel(std::unique_ptr<Level> level)
+    LevelTransitionRequestResult Engine::RequestLevelChange(std::unique_ptr<Level>&& level)
     {
-        // 기존 레벨이 있으면 먼저 정리한다(액터 전부 해제).
-        if (mainLevel)
+        if (!level)
         {
-            mainLevel->EndLevel();
+            return LevelTransitionRequestResult::NullLevel;
         }
 
-        level->AttachServices(*renderer, *resourceManager);
+        if (pendingLevel || isLevelTransitionInProgress)
+        {
+            return LevelTransitionRequestResult::Busy;
+        }
 
-        mainLevel = std::move(level);
-        mainLevel->BeginPlay();
+        // 새 요청의 결과를 기록하기 전에 이전 오류를 제거한다.
+        levelTransitionError.reset();
+
+        // 접수가 확정된 경우에만 소유권을 가져온다.
+        pendingLevel = std::move(level);
+
+        return LevelTransitionRequestResult::Accepted;
+    }
+
+    std::optional<LevelTransitionError> Engine::ConsumeLevelTransitionError()
+    {
+        // 이전 오류를 소모한다.
+        auto error = std::move(levelTransitionError);
+        levelTransitionError.reset();
+
+        return error;
     }
 
     std::optional<EngineInitError> Engine::Initialize(EngineCreateInfo createInfo)
@@ -434,5 +436,95 @@ namespace Engine
 
             Input::SetMousePosition(centerPosition);
         }
+    }
+
+    std::optional<LevelTransitionError> Engine::TryActivateLevel(Level& level)
+    {
+        const auto tryStage = [](LevelTransitionStage stage, auto&& operation)
+            -> std::optional<LevelTransitionError>
+        {
+            try
+            {
+                operation();
+                return std::nullopt;
+            }
+            catch (const std::exception& e)
+            {
+                return LevelTransitionError
+                {
+                    stage,
+                    e.what()
+                };
+            }
+            catch (...)
+            {
+                return LevelTransitionError
+                {
+                    stage,
+                    "Unknown exception occurred."
+                };
+            }
+        };
+
+        if (auto error = tryStage(LevelTransitionStage::AttachServices, [&]()
+        {
+            level.AttachServices(*renderer, *resourceManager);
+        }))
+        {
+            return error;
+        }
+
+        if (auto error = tryStage(LevelTransitionStage::BeginPlay, [&]()
+        {
+            level.BeginPlay();
+        }))
+        {
+            return error;
+        }
+
+        if (auto error = tryStage(LevelTransitionStage::InitialActorActivation, [&]()
+        {
+            level.ProcessAddAndDestroyActor();
+        }))
+        {
+            return error;
+        }
+
+        return std::nullopt;
+    }
+
+    void Engine::ProcessPendingLevelChange()
+    {
+    }
+
+    void Engine::ShutdownLevel(std::unique_ptr<Level>& level) noexcept
+    {
+        if (!level)
+        {
+            return;
+        }
+
+        // Keep requests blocked through EndLevel and object destruction.
+        const bool wasTransitionInProgress =
+            std::exchange(isLevelTransitionInProgress, true);
+
+        try
+        {
+            level->EndLevel();
+        }
+        catch (const std::exception& e)
+        {
+            OutputDebugStringA("Exception in EndLevel(): ");
+            OutputDebugStringA(e.what());
+            OutputDebugStringA("\n");
+        }
+        catch (...)
+        {
+            OutputDebugStringA("Unknown exception in EndLevel()\n");
+        }
+
+        // Destructors must not throw; release ownership even if EndLevel failed.
+        level.reset();
+        isLevelTransitionInProgress = wasTransitionInProgress;
     }
 }

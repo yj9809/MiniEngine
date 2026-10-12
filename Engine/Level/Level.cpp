@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "Actor/Actor.h"
+#include "Common/CleanupExceptionCollector.h"
 #include "Renderer/IRenderer.h"
 #include "Resource/ResourceManager.h"	
 #include "System/LightingSystem.h"
@@ -97,29 +98,49 @@ namespace Engine
 
 		// 콜백 안에서 EndLevel()이 재호출돼도 막을 수 있도록 실제 정리보다 먼저 설정한다.
 		hasEnded = true;
+		CleanupExceptionCollector cleanup;
 
 		for (auto& actor : actors)
 		{
-			actor->DispatchOnDestroy();
+			if (actor)
+			{
+				cleanup.Try([&]()
+				{
+					actor->DispatchOnDestroy();
+				});
+			}
 		}
 		
 		for (auto& actor : actorsToAdd)
 		{
-			actor->DispatchOnDestroy();
+			if (actor)
+			{
+				cleanup.Try([&]()
+				{
+					actor->DispatchOnDestroy();
+				});
+			}
 		}
 
 		if (renderingSystem)
 		{
-			renderingSystem->Clear();
+			cleanup.Try([&]()
+			{
+				renderingSystem->Clear();
+			});
 		}
 		if (lightingSystem)
 		{
-			lightingSystem->Clear();
+			cleanup.Try([&]()
+			{
+				lightingSystem->Clear();
+			});
 		}
 		
 		mainCamera = nullptr;
 		actors.clear();
 		actorsToAdd.clear();
+		cleanup.RethrowIfAny();
 	}
 
 	LightingSystem* Level::GetLightingSystem()

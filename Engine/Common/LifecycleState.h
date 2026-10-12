@@ -7,8 +7,10 @@ namespace Engine
     {
         Constructed,
         Initializing,
+        InitializationFailed,
         Initialized,
         BeginningPlay,
+        BeginPlayFailed,
         HasBegunPlay,
         EndingPlay,
         HasEndedPlay
