@@ -24,6 +24,12 @@
     <ClCompile Include="LevelTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="LevelBoundaryTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ScopedFlagTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="LevelTransitionTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>

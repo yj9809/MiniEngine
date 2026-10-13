@@ -187,6 +187,8 @@ xcopy /Y /E /I "$(SolutionDir)Bin\$(Configuration)\Game\Shader" "$(OutDir)Shader
   <ItemGroup>
     <ClCompile Include="FailingStartupLevel.cpp" />
     <ClCompile Include="LevelTest.cpp" />
+    <ClCompile Include="LevelBoundaryTest.cpp" />
+    <ClCompile Include="ScopedFlagTest.cpp" />
     <ClCompile Include="LevelTransitionTest.cpp" />
     <ClCompile Include="LifecycleTest.cpp" />
     <ClCompile Include="Main.cpp" />
