@@ -204,8 +204,22 @@ namespace Engine
 
         auto mesh = std::make_shared<Mesh>();
         mesh->renderer = renderer;
+
         mesh->vertexBuffer = renderer->CreateVertexBuffer(vertices.data(), sizeof(Vertex) * vertices.size());
+
+        if (mesh->vertexBuffer == NULL_BUFFER)
+        {
+            return nullptr;
+        }
+
         mesh->indexBuffer = renderer->CreateIndexBuffer(indices.data(), sizeof(UINT) * indices.size());
+
+        if (mesh->indexBuffer == NULL_BUFFER)
+        {
+            
+            return nullptr;
+        }
+
         mesh->indexCount = static_cast<UINT>(indices.size());
         mesh->stride = sizeof(Vertex);
 
