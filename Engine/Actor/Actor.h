@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <stdexcept>
 
 #include "Common/RTTI.h"
 #include "Math/Vector3.h"
@@ -49,6 +50,13 @@ namespace Engine
         template <typename T>
         T* AddComponent()
         {
+            // Actor 초기화 시작 전에만 컴포넌트를 추가할 수 있도록 제한한다.
+            // 아후 std::logic_error를 던지며 Actor를 변경하지 않는다.
+            if (lifecycleState != LifecycleState::Constructed)
+            {
+                throw std::logic_error("Components can only be added during the Constructed state.");
+            }
+
             auto newComponent = std::make_unique<T>();
             T* ptr = newComponent.get();
 
