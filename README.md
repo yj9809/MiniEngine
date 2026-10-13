@@ -104,7 +104,7 @@ Level
 - `Engine::Create(EngineCreateInfo)`는 `std::variant<std::unique_ptr<Engine>, EngineInitError>`를 반환합니다. 생성자는 비공개이고, 초기화는 Settings → Window → Renderer → Resource → StartupLevel 순으로 수행합니다.
 - `Game/Main.cpp`는 Camera, TestMesh, DirectionalLight Actor를 넣은 시작 Level을 `EngineCreateInfo`로 넘깁니다. Engine은 서비스 연결 → `BeginPlay()` → 대기 Actor 처리까지 마친 뒤 생성 결과를 반환하며, Game은 성공한 경우에만 `Run()`을 호출합니다.
 - null 시작 Level은 창 생성 전에 `StartupLevel` 오류로 거부합니다. 초기 Actor의 `Initialize` → `BeginPlay` 순서를 `Run()` 호출 전에 검증하는 테스트도 추가했습니다.
-- `Win32Window`는 소멸자에서 HWND와 등록 클래스를 정리합니다. `D3D11Renderer`도 소멸자에서 Layer·GPU 리소스·COM을 정리하며, `Engine`은 Level → ResourceManager → Renderer → Window 순으로 소유 객체를 해제합니다.
+- `Win32Window`는 소멸자에서 HWND와 등록 클래스를 정리합니다. `D3D11Renderer`도 소멸자에서 Layer·GPU 리소스·COM을 정리합니다. `Engine`은 종료 진입 전에 Level 전환 가드를 세워 정리 콜백의 재진입 요청을 거부하고, pending Level → 활성 Level → ResourceManager → Renderer → Window 순으로 소유 객체를 해제합니다.
 - Opaque/Wireframe Layer의 필수 초기화를 `assert()` 표현식 밖으로 옮겼습니다. 생성 실패는 예외로 Renderer와 Engine 경계까지 전달돼 `EngineInitialization::Renderer` 단계의 `EngineInitError`로 변환됩니다.
 - 시작 Level의 `BeginPlay()`가 실패한 뒤 두 번째 Engine 생성이 성공하는 회귀 테스트로 한 실패 경로의 자원 반환을 확인했습니다. 모든 D3D 단계의 실패 주입과 정확한 해제 순서 계측까지 끝난 것은 아닙니다.
 - `EngineCreateInfo::settingsPath`로 설정 경로를 주입합니다. 파일 생성·열기·읽기·쓰기 오류와 비정상 값은 `Settings` 단계 오류로 반환하며, 디렉터리 경로와 잘못된 값 테스트를 추가했습니다.
