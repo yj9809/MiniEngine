@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -8,6 +9,35 @@
 
 namespace
 {
+    class AdditionProbeComponent final : public Engine::Component
+    {
+        RTTI_DECLARATIONS(AdditionProbeComponent, Engine::Component)
+
+    public:
+        inline static int constructedCount = 0;
+        inline static int attachedCount = 0;
+
+        AdditionProbeComponent()
+        {
+            ++constructedCount;
+        }
+
+    protected:
+        void OnAdd() override
+        {
+            ++attachedCount;
+        }
+    };
+
+    class AddingDuringInitializeActor final : public Engine::Actor
+    {
+    public:
+        void Initialize() override
+        {
+            AddComponent<AdditionProbeComponent>();
+        }
+    };
+
     class RecordingComponent final : public Engine::Component
     {
         RTTI_DECLARATIONS(RecordingComponent, Engine::Component)
@@ -128,6 +158,62 @@ TEST(LifecycleTest, ActorHookRunsBeforeComponentHookWithoutParentCall)
     EXPECT_EQ(actor.initializeCount, 1);
     EXPECT_EQ(actor.component->initializeCount, 1);
     EXPECT_EQ(actor.events, (std::vector<std::string>{ "Actor", "Component" }));
+}
+
+TEST(LifecycleTest, ComponentAddedBeforeInitializationIsActivated)
+{
+    Engine::Actor actor;
+    auto* component = actor.AddComponent<RecordingComponent>();
+
+    ASSERT_NE(component, nullptr);
+    EXPECT_EQ(&component->GetOwner(), &actor);
+
+    actor.DispatchInitialize();
+    actor.DispatchBeginPlay();
+
+    EXPECT_EQ(component->initializeCount, 1);
+    EXPECT_EQ(component->beginPlayCount, 1);
+
+    actor.DispatchOnDestroy();
+    EXPECT_EQ(component->removeCount, 1);
+}
+
+TEST(LifecycleTest, ComponentAdditionAfterInitializationIsRejected)
+{
+    AdditionProbeComponent::constructedCount = 0;
+    AdditionProbeComponent::attachedCount = 0;
+    Engine::Actor actor;
+
+    actor.DispatchInitialize();
+    EXPECT_THROW(actor.AddComponent<AdditionProbeComponent>(), std::logic_error);
+
+    actor.DispatchBeginPlay();
+    EXPECT_THROW(actor.AddComponent<AdditionProbeComponent>(), std::logic_error);
+
+    actor.DispatchOnDestroy();
+    EXPECT_THROW(actor.AddComponent<AdditionProbeComponent>(), std::logic_error);
+
+    EXPECT_EQ(AdditionProbeComponent::constructedCount, 0);
+    EXPECT_EQ(AdditionProbeComponent::attachedCount, 0);
+    EXPECT_EQ(actor.GetComponent<AdditionProbeComponent>(), nullptr);
+}
+
+TEST(LifecycleTest, ComponentAdditionDuringInitializationIsRejected)
+{
+    AdditionProbeComponent::constructedCount = 0;
+    AdditionProbeComponent::attachedCount = 0;
+    AddingDuringInitializeActor actor;
+
+    EXPECT_THROW(actor.DispatchInitialize(), std::logic_error);
+
+    // Initialization failure must not reopen component composition.
+    EXPECT_THROW(actor.AddComponent<AdditionProbeComponent>(), std::logic_error);
+
+    EXPECT_EQ(AdditionProbeComponent::constructedCount, 0);
+    EXPECT_EQ(AdditionProbeComponent::attachedCount, 0);
+    EXPECT_EQ(actor.GetComponent<AdditionProbeComponent>(), nullptr);
+    EXPECT_NO_THROW(actor.DispatchOnDestroy());
+    EXPECT_TRUE(actor.IsPendingDestroy());
 }
 
 TEST(LifecycleTest, ActorDispatchInitializeRunsOnlyOnce)
