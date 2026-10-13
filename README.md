@@ -8,11 +8,13 @@
 
 ## 현재 상태
 
-기준 커밋: [`3bbe504`](https://github.com/yj9809/MiniEngine/commit/3bbe504c674aed1de584412d5a6e70d81fb0af50) (2026-10-13)
+기준 커밋: [`f87c3ef`](https://github.com/yj9809/MiniEngine/commit/f87c3efca961b52a088b27045d9f7312b5bca34e) (2026-10-13)
 
-현재는 개편된 Notion 로드맵의 **0단계 — 기존 기반 정리와 보강**을 진행하고 있습니다. `DirectionalLightActor`를 Game에 배치해 기존 광원 전달 경로를 데모에서 소비하도록 연결했고, `Engine::Create(EngineCreateInfo)`가 시작 Level의 소유권까지 받아 초기화된 엔진 또는 단계별 오류를 반환하도록 구성했습니다. Game은 시작 Actor를 Level에 배치해 넘기고, 생성 결과를 확인한 뒤에만 게임 루프에 진입합니다.
+개편된 Notion 로드맵은 Bootstrap / Shutdown과 Level 전환을 완료 기준선으로 두고, 0단계의 제한된 잔여 점검 뒤 **1단계 Environment Lighting**을 다음 기능으로 지정합니다. 최신 코드는 시작 Level과 런타임 후보를 같은 활성화 경로로 처리하고, Tick·Draw·Actor 처리·입력 정리가 끝난 프레임 경계에서 Level을 교체합니다. 후보 활성화가 실패하면 후보만 정리하고 기존 Level을 유지하며, 전환·종료 콜백 중 추가 요청은 거부합니다.
 
-현재 GPU 업로드는 첫 방향광 1개로 제한됩니다. Bootstrap은 설정·Renderer 실패 반환과 Level 중복 종료 방지를 연결했고, Actor·Component·Level 정리 중 예외가 발생해도 남은 정리를 계속 시도하도록 보강했습니다. Level 전환은 요청 결과·대기 Level 소유권·단계 오류와 활성화·종료 도우미까지 정의했지만, `ProcessPendingLevelChange()`가 비어 있고 게임 루프에서도 호출되지 않아 실제 프레임 경계 전환은 아직 통합되지 않았습니다. 최신 코드의 빌드·전체 테스트·Game/HLSL 실행도 검증 대기입니다. 구현 존재와 통합·빌드·테스트·실행 검증을 구분하며, 개발 중인 범용 엔진 전체의 완성을 의미하지 않습니다.
+Component는 Actor가 `Constructed` 상태일 때만 추가할 수 있도록 현재 지원 범위를 코드로 고정했습니다. Level은 Actor 처리 재진입·처리 중 추가·종료 중 추가를 거부하고, 제거되는 Actor가 소유한 MainCamera 관찰 포인터를 메모리 해제 전에 비웁니다. ResourceManager 캐시의 재사용·로드 실패 후 재시도·외부 `shared_ptr` 수명과 Mesh의 부분 GPU 버퍼 생성 실패 정리를 검증하는 테스트 코드도 프로젝트에 연결됐습니다.
+
+`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 이후 경계·리소스 테스트가 추가되어 최신 `f87c3ef` 소스에는 153개 실행 케이스가 구성됐지만, 이 최신 구성의 빌드·전체 테스트 실행 및 실제 Game/HLSL 렌더링 기록은 확인되지 않았습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
@@ -20,11 +22,11 @@
 |---|---|---|
 | Win32 런타임 | 창, 메시지 루프, 목표 프레임 루프, HWND·등록 클래스 RAII 정리 | 구현 / Window 실패 주입 검증 대기 |
 | Engine Bootstrap | `Create(EngineCreateInfo)` → Settings·Renderer 단계 오류 → 시작 Level 활성화 → Game의 오류 분기 | 실패 전파 코드 연결·관련 테스트 6개 구성 / 최신 전체 실행 검증 대기 |
-| Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy`, 실패 상태, 정리 예외 수집, Root Transform | 종료 안전성 보강 / 실패 경로 테스트·런타임 Component 정책 대기 |
-| Level 전환 | 요청 결과, pending Level 소유권, 단계 오류, 활성화·종료 도우미 | 기반 구현 / 프레임 경계 처리·Game 연결·테스트 미완료 |
+| Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy`, 실패 상태, 정리 예외 수집, Root Transform | 구성 단계 추가만 지원하도록 제한 / 최신 테스트 실행 대기 |
+| Level 전환 | 요청 결과, pending Level 소유권, 단계 오류, 프레임 경계 교체 | Engine 루프 통합 / `a32014f` Debug·Release 6개 전환 테스트 포함 118개 통과 |
 | DX11 기반 | Device · SwapChain · RTV · DSV · Viewport · 상수 버퍼 | 완료 |
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
-| 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 완료 |
+| 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 / 캐시·실패 테스트 구성, 최신 실행 대기 |
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
 | 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 실행 화면 기록 / 최신 코드 실행 기록 없음 |
 | LightingSystem | 공통 등록 훅, Level 단위 등록·해제, 방향·색상·강도 수집 | CPU 프레임 데이터 연결 완료 |
@@ -97,7 +99,7 @@ Level
 - “객체 구성”과 “런타임 진입”이 섞여 있던 문제를 분리해 `Initialize`와 `BeginPlay` 디스패치를 추가하고, 중복 호출·재진입·순서 역전을 상태로 차단했습니다.
 - 종료도 `DispatchOnDestroy()` → Actor `OnDestroy()` → Component `OnRemove()` 순으로 일원화하고, 중복 종료를 상태로 차단했습니다. 메시 렌더러와 광원 컴포넌트는 실제 등록했던 시스템에서 해제합니다.
 - `InitializationFailed`와 `BeginPlayFailed` 상태를 추가해 부분 활성화 실패 후에도 제거 디스패치에 진입할 수 있게 했습니다. `CleanupExceptionCollector`는 Actor·Component·Level의 각 정리 작업을 모두 시도한 뒤 처음 발생한 예외를 다시 전달합니다.
-- 현재 Level에 대기 중인 Actor는 프레임 경계에서 `DispatchInitialize()` → `DispatchBeginPlay()` 순으로 진입합니다. 다만 `Initialize` 이후 새로 생성한 Component가 같은 디스패치 경로를 자동으로 거치는 연결은 아직 보강 대상입니다.
+- 현재 Level에 대기 중인 Actor는 프레임 경계에서 `DispatchInitialize()` → `DispatchBeginPlay()` 순으로 진입합니다. Component 추가는 Actor가 `Constructed` 상태일 때만 허용하며, Initialize 진입 이후의 동적 추가는 `std::logic_error`로 명시적으로 거부합니다.
 
 ### 엔진 생성과 초기화
 
@@ -111,7 +113,9 @@ Level
 - `Level::EndLevel()`은 종료 상태를 정리 전에 기록하고 재호출을 무시합니다. 파생 Level이 가상 재정의로 가드를 우회하지 못하도록 비가상 함수로 고정했습니다.
 - `D3D11Renderer::GPUInit()`은 Device, SwapChain, RenderTarget, DepthStencil, RenderLayer, PlatformRuntime 실패를 `RendererInitError`로 구분합니다. Engine 외부에는 `EngineInitialization::Renderer`와 오류 메시지로 변환되므로 Renderer의 세부 enum 자체는 Game까지 전달되지 않습니다.
 - 초기화 경로의 기존 `FAILCHECK`는 제거됐지만 런타임 Buffer·Texture 생성과 `Map()` 실패 정책은 아직 통일되지 않았습니다.
-- Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. `RequestLevelChange()`는 null·busy·accepted를 구분하고 accepted일 때만 pending Level 소유권을 가져오며, 활성화 단계 오류와 `ConsumeLevelTransitionError()`도 정의했습니다. 다만 `ProcessPendingLevelChange()`는 비어 있고 `Run()`에서 호출되지 않으며 `TryActivateLevel()`도 실제 전환과 시작 Level 초기화에서 사용되지 않습니다. 따라서 Level 전환은 API 기반만 구현된 상태입니다.
+- Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. `RequestLevelChange()`는 null·busy·accepted를 구분하고 accepted일 때만 pending Level 소유권을 가져옵니다. `Run()`은 프레임 작업이 끝난 뒤 `ProcessPendingLevelChange()`를 호출하며, 후보 활성화 실패 시 단계 오류를 보관하고 기존 Level을 유지합니다.
+- Level의 Actor 처리와 Engine의 Level 전환 가드는 공통 `ScopedFlag` RAII 보조 타입으로 복귀를 보장합니다. Level은 처리 중 추가·재진입·종료를 거부하고, MainCamera를 소유한 Actor가 제거될 때 관찰 포인터를 먼저 해제합니다.
+- 전환 성공·실패·종료 예외·Quit 시 후보 해제는 `a32014f`의 실제 `Engine::Run()` 기반 6개 테스트로 확인됐습니다. Game의 전환 UI와 오류 표시, 최신 `f87c3ef` 전체 회귀 실행은 별도 검증 대상입니다.
 
 ### 기반 시스템
 
@@ -168,22 +172,26 @@ Level
 
 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
-현재 테스트 소스에는 총 112개 케이스가 선언되어 있고, `Tests.vcxproj`는 Level·설정 실패·시작 Level 실패 회귀 테스트를 포함하며 `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다.
+최신 `f87c3ef`의 테스트 프로젝트에는 총 153개 실행 케이스가 구성되어 있고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 테스트 코드 구성의 정적 집계이며 최신 SHA의 실행 통과 수가 아닙니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
 | Vector2 / 3 / 4 | 2 / 19 / 18 | 산술, 내적·외적, 정규화, 상수 |
 | Matrix4 | 21 | 변환, 역행렬, LookAt, 투영 |
 | Time | 17 | 스무딩, clamp, TimeScale, Pause/Resume |
-| Lifecycle | 11 | 호출 순서, 1회 보장, 재진입·순서 역전, 종료 순서 |
+| Lifecycle | 14 | 호출 순서, 실패 상태, Component 구성 시점 제한, 종료 순서 |
 | Level | 13 | Actor 추가·제거, owner, 대량 처리, EndLevel 중복 호출 방지 |
+| LevelBoundary | 16 | 처리 재진입·추가·종료 경계, 예외 후 가드 복귀, MainCamera 참조 정리 |
 | EngineSettingsInitialization | 2 | 설정 경로 I/O 실패, 잘못된 설정값 오류 반환 |
-| EngineInitialization | 3 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화, 시작 Level 실패 후 재생성 |
+| EngineInitialization | 3 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화, 실패 후 재생성 |
+| LevelTransition | 6 | 성공·활성화 실패·정리 예외·Quit와 요청/오류 계약 |
 | RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
+| ResourceManager | 12 | Mesh/Texture 캐시, 실패 재시도, 참조 수명, 부분 버퍼 실패 정리 |
+| ScopedFlag | 4 | 설정·복귀, 기존 값 보존, 비복사·비이동 계약 |
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-11 개발 일지에는 `9e6ce70`의 Debug / Release x64 전체 빌드와 각 구성 109개 테스트 통과를 기록했습니다. 이후 설정·중복 종료 테스트 3개, Renderer 오류 계약과 생명주기 실패·Level 전환 기반이 추가됐지만, 최신 `3bbe504`의 빌드와 112개 전체 실행 기록은 확인하지 못했습니다. 새 커밋에는 테스트 변경이 없습니다. 저장소에 있는 최신 캡처는 EngineInitialization 3개만 보여 주므로 최신 전체 회귀와 실제 Game/HLSL 실행은 별도 검증 대상으로 유지합니다.
+2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager 테스트가 추가되어 최신 `f87c3ef`에는 153개 케이스가 구성됐지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `f87c3ef` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
@@ -223,7 +231,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem 통합, 종료 생명주기, Pitch/Yaw/Roll 규칙, 첫 방향광 GPU 전달, Engine 생성/초기화 분리, 설정·Renderer 실패 전파, 정리 예외 수집과 Level 전환 기반 | `381b4c2` · `7508012` · `c9bfdfd` · `c109d60` · `f3e58f3` · `b210cdf` · `b133a24` · `9e6ce70` · `4d60975` · `5bee38c` · `b25aa9c` · `3bbe504` |
+| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` |
 
 ## 로드맵
 
@@ -231,8 +239,8 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 0 | 기존 기반 보강 · Bootstrap/Shutdown · Logging Foundation | 진행 중 |
-| 1 | 엔진 데이터 계층·변환 규칙 · Environment Lighting | 예정 |
+| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 153개 실행 검증 대기 |
+| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 다음 기능 |
 | 2 | Quaternion Transform · Transform 계층 | 예정 |
 | 3 | Forward Lighting 기준선 | 예정 |
 | 4 | RenderPass · HDR · Shadow · 공용 DebugDraw | 예정 |
@@ -246,13 +254,13 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-다음 순서는 **남은 기반 보강 → 기존 `Engine::Log` 확장 → Data Contract v1**입니다. 먼저 `ProcessPendingLevelChange()`를 프레임 경계에 연결하고 전환 성공·실패·정리 정책을 테스트로 고정한 뒤, 최신 Debug / Release 빌드와 112개 테스트, 실제 Game/HLSL 실행을 검증합니다. 런타임 Component 생성 정책과 Renderer 세부 실패 정보·런타임 GPU 오류 정책도 Logging Foundation 전에 정리합니다. 다중 광원 업로드와 Ambient Albedo 중복 곱셈, Quaternion·고급 렌더링은 후속 단계에서 다룹니다.
+다음 순서는 **Environment Lighting → Quaternion 회전 → Forward Lighting 기준선**입니다. 먼저 SkyColor / GroundColor / AmbientIntensity의 소유 위치와 Runtime → Render Data → GPU 변환 경계를 정하고, Hemisphere Ambient와 Ambient Albedo 중복 곱셈을 실제 Game/HLSL 경로에서 검증합니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다. 다중 광원 업로드는 Forward Lighting 단계에서 다룹니다.
 
 ## 프로젝트 구조
 
 ```text
 Engine/
-├─ Common/         # 공통 생명주기 상태와 정리 예외 수집
+├─ Common/         # 생명주기 상태, 정리 예외 수집, 범위 기반 상태 가드
 ├─ Actor/          # Actor 생명주기와 Component 소유
 ├─ Component/      # Transform, Camera, Mesh, Input, Physics, Light
 ├─ Core/           # Win32, Input, Time, Log
