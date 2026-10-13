@@ -30,6 +30,9 @@
     <ClCompile Include="ScopedFlagTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="ResourceManagerTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="LevelTransitionTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
