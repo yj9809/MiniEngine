@@ -129,6 +129,12 @@ namespace Engine
                 Input::SetPreviousMousePosition();
                 Input::ResetKeyState();
 
+                // 현재 프레임 작업을 마친 뒤 레벨 전환 작업을 진행한다.
+                if(!isQuit)
+                {
+                    ProcessPendingLevelChange();
+                }
+
                 // 마지막 시간 업데이트.
                 lastTime = currentTime;
             }
@@ -259,14 +265,14 @@ namespace Engine
             // 이후 단계에서 실패해도 Engine 소멸자가 Level을 정리할 수 있다.
             mainLevel = std::move(createInfo.startupLevel);
 
-            // Actor가 리소스를 사용하는 Initialize()를 실행하기 전에
-            // Renderer와 ResourceManager를 Level에 연결한다.
-            mainLevel->AttachServices(*renderer, *resourceManager);
-
-            mainLevel->BeginPlay();
-
-            // 실행 전에 구성된 초기 Actor를 첫 Tick 이전에 활성화한다.
-            mainLevel->ProcessAddAndDestroyActor();
+            if (auto error = TryActivateLevel(*mainLevel))
+            {
+                return EngineInitError
+                {
+                    EngineInitialization::StartupLevel,
+                    std::string("Failed to Initialize startup level: ") + error->errorMessage
+                };
+            }
         }
         catch (const std::exception& e)
         {
@@ -495,6 +501,48 @@ namespace Engine
 
     void Engine::ProcessPendingLevelChange()
     {
+        if(!pendingLevel || isLevelTransitionInProgress)
+        {
+            return;
+        }
+
+        // 함수가 어떤 경로로 끝나도 전환 중 상태를 해제한다.
+        struct TransitionGuard
+        {
+            explicit TransitionGuard(bool& flag) noexcept
+                : flag(flag)
+            {
+                flag = true;
+            }
+
+            ~TransitionGuard() noexcept
+            {
+                flag = false;
+            }
+
+            TransitionGuard(const TransitionGuard&) = delete;
+            TransitionGuard& operator=(const TransitionGuard&) = delete;
+
+            bool& flag;
+        };
+
+        TransitionGuard guard(isLevelTransitionInProgress);
+
+        // 기존 mainLevel은 유지한 상태에서 후보를 활성화한다.
+        if (auto error = TryActivateLevel(*pendingLevel))
+        {
+            levelTransitionError = std::move(*error);
+
+            // 부분적으로 활성화된 pendingLevel을 정리한다.
+            ShutdownLevel(pendingLevel);
+            return;
+        }
+
+        // 후보 활성화에 성공했으므로 기존 mainLevel을 종료한다.
+        ShutdownLevel(mainLevel);
+
+        // mainLevel을 새로 활성화된 pendingLevel로 교체한다.
+        mainLevel = std::move(pendingLevel);
     }
 
     void Engine::ShutdownLevel(std::unique_ptr<Level>& level) noexcept
@@ -523,7 +571,6 @@ namespace Engine
             OutputDebugStringA("Unknown exception in EndLevel()\n");
         }
 
-        // Destructors must not throw; release ownership even if EndLevel failed.
         level.reset();
         isLevelTransitionInProgress = wasTransitionInProgress;
     }
