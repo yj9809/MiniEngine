@@ -39,6 +39,7 @@ namespace Engine
         // 즉시 actors에 추가하지 않고 actorsToAdd 버퍼에 먼저 쌓는다.
         // Tick() 순회 도중 배열이 변경되면 이터레이터가 무효화되기 때문이다.
         // 실제 등록은 프레임 끝의 ProcessAddAndDestroyActor()에서 이루어진다.
+        // 액터 추가 실패 시 소유권을 반환하지 않고, 함수에서 Actor가 파괴되며, std::logic_error를 던진다.
         void AddNewActor(std::unique_ptr<Actor> actor);
 
         // 프레임 끝에 호출되어 대기 중인 추가/제거를 일괄 처리한다.
@@ -79,5 +80,8 @@ namespace Engine
         std::unique_ptr<RenderingSystem> renderingSystem;
 
         bool hasEnded = false;
+
+        // 현재 액터들을 처리 중인지 나타냄.
+        bool isProcessingActors = false;
     };
 }

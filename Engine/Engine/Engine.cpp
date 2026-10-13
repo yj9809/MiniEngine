@@ -13,6 +13,7 @@
 #include "Level/Level.h"
 #include "Renderer/D3D11Renderer.h"
 #include "Resource/ResourceManager.h"
+#include "Common/ScopedFlag.h"
 
 namespace fs = std::filesystem;
 
@@ -506,27 +507,7 @@ namespace Engine
             return;
         }
 
-        // 함수가 어떤 경로로 끝나도 전환 중 상태를 해제한다.
-        struct TransitionGuard
-        {
-            explicit TransitionGuard(bool& flag) noexcept
-                : flag(flag)
-            {
-                flag = true;
-            }
-
-            ~TransitionGuard() noexcept
-            {
-                flag = false;
-            }
-
-            TransitionGuard(const TransitionGuard&) = delete;
-            TransitionGuard& operator=(const TransitionGuard&) = delete;
-
-            bool& flag;
-        };
-
-        TransitionGuard guard(isLevelTransitionInProgress);
+        ScopedFlag guard(isLevelTransitionInProgress);
 
         // 기존 mainLevel은 유지한 상태에서 후보를 활성화한다.
         if (auto error = TryActivateLevel(*pendingLevel))

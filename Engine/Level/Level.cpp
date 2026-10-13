@@ -1,6 +1,7 @@
 #include "Level.h"
 
 #include <cassert>
+#include <stdexcept>
 
 #include "Actor/Actor.h"
 #include "Common/CleanupExceptionCollector.h"
@@ -9,6 +10,7 @@
 #include "System/LightingSystem.h"
 #include "System/RenderingSystem.h"
 #include "Component/Camera/CameraComponent.h"
+#include "Common/ScopedFlag.h"
 
 namespace Engine
 {
@@ -48,12 +50,39 @@ namespace Engine
 
 	void Level::AddNewActor(std::unique_ptr<Actor> actor)
 	{
+		if (!actor)
+		{
+			throw std::invalid_argument("Actor must not be null.");
+		}
+
+		if (hasEnded)
+		{
+			throw std::logic_error("Actors cannot be added to an ending or ended Level.");
+		}
+
+		if (isProcessingActors)
+		{
+			throw std::logic_error("Actors cannot be added during actor processing.");
+		}
+
 		actor->SetOwner(this);
 		actorsToAdd.emplace_back(std::move(actor));
 	}
 
 	void Level::ProcessAddAndDestroyActor()
 	{
+		if (hasEnded)
+		{
+			return;
+		}
+		
+		if (isProcessingActors)
+		{
+			throw std::logic_error("Actor processing cannot be reentered.");
+		}
+
+		ScopedFlag guard(isProcessingActors);
+
 		// 생명주기가 HasEndedPlay인 액터 제거.
 		// swap + pop_back 패턴: erase()는 뒤 원소를 전부 앞으로 당기는 O(n) 복사가 발생하지만,
 		// 마지막 원소와 교환 후 pop_back하면 O(1)로 제거할 수 있다. (순서 보장 불필요)
@@ -61,6 +90,11 @@ namespace Engine
 		{
 			if (actors[i]->IsPendingDestroy())
 			{
+				if (mainCamera && &mainCamera->GetOwner() == actors[i].get())
+				{
+					mainCamera = nullptr;
+				}
+				
 				std::swap(actors[i], actors.back());
 				actors.pop_back();
 			}
@@ -76,6 +110,11 @@ namespace Engine
 		{
 			if (actor->IsPendingDestroy())
 			{
+				if (mainCamera && &mainCamera->GetOwner() == actor.get())
+				{
+					mainCamera = nullptr;
+				}
+
 				continue;
 			}
 
@@ -94,6 +133,11 @@ namespace Engine
 		if (hasEnded)
 		{
 			return;
+		}
+
+		if (isProcessingActors)
+		{
+			throw std::logic_error("Level cannot end during actor processing.");
 		}
 
 		// 콜백 안에서 EndLevel()이 재호출돼도 막을 수 있도록 실제 정리보다 먼저 설정한다.
