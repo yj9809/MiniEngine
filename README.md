@@ -8,13 +8,15 @@
 
 ## 현재 상태
 
-기준 커밋: [`f87c3ef`](https://github.com/yj9809/MiniEngine/commit/f87c3efca961b52a088b27045d9f7312b5bca34e) (2026-10-13)
+기준 커밋: [`a8d47d4`](https://github.com/yj9809/MiniEngine/commit/a8d47d4e97310f76bb6ec25a40f7deddc71ca237) (2026-10-14)
 
 개편된 Notion 로드맵은 Bootstrap / Shutdown과 Level 전환을 완료 기준선으로 두고, 0단계의 제한된 잔여 점검 뒤 **1단계 Environment Lighting**을 다음 기능으로 지정합니다. 최신 코드는 시작 Level과 런타임 후보를 같은 활성화 경로로 처리하고, Tick·Draw·Actor 처리·입력 정리가 끝난 프레임 경계에서 Level을 교체합니다. 후보 활성화가 실패하면 후보만 정리하고 기존 Level을 유지하며, 전환·종료 콜백 중 추가 요청은 거부합니다.
 
 Component는 Actor가 `Constructed` 상태일 때만 추가할 수 있도록 현재 지원 범위를 코드로 고정했습니다. Level은 Actor 처리 재진입·처리 중 추가·종료 중 추가를 거부하고, 제거되는 Actor가 소유한 MainCamera 관찰 포인터를 메모리 해제 전에 비웁니다. ResourceManager 캐시의 재사용·로드 실패 후 재시도·외부 `shared_ptr` 수명과 Mesh의 부분 GPU 버퍼 생성 실패 정리를 검증하는 테스트 코드도 프로젝트에 연결됐습니다.
 
-`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 이후 경계·리소스 테스트가 추가되어 최신 `f87c3ef` 소스에는 정적 집계상 153개 테스트가 등록될 것으로 예상되지만, 이 최신 구성의 빌드·전체 테스트 실행 및 실제 Game/HLSL 렌더링 기록은 확인되지 않았습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
+Environment Lighting의 첫 코드로 `Light`는 Intensity, `DirectLight`는 Color, `DirectionalLight`는 방향광 타입, `SkyLight`는 SkyColor·GroundColor와 기본 Intensity 0.1을 소유하도록 계층을 분리했습니다. `SkyLightComponent`는 값 검증과 수명 종료 이후 변경 거부를 수행하고 `LightingSystem`의 비소유 목록에 등록·해제됩니다. 다만 환경광 렌더 데이터 생성, Renderer/GPU 상수 버퍼, Hemisphere Ambient HLSL과 Game 배치는 아직 연결되지 않았습니다.
+
+`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 이후 경계·리소스·SkyLightComponent 테스트가 추가되어 최신 `a8d47d4` 소스에는 정적 집계상 162개 테스트가 등록될 것으로 예상되지만, 이 최신 구성의 빌드·전체 테스트 실행 및 실제 Game/HLSL 렌더링 기록은 확인되지 않았습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
@@ -29,7 +31,8 @@ Component는 Actor가 `Constructed` 상태일 때만 추가할 수 있도록 현
 | 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 / 캐시·실패 테스트 구성, 최신 실행 대기 |
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
 | 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 실행 화면 기록 / 최신 코드 실행 기록 없음 |
-| LightingSystem | 공통 등록 훅, Level 단위 등록·해제, 방향·색상·강도 수집 | CPU 프레임 데이터 연결 완료 |
+| LightingSystem | 공통 등록 훅, Level 단위 등록·해제, 방향광 수집, SkyLight 등록 목록 | 방향광 CPU 프레임 데이터 연결 / 환경광 수집 미연결 |
+| Environment Lighting | Light 계층 분리, SkyLight 데이터·Component 값 검증·등록/해제 | 구현·시스템 등록 / RenderData·GPU·HLSL·Game 미연결 |
 | RenderingSystem | 메시 명령과 방향광 프레임 데이터를 렌더러에 제출 | Game 방향광 배치 연결 / 최신 실행 검증 대기 |
 | 방향광 GPU 경로 | 최대 4개 배열 상수 버퍼, 개수 기반 셰이더 누적 | 첫 번째 방향광 1개만 업로드 |
 | 충돌 | `BoxCollider`, AABB overlap, 등록 컨테이너 | 기반 구현 / 게임 루프 통합 미완료 |
@@ -63,12 +66,19 @@ DirectionalLightComponent
 RenderingSystem → D3D11Renderer::RenderFrameData
   └─ OpaqueLayer Lighting Constant Buffer
       └─ 첫 번째 방향광 → Mesh Pixel Shader
+
+SkyLightComponent
+  └─ LightingSystem 등록 · 값 검증
+      ↓
+EnvironmentLightingRenderData / GPU Constant Buffer / HLSL
+  └─ 미연결
 ```
 
 - `IRenderer`와 `D3D11Renderer`를 분리해 게임 코드가 D3D11 구현 세부사항을 직접 참조하지 않도록 구성했습니다.
 - `RenderingSystem`이 현재 Level에 등록된 `MeshRendererComponent`를 순회하고, 카메라의 View/Projection과 각 Actor의 World 행렬로 `RenderCommand`를 구성해 제출합니다.
 - Component 생명주기의 비공개 시스템 훅이 `BeginPlay` 직전에 등록하고 `OnRemove` 직전에 해제합니다. `LightComponent`가 Level의 `LightingSystem` 연결을 공통 처리하고, 구체 광원은 타입별 등록·해제만 구현합니다.
 - `DirectionalLightComponent`는 Root Transform의 +X Forward를 방향으로 사용하고, 색상·강도와 함께 CPU 렌더 데이터로 변환합니다. `LightingSystem`이 등록된 방향광 전체를 수집해 `RenderingSystem`과 `D3D11Renderer`의 프레임 데이터로 전달합니다.
+- `SkyLightComponent`는 SkyColor·GroundColor·Intensity를 보유하고, 음수·NaN·무한대 입력과 종료 중/종료 후 변경을 거부합니다. 등록 목록까지는 연결됐지만 환경광 렌더 데이터로 수집하는 함수와 렌더러 전달 경로는 아직 없습니다.
 - OpaqueLayer와 HLSL의 방향광 배열 용량은 4개지만 현재 업로드 구현은 목록의 첫 번째 광원만 0번 슬롯에 기록하고 개수를 1로 설정합니다. 셰이더는 전달된 개수만큼 누적하도록 구성되어 있으나 다중 광원 업로드는 아직 연결되지 않았습니다.
 - 렌더 요청을 `RenderCommand`로 모은 뒤 Opaque/Wireframe 버킷에서 실행합니다. 현재 구조는 Render Target을 소유하는 진짜 RenderPass가 아니므로 이름을 `RenderLayer`로 정정했습니다.
 - OBJ의 position/normal/UV를 파싱하고 중복 정점을 제거해 Vertex/Index Buffer를 생성합니다.
@@ -125,7 +135,7 @@ Level
 | Input | Pressed / Held / Released, 마우스 delta, 커서 잠금, Command 바인딩 |
 | Time | `QueryPerformanceCounter`, DeltaTime, 이동 평균, clamp, TimeScale, Pause/Resume |
 | Camera | WASD 이동, 마우스 우클릭 회전, View / Projection 분리 dirty flag |
-| Logging | Debug 빌드용 `OutputDebugStringA` 기반 로그 |
+| Logging | 모든 빌드 구성에서 `OutputDebugStringA`와 표준 스트림으로 출력 |
 | Resource | Engine 소유, 메시·텍스처 경로별 `shared_ptr` 캐시, Renderer보다 앞선 정리 순서 |
 | System | Level 소유 Lighting / RenderingSystem, 생명주기 등록·해제, CPU 프레임 데이터 전달 |
 
@@ -172,7 +182,7 @@ Level
 
 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
-최신 `f87c3ef`의 테스트 프로젝트는 정적 집계상 153개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
+최신 `a8d47d4`의 테스트 프로젝트는 정적 집계상 162개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
@@ -188,10 +198,11 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
 | ResourceManager | 12 | Mesh/Texture 캐시, 실패 재시도, 참조 수명, 부분 버퍼 실패 정리 |
 | ScopedFlag | 4 | 설정·복귀, 기존 값 보존, 비복사·비이동 계약 |
+| SkyLightComponent | 9 | 기본값·유효/무효 값·수명 종료 거부·Release 로그 계약(테스트 소스) |
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager 테스트가 추가되어 최신 `f87c3ef`에는 정적 집계상 153개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `f87c3ef` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
+2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager, SkyLightComponent 테스트가 추가되어 최신 `a8d47d4`에는 정적 집계상 162개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 `Lighting/Direct`·`Lighting/Environment` 헤더의 상대 include가 프로젝트의 선언된 include 루트에서 정상 해석되는지도 Windows/MSVC 빌드로 확인해야 합니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `a8d47d4` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
@@ -231,7 +242,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` |
+| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드, Light 계층·SkyLightComponent·시스템 등록 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` · `e49c249` · `aa9b677` · `1f0cca8` |
 
 ## 로드맵
 
@@ -239,8 +250,8 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 153개 실행 검증 대기 |
-| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 다음 기능 |
+| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 162개 실행 검증 대기 |
+| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | Light 계층·SkyLight 등록 구현 / 렌더 연결 진행 전 |
 | 2 | Quaternion Transform · Transform 계층 | 예정 |
 | 3 | Forward Lighting 기준선 | 예정 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
@@ -254,7 +265,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-다음 순서는 **Environment Lighting → Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow**입니다. 먼저 SkyColor / GroundColor / AmbientIntensity의 소유 위치와 Runtime → Render Data → GPU 변환 경계를 정하고, Hemisphere Ambient와 Ambient Albedo 중복 곱셈을 실제 Game/HLSL 경로에서 검증합니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다. 다중 광원 업로드는 Forward Lighting 단계에서 다룹니다.
+다음 순서는 **Environment Lighting → Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow**입니다. SkyColor / GroundColor / AmbientIntensity의 런타임 소유 위치는 코드에 반영됐으므로, 다음은 `EnvironmentLightingRenderData` 수집 → GPU 상수 버퍼 패킹 → Hemisphere Ambient HLSL 순으로 연결하고 Ambient Albedo 중복 곱셈을 실제 Game/HLSL 경로에서 검증합니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다. 다중 광원 업로드는 Forward Lighting 단계에서 다룹니다.
 
 ## 프로젝트 구조
 
@@ -266,6 +277,7 @@ Engine/
 ├─ Core/           # Win32, Input, Time, Log
 ├─ Engine/         # 게임 루프와 렌더러 소유
 ├─ Level/          # Actor 컨테이너와 프레임 경계 처리
+├─ Lighting/       # Light · DirectLight · DirectionalLight · SkyLight 의미 데이터
 ├─ Math/           # Vector / Matrix
 ├─ Resource/       # Mesh / Texture 공유 캐시
 ├─ Renderer/       # D3D11, Mesh, Texture, Material, RenderLayer
