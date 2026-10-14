@@ -10,6 +10,9 @@ CLAUDE.md
 .codespaces/
 .vscode/c_cpp_properties.json
 
+# JetBrains IDE local settings
+.idea/
+
 # User-specific files
 *.rsuser
 *.suo
