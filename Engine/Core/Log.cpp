@@ -4,7 +4,6 @@ namespace Engine
 {
     void Log::Output(std::string_view level, std::string_view msg)
     {
-#ifdef _DEBUG
         std::string output = std::string(level) + " " + std::string(msg) + "\n";
         OutputDebugStringA(output.c_str());
         if (level == "[ERROR]")
@@ -15,6 +14,5 @@ namespace Engine
         {
             std::cout << output;
         }
-#endif
     }
 }

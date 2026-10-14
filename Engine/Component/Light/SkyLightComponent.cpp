@@ -13,16 +13,46 @@ namespace Engine
             return;
         }
 
+        if (!IsValidLightColor(color))
+        {
+            Log::Error("SkyLightComponent::SetSkyColor: RGB must be finite and non-negative.");
+            return;
+        }
+
         light.SetSkyColor(color);
     }
 
     void SkyLightComponent::SetGroundColor(const Vector3& color)
     {
+        if (IsEndingOrEnded())
+        {
+            Log::Error("SkyLightComponent::SetGroundColor: component is ending or ended.");
+            return;
+        }
+
+        if (!IsValidLightColor(color))
+        {
+            Log::Error("SkyLightComponent::SetGroundColor: RGB must be finite and non-negative.");
+            return;
+        }
+
         light.SetGroundColor(color);
     }
 
     void SkyLightComponent::SetIntensity(float value)
     {
+        if (IsEndingOrEnded())
+        {
+            Log::Error("SkyLightComponent::SetIntensity: component is ending or ended.");
+            return;
+        }
+
+        if (!IsValidLightValue(value))
+        {
+            Log::Error("SkyLightComponent::SetIntensity: intensity must be finite and non-negative.");
+            return;
+        }
+
         light.SetIntensity(value);
     }
 
