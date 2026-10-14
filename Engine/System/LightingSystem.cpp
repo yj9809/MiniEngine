@@ -52,6 +52,20 @@ namespace Engine
         }
     }
 
+    void LightingSystem::BuildDirectionalLightRenderData(std::vector<DirectionalLightRenderData>& outRenderData) const
+    {
+        outRenderData.clear();
+        outRenderData.reserve(directionalLights.size());
+
+        for (const auto* lightComponent : directionalLights)
+        {
+            if (lightComponent)
+            {
+                outRenderData.emplace_back(lightComponent->BuildRenderData());
+            }
+        }
+    }
+
     void LightingSystem::Clear()
     {
         directionalLights.clear();
