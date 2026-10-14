@@ -14,7 +14,7 @@
 
 Component는 Actor가 `Constructed` 상태일 때만 추가할 수 있도록 현재 지원 범위를 코드로 고정했습니다. Level은 Actor 처리 재진입·처리 중 추가·종료 중 추가를 거부하고, 제거되는 Actor가 소유한 MainCamera 관찰 포인터를 메모리 해제 전에 비웁니다. ResourceManager 캐시의 재사용·로드 실패 후 재시도·외부 `shared_ptr` 수명과 Mesh의 부분 GPU 버퍼 생성 실패 정리를 검증하는 테스트 코드도 프로젝트에 연결됐습니다.
 
-`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 이후 경계·리소스 테스트가 추가되어 최신 `f87c3ef` 소스에는 153개 실행 케이스가 구성됐지만, 이 최신 구성의 빌드·전체 테스트 실행 및 실제 Game/HLSL 렌더링 기록은 확인되지 않았습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
+`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 이후 경계·리소스 테스트가 추가되어 최신 `f87c3ef` 소스에는 정적 집계상 153개 테스트가 등록될 것으로 예상되지만, 이 최신 구성의 빌드·전체 테스트 실행 및 실제 Game/HLSL 렌더링 기록은 확인되지 않았습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
@@ -137,7 +137,7 @@ Level
 
 `DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
 
-이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `3bbe504`의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
+이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `f87c3ef`의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
 
 ### 회전 규칙과 실행 기록
 
@@ -172,7 +172,7 @@ Level
 
 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
-최신 `f87c3ef`의 테스트 프로젝트에는 총 153개 실행 케이스가 구성되어 있고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 테스트 코드 구성의 정적 집계이며 최신 SHA의 실행 통과 수가 아닙니다.
+최신 `f87c3ef`의 테스트 프로젝트는 정적 집계상 153개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
@@ -191,7 +191,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager 테스트가 추가되어 최신 `f87c3ef`에는 153개 케이스가 구성됐지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `f87c3ef` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
+2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager 테스트가 추가되어 최신 `f87c3ef`에는 정적 집계상 153개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `f87c3ef` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
 
 | Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
@@ -243,9 +243,9 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 다음 기능 |
 | 2 | Quaternion Transform · Transform 계층 | 예정 |
 | 3 | Forward Lighting 기준선 | 예정 |
-| 4 | RenderPass · HDR · Shadow · 공용 DebugDraw | 예정 |
+| 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
 | 5 | Deferred Rendering | 예정 |
-| 6 | PBR · glTF 정적 Asset · Environment Lighting | 예정 |
+| 6 | Shadow · PBR · glTF 정적 Asset | 예정 |
 | 7 | 안정적인 Type Registry 기반 Scene과 Resource | 예정 |
 | 8 | Runtime Engine Tools | 예정 |
 | 9 | Input Mapping · Collision · Character Runtime | 예정 |
@@ -254,7 +254,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-다음 순서는 **Environment Lighting → Quaternion 회전 → Forward Lighting 기준선**입니다. 먼저 SkyColor / GroundColor / AmbientIntensity의 소유 위치와 Runtime → Render Data → GPU 변환 경계를 정하고, Hemisphere Ambient와 Ambient Albedo 중복 곱셈을 실제 Game/HLSL 경로에서 검증합니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다. 다중 광원 업로드는 Forward Lighting 단계에서 다룹니다.
+다음 순서는 **Environment Lighting → Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow**입니다. 먼저 SkyColor / GroundColor / AmbientIntensity의 소유 위치와 Runtime → Render Data → GPU 변환 경계를 정하고, Hemisphere Ambient와 Ambient Albedo 중복 곱셈을 실제 Game/HLSL 경로에서 검증합니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다. 다중 광원 업로드는 Forward Lighting 단계에서 다룹니다.
 
 ## 프로젝트 구조
 
