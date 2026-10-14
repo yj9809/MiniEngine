@@ -135,7 +135,13 @@
     <ClInclude Include="Component\Light\DirectionalLightComponent.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Lighting\DirectionalLight.h">
+    <ClInclude Include="Lighting\Direct\DirectionalLight.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Lighting\Direct\DirectLight.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Lighting\Environment\SkyLight.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Lighting\Light.h">

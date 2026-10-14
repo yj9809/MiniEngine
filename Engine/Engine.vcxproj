@@ -106,7 +106,9 @@
     <ClInclude Include="Engine\EngineInitialization.h" />
     <ClInclude Include="Level\Level.h" />
     <ClInclude Include="Level\LevelTransition.h" />
-    <ClInclude Include="Lighting\DirectionalLight.h" />
+    <ClInclude Include="Lighting\Direct\DirectionalLight.h" />
+    <ClInclude Include="Lighting\Direct\DirectLight.h" />
+    <ClInclude Include="Lighting\Environment\SkyLight.h" />
     <ClInclude Include="Lighting\Light.h" />
     <ClInclude Include="Math\Matrix4.h" />
     <ClInclude Include="Math\Vector2.h" />
