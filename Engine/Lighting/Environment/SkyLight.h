@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Light.h"
+#include "Lighting/Light.h"
 #include "Math/Vector3.h"
 
 namespace Engine

@@ -29,19 +29,32 @@ namespace Engine
         }
     }
 
-    void LightingSystem::BuildDirectionalLightRenderData(std::vector<DirectionalLightRenderData>& outRenderData) const
+    void LightingSystem::Register(const SkyLightComponent* lightComponent)
     {
-        outRenderData.clear();
-        outRenderData.reserve(directionalLights.size());
-
-        for(const auto* directionalLight : directionalLights)
+        if(lightComponent == nullptr)
         {
-            outRenderData.emplace_back(directionalLight->BuildRenderData());
+            return;
+        }
+
+        const auto it = std::find(skyLights.begin(), skyLights.end(), lightComponent);
+        if(it == skyLights.end())
+        {
+            skyLights.push_back(lightComponent);
+        }
+    }
+
+    void LightingSystem::Unregister(const SkyLightComponent* lightComponent)
+    {
+        const auto it = std::find(skyLights.begin(), skyLights.end(), lightComponent);
+        if(it != skyLights.end())
+        {
+            skyLights.erase(it);
         }
     }
 
     void LightingSystem::Clear()
     {
         directionalLights.clear();
+        skyLights.clear();
     }
 }

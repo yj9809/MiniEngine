@@ -94,6 +94,8 @@
     <ClInclude Include="Component\ICommand.h" />
     <ClInclude Include="Component\Input\InputComponent.h" />
     <ClInclude Include="Component\Light\DirectionalLightComponent.h" />
+    <ClInclude Include="Component\Light\LightComponent.h" />
+    <ClInclude Include="Component\Light\SkyLightComponent.h" />
     <ClInclude Include="Component\Mesh\MeshRendererComponent.h" />
     <ClInclude Include="Component\Physics\BoxCollider.h" />
     <ClInclude Include="Component\Physics\Collider.h" />
@@ -141,6 +143,7 @@
     <ClCompile Include="Component\Input\InputComponent.cpp" />
     <ClCompile Include="Component\Light\DirectionalLightComponent.cpp" />
     <ClCompile Include="Component\Light\LightComponent.cpp" />
+    <ClCompile Include="Component\Light\SkyLightComponent.cpp" />
     <ClCompile Include="Component\Mesh\MeshRendererComponent.cpp" />
     <ClCompile Include="Component\Physics\BoxCollider.cpp" />
     <ClCompile Include="Component\Transform\TransformComponent.cpp" />

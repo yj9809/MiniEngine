@@ -112,6 +112,11 @@ namespace Engine
     {
     }
 
+    bool Component::IsEndingOrEnded() const
+    {
+        return lifecycleState == LifecycleState::EndingPlay || lifecycleState == LifecycleState::HasEndedPlay;
+    }
+
     void Component::Tick(float deltaTime)
     {
     }

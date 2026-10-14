@@ -44,6 +44,9 @@ namespace Engine
 		// 컴포넌트가 초기화까지 끝나면 BeginPlay()가 호출된다. Tick()이 호출되기 전에 한 번만 호출된다.
 		virtual void BeginPlay();
 
+		// 컴포넌트가 제거 중인지, 제거가 끝났는지 확인한다.
+		bool IsEndingOrEnded() const;
+
 	private:
 		// Component가 런타임 시스템에 자동 등록되기 위한 엔진 내부 훅.
 		// DispatchBeginPlay()에서 호출되며, BeginPlay()보다 먼저 호출.
