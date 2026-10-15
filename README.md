@@ -125,7 +125,7 @@ Level
 - 초기화 경로의 기존 `FAILCHECK`는 제거됐지만 런타임 Buffer·Texture 생성과 `Map()` 실패 정책은 아직 통일되지 않았습니다.
 - Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. `RequestLevelChange()`는 null·busy·accepted를 구분하고 accepted일 때만 pending Level 소유권을 가져옵니다. `Run()`은 프레임 작업이 끝난 뒤 `ProcessPendingLevelChange()`를 호출하며, 후보 활성화 실패 시 단계 오류를 보관하고 기존 Level을 유지합니다.
 - Level의 Actor 처리와 Engine의 Level 전환 가드는 공통 `ScopedFlag` RAII 보조 타입으로 복귀를 보장합니다. Level은 처리 중 추가·재진입·종료를 거부하고, MainCamera를 소유한 Actor가 제거될 때 관찰 포인터를 먼저 해제합니다.
-- 전환 성공·실패·종료 예외·Quit 시 후보 해제는 `a32014f`의 실제 `Engine::Run()` 기반 6개 테스트로 확인됐습니다. Game의 전환 UI와 오류 표시, 최신 `f87c3ef` 전체 회귀 실행은 별도 검증 대상입니다.
+- 전환 성공·실패·종료 예외·Quit 시 후보 해제는 `a32014f`의 실제 `Engine::Run()` 기반 6개 테스트로 확인됐습니다. Game의 전환 UI와 오류 표시, 최신 `a8d47d4` 전체 회귀 실행은 별도 검증 대상입니다.
 
 ### 기반 시스템
 
@@ -147,7 +147,7 @@ Level
 
 `DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
 
-이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `f87c3ef`의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
+이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `a8d47d4`의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
 
 ### 회전 규칙과 실행 기록
 
@@ -191,10 +191,12 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | Time | 17 | 스무딩, clamp, TimeScale, Pause/Resume |
 | Lifecycle | 14 | 호출 순서, 실패 상태, Component 구성 시점 제한, 종료 순서 |
 | Level | 13 | Actor 추가·제거, owner, 대량 처리, EndLevel 중복 호출 방지 |
-| LevelBoundary | 16 | 처리 재진입·추가·종료 경계, 예외 후 가드 복귀, MainCamera 참조 정리 |
+| LevelBoundary | 4 | null·종료 중 추가 거부, 프레임 경계 지연 추가 |
+| LevelProcessingBoundary | 8 | 처리 재진입·추가·종료 거부, 예외 후 가드 복귀 |
+| LevelCameraBoundary | 4 | pending/active Actor 제거 전 MainCamera 참조 정리 |
 | EngineSettingsInitialization | 2 | 설정 경로 I/O 실패, 잘못된 설정값 오류 반환 |
 | EngineInitialization | 3 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화, 실패 후 재생성 |
-| LevelTransition | 6 | 성공·활성화 실패·정리 예외·Quit와 요청/오류 계약 |
+| LevelTransitionDeath | 6 | 성공·활성화 실패·정리 예외·Quit와 요청/오류 계약 |
 | RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
 | ResourceManager | 12 | Mesh/Texture 캐시, 실패 재시도, 참조 수명, 부분 버퍼 실패 정리 |
 | ScopedFlag | 4 | 설정·복귀, 기존 값 보존, 비복사·비이동 계약 |
@@ -204,17 +206,27 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager, SkyLightComponent 테스트가 추가되어 최신 `a8d47d4`에는 정적 집계상 162개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 `Lighting/Direct`·`Lighting/Environment` 헤더의 상대 include가 프로젝트의 선언된 include 루트에서 정상 해석되는지도 Windows/MSVC 빌드로 확인해야 합니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `a8d47d4` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
 
-| Lifecycle (11, 2026-10-06) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
+2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. 이 화면들을 최신 162개 전체 통과 기록으로 분류하지 않습니다.
+
+| Lifecycle (14, Release, 2026-10-14) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
-| ![Lifecycle 테스트 11개 개별 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) | ![EngineInitialization Release 테스트 3개 실행 결과](Docs/EngineInitializationTestsReleaseLatest.png) |
+| ![Lifecycle Release 테스트 14개 실행 결과](Docs/LifecycleTestsLatest.png) | ![RenderingSystem 테스트 6개 개별 실행 결과](Docs/RenderingSystemTests.png) | ![EngineInitialization Release 테스트 3개 실행 결과](Docs/EngineInitializationTestsReleaseLatest.png) |
 
-| Lifecycle (과거 9) | Matrix4 (21) |
-|---|---|
-| ![Lifecycle 테스트 9개 통과](Docs/LifecycleTests.png) | ![Matrix4 테스트 21개 통과](Docs/Matrix4Tests.png) |
+| SkyLightComponent (9, Release, 2026-10-14) | ScopedFlag (4, Release, 2026-10-14) | Level (13, Release, 2026-10-14) |
+|---|---|---|
+| ![SkyLightComponent Release 테스트 9개 실행 결과](Docs/SkyLightComponentTestsLatest.png) | ![ScopedFlag Release 테스트 4개 실행 결과](Docs/ScopedFlagTestsLatest.png) | ![Level Release 테스트 13개 실행 결과](Docs/LevelTestsLatest.png) |
 
-| Time (17) | Vector2 (2) |
+| EngineSettingsInitialization (2, Release, 2026-10-14) | LevelTransitionDeath (6, Release, 2026-10-14) | LevelBoundary (4, Release, 2026-10-14) |
+|---|---|---|
+| ![EngineSettingsInitialization Release 테스트 2개 실행 결과](Docs/EngineSettingsInitializationTestsLatest.png) | ![LevelTransitionDeath Release 테스트 6개 실행 결과](Docs/LevelTransitionDeathTestsLatest.png) | ![LevelBoundary Release 테스트 4개 실행 결과](Docs/LevelBoundaryTestsLatest.png) |
+
+| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) |
 |---|---|
-| ![Time 테스트 17개 통과](Docs/TimeTests.png) | ![Vector2 테스트 2개 통과](Docs/Vector2Tests.png) |
+| ![LevelProcessingBoundary Release 테스트 8개 실행 결과](Docs/LevelProcessingBoundaryTestsLatest.png) | ![LevelCameraBoundary Release 테스트 4개 실행 결과](Docs/LevelCameraBoundaryTestsLatest.png) |
+
+| Matrix4 (21) | Time (17) | Vector2 (2) |
+|---|---|---|
+| ![Matrix4 테스트 21개 통과](Docs/Matrix4Tests.png) | ![Time 테스트 17개 통과](Docs/TimeTests.png) | ![Vector2 테스트 2개 통과](Docs/Vector2Tests.png) |
 
 | Vector3 (19) | Vector4 (18) |
 |---|---|
