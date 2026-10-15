@@ -38,6 +38,7 @@ namespace
             ++submissions;
         }
         void SubmitDirectionalLights(const std::vector<Engine::DirectionalLightRenderData>&) override {}
+        void SubmitEnvironmentLighting(const Engine::EnvironmentLightingRenderData&) override {}
         void BeginFrame(float, float, float) override {}
         void EndFrame() override {}
         void Render() override {}

@@ -483,7 +483,7 @@ namespace Engine
     void D3D11Renderer::BeginFrame(float r, float g, float b)
     {
         frameData.directionalLights.clear();
-
+        frameData.environmentLighting = {};
         // FILP_DISCARD 방식은 Present() 후 렌더 타겟 바인딩이 해제되므로 매 프레임 재바인딩 필요.
         context->OMSetRenderTargets(
             1,
@@ -515,6 +515,7 @@ namespace Engine
 
         renderCommands.clear();
         frameData.directionalLights.clear();
+        frameData.environmentLighting = {};
 
         bufferMap.clear();
         textureMap.clear();
@@ -570,5 +571,10 @@ namespace Engine
     void D3D11Renderer::SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights)
     {
         frameData.directionalLights.assign(lights.begin(), lights.end());
+    }
+
+    void D3D11Renderer::SubmitEnvironmentLighting(const EnvironmentLightingRenderData& environmentLighting)
+    {
+        frameData.environmentLighting = environmentLighting;
     }
 }

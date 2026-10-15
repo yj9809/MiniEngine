@@ -7,6 +7,7 @@
 
 #include "RendererInitialization.h"
 #include "Lighting/RenderData/DirectionalLightRenderData.h"
+#include "Lighting/RenderData/EnvironmentLightingRenderData.h"
 
 namespace Engine
 {
@@ -24,6 +25,10 @@ namespace Engine
 		// DirectionalLightRenderData를 제출하는 함수.
 		// DirectionalLightComponent에서 BuildRenderData()를 통해 생성된 데이터를 제출한다.
 		virtual void SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights) = 0;
+
+		// EnvironmentLightingRenderData를 제출하는 함수.
+		// LightingSystem::BuildEnvironmentLightingRenderData()로 생성한 환경광 데이터를 제출한다.
+		virtual void SubmitEnvironmentLighting(const EnvironmentLightingRenderData& environmentLighting) = 0;
 
 		// 프레임 시작 -> back buffer 그리기.
 		virtual void BeginFrame(float r, float g, float b) = 0;

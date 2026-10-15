@@ -11,6 +11,8 @@
 
 #include "Actor/Actor.h"
 #include "Component/Camera/CameraComponent.h"
+#include "Component/Light/DirectionalLightComponent.h"
+#include "Component/Light/SkyLightComponent.h"
 #include "Component/Mesh/MeshRendererComponent.h"
 #include "Level/Level.h"
 #include "Renderer/IRenderer.h"
@@ -18,6 +20,7 @@
 #include "Renderer/RenderCommand.h"
 #include "Resource/ResourceManager.h"
 #include "System/RenderingSystem.h"
+#include "System/LightingSystem.h"
 
 namespace
 {
@@ -35,6 +38,13 @@ namespace
             const std::vector<Engine::DirectionalLightRenderData>& lights) override
         {
             submittedDirectionalLights.assign(lights.begin(), lights.end());
+        }
+
+        void SubmitEnvironmentLighting(
+            const Engine::EnvironmentLightingRenderData& lighting) override
+        {
+            submittedEnvironmentLighting = lighting;
+            ++environmentSubmissions;
         }
 
         void BeginFrame(float, float, float) override {}
@@ -69,6 +79,8 @@ namespace
     public:
         std::vector<Engine::RenderCommand> submittedCommands;
         std::vector<Engine::DirectionalLightRenderData> submittedDirectionalLights;
+        Engine::EnvironmentLightingRenderData submittedEnvironmentLighting{};
+        int environmentSubmissions = 0;
         std::vector<Engine::BufferHandle> releasedBuffers;
         std::vector<Engine::TextureHandle> releasedTextures;
 
@@ -76,6 +88,21 @@ namespace
         Engine::BufferHandle nextBufferHandle = 1;
         Engine::TextureHandle nextTextureHandle = 1;
     };
+
+    void ExpectColor(const Engine::Vector3& actual, const Engine::Vector3& expected)
+    {
+        EXPECT_FLOAT_EQ(actual.x, expected.x);
+        EXPECT_FLOAT_EQ(actual.y, expected.y);
+        EXPECT_FLOAT_EQ(actual.z, expected.z);
+    }
+
+    void ExpectEnvironment(const RecordingRenderer& renderer,
+        const Engine::Vector3& sky, const Engine::Vector3& ground)
+    {
+        SCOPED_TRACE("Submitted environment lighting");
+        ExpectColor(renderer.submittedEnvironmentLighting.skyContribution, sky);
+        ExpectColor(renderer.submittedEnvironmentLighting.groundContribution, ground);
+    }
 
     class TemporaryTriangleObj final
     {
@@ -133,6 +160,12 @@ namespace
 
     private:
         Engine::MeshRendererComponent* meshRenderer = nullptr;
+    };
+
+    class SkyActor final : public Engine::Actor
+    {
+    public:
+        void DestroyForTest() { DispatchOnDestroy(); }
     };
 
     class CameraActor final : public Engine::Actor
@@ -285,5 +318,116 @@ TEST(RenderingSystemTest, LevelDrawSubmitsThroughRenderingSystem)
     level.Draw();
 
     EXPECT_EQ(renderer.submittedCommands.size(), 1);
+    level.EndLevel();
+}
+
+TEST(RenderingSystemTest, EnvironmentIsSubmittedWithoutMeshesAlongsideDirectionalLight)
+{
+    RecordingRenderer renderer;
+    Engine::RenderingSystem rendering(renderer);
+    Engine::SkyLightComponent first, second;
+    Engine::Actor directionalActor;
+    auto* directional = directionalActor.AddComponent<Engine::DirectionalLightComponent>();
+    Engine::LightingSystem lighting;
+    first.SetSkyColor(Engine::Vector3(0.25f, 0.5f, 2.0f));
+    first.SetGroundColor(Engine::Vector3(3.0f, 0.75f, 0.125f));
+    first.SetIntensity(2.0f);
+    second.SetSkyColor(Engine::Vector3(2.0f, 0.0f, 1.0f));
+    second.SetGroundColor(Engine::Vector3(0.0f, 4.0f, 2.0f));
+    second.SetIntensity(0.5f);
+    directional->SetColor(Engine::Vector3(0.2f, 0.4f, 0.8f));
+    directional->SetIntensity(3.0f);
+    lighting.Register(&first);
+    lighting.Register(&second);
+    lighting.Register(directional);
+
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+
+    EXPECT_EQ(renderer.environmentSubmissions, 1);
+    EXPECT_TRUE(renderer.submittedCommands.empty());
+    ExpectEnvironment(renderer, Engine::Vector3(1.5f, 1.0f, 4.5f),
+        Engine::Vector3(6.0f, 3.5f, 1.25f));
+    ASSERT_EQ(renderer.submittedDirectionalLights.size(), 1u);
+    ExpectColor(renderer.submittedDirectionalLights[0].color, Engine::Vector3(0.2f, 0.4f, 0.8f));
+    EXPECT_FLOAT_EQ(renderer.submittedDirectionalLights[0].intensity, 3.0f);
+}
+
+TEST(RenderingSystemTest, NullAndEmptyLightingOverwritePreviousEnvironment)
+{
+    RecordingRenderer renderer;
+    Engine::RenderingSystem rendering(renderer);
+    Engine::SkyLightComponent sky;
+    Engine::LightingSystem populated, empty;
+    populated.Register(&sky);
+
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    EXPECT_EQ(renderer.environmentSubmissions, 1);
+    ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
+
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &populated);
+    ExpectEnvironment(renderer, Engine::Vector3(0.1f, 0.1f, 0.1f), Engine::Vector3(0.1f, 0.1f, 0.1f));
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    EXPECT_EQ(renderer.environmentSubmissions, 3);
+    ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
+
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &populated);
+    ExpectEnvironment(renderer, Engine::Vector3(0.1f, 0.1f, 0.1f), Engine::Vector3(0.1f, 0.1f, 0.1f));
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &empty);
+    EXPECT_EQ(renderer.environmentSubmissions, 5);
+    ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
+}
+
+TEST(RenderingSystemTest, EachRenderReflectsChangesAndUnregistrationWithoutAccumulating)
+{
+    RecordingRenderer renderer;
+    Engine::RenderingSystem rendering(renderer);
+    Engine::SkyLightComponent sky;
+    Engine::LightingSystem lighting;
+    lighting.Register(&sky);
+
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+    ExpectEnvironment(renderer, Engine::Vector3(0.1f, 0.1f, 0.1f), Engine::Vector3(0.1f, 0.1f, 0.1f));
+    sky.SetSkyColor(Engine::Vector3(2.0f, 3.0f, 4.0f));
+    sky.SetGroundColor(Engine::Vector3(6.0f, 2.0f, 1.0f));
+    sky.SetIntensity(0.5f);
+    for (int frame = 0; frame < 2; ++frame)
+    {
+        rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+        ExpectEnvironment(renderer, Engine::Vector3(1.0f, 1.5f, 2.0f), Engine::Vector3(3.0f, 1.0f, 0.5f));
+    }
+
+    lighting.Unregister(&sky);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+    EXPECT_EQ(renderer.environmentSubmissions, 4);
+    ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
+}
+
+TEST(RenderingSystemTest, LevelDrawForwardsEnvironmentAndReflectsActorRemoval)
+{
+    RecordingRenderer renderer;
+    Engine::ResourceManager resources(renderer);
+    Engine::Level level;
+    level.AttachServices(renderer, resources);
+    auto cameraActor = std::make_unique<CameraActor>();
+    level.SetMainCamera(cameraActor->GetCamera());
+    level.AddNewActor(std::move(cameraActor));
+    auto skyActor = std::make_unique<SkyActor>();
+    auto* skyActorPtr = skyActor.get();
+    auto* sky = skyActor->AddComponent<Engine::SkyLightComponent>();
+    sky->SetSkyColor(Engine::Vector3(2.0f, 4.0f, 6.0f));
+    sky->SetGroundColor(Engine::Vector3(8.0f, 2.0f, 0.0f));
+    sky->SetIntensity(0.5f);
+    level.AddNewActor(std::move(skyActor));
+    level.ProcessAddAndDestroyActor();
+
+    level.Draw();
+    EXPECT_EQ(renderer.environmentSubmissions, 1);
+    ExpectEnvironment(renderer, Engine::Vector3(1.0f, 2.0f, 3.0f), Engine::Vector3(4.0f, 1.0f, 0.0f));
+
+    skyActorPtr->DestroyForTest();
+    level.ProcessAddAndDestroyActor();
+    level.Draw();
+    EXPECT_EQ(renderer.environmentSubmissions, 2);
+    ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
     level.EndLevel();
 }

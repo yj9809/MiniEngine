@@ -42,6 +42,8 @@ namespace Engine
 		virtual void Submit(const RenderCommand& command) override;
 
 		virtual void SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights) override;
+
+		virtual void SubmitEnvironmentLighting(const EnvironmentLightingRenderData& environmentLighting) override;
 		
 		// 외부에서 정점/인덱스 버퍼를 생성하기 위한 함수.
 		virtual BufferHandle CreateVertexBuffer(const void* vertexData, UINT vertexDataSize) override;
