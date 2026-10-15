@@ -8,15 +8,15 @@
 
 ## 현재 상태
 
-기준 커밋: [`a8d47d4`](https://github.com/yj9809/MiniEngine/commit/a8d47d4e97310f76bb6ec25a40f7deddc71ca237) (2026-10-14)
+기준 커밋: [`cc0471b`](https://github.com/yj9809/MiniEngine/commit/cc0471b54b40f6601e234850e37feab0b7d30645) (2026-10-15)
 
-개편된 Notion 로드맵은 Bootstrap / Shutdown과 Level 전환을 완료 기준선으로 두고, 0단계의 제한된 잔여 점검 뒤 **1단계 Environment Lighting**을 다음 기능으로 지정합니다. 최신 코드는 시작 Level과 런타임 후보를 같은 활성화 경로로 처리하고, Tick·Draw·Actor 처리·입력 정리가 끝난 프레임 경계에서 Level을 교체합니다. 후보 활성화가 실패하면 후보만 정리하고 기존 Level을 유지하며, 전환·종료 콜백 중 추가 요청은 거부합니다.
+개편된 Notion 로드맵은 Bootstrap / Shutdown과 Level 전환을 완료 기준선으로 두고, **1단계 Environment Lighting → 2단계 Quaternion 회전** 순서로 진행합니다. 최신 코드는 시작 Level과 런타임 후보를 같은 활성화 경로로 처리하고, Tick·Draw·Actor 처리·입력 정리가 끝난 프레임 경계에서 Level을 교체합니다. 후보 활성화가 실패하면 후보만 정리하고 기존 Level을 유지하며, 전환·종료 콜백 중 추가 요청은 거부합니다.
 
 Component는 Actor가 `Constructed` 상태일 때만 추가할 수 있도록 현재 지원 범위를 코드로 고정했습니다. Level은 Actor 처리 재진입·처리 중 추가·종료 중 추가를 거부하고, 제거되는 Actor가 소유한 MainCamera 관찰 포인터를 메모리 해제 전에 비웁니다. ResourceManager 캐시의 재사용·로드 실패 후 재시도·외부 `shared_ptr` 수명과 Mesh의 부분 GPU 버퍼 생성 실패 정리를 검증하는 테스트 코드도 프로젝트에 연결됐습니다.
 
-Environment Lighting의 첫 코드로 `Light`는 Intensity, `DirectLight`는 Color, `DirectionalLight`는 방향광 타입, `SkyLight`는 SkyColor·GroundColor와 기본 Intensity 0.1을 소유하도록 계층을 분리했습니다. `SkyLightComponent`는 값 검증과 수명 종료 이후 변경 거부를 수행하고 `LightingSystem`의 비소유 목록에 등록·해제됩니다. 다만 환경광 렌더 데이터 생성, Renderer/GPU 상수 버퍼, Hemisphere Ambient HLSL과 Game 배치는 아직 연결되지 않았습니다.
+Environment Lighting의 첫 코드로 `Light`는 Intensity, `DirectLight`는 Color, `DirectionalLight`는 방향광 타입, `SkyLight`는 SkyColor·GroundColor와 기본 Intensity 0.1을 소유하도록 계층을 분리했습니다. `SkyLightComponent`는 값 검증과 수명 종료 이후 변경 거부를 수행하고 `LightingSystem`의 비소유 목록에 등록·해제됩니다. 현재는 매 수집 시 하늘·지면의 색×강도를 합산하고, 프레임 값 복사 → GPU 패킹 → OpaqueLayer 업로드 → World +Z 기준 Hemisphere Ambient HLSL까지 연결했습니다. Game의 `--colored-ambient` 옵션으로 방향광 없이 색 환경광을 관찰할 수 있습니다.
 
-`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 이후 경계·리소스·SkyLightComponent 테스트가 추가되어 최신 `a8d47d4` 소스에는 정적 집계상 162개 테스트가 등록될 것으로 예상되지만, 이 최신 구성의 빌드·전체 테스트 실행 및 실제 Game/HLSL 렌더링 기록은 확인되지 않았습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
+`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 최신 `cc0471b` 소스는 환경광 수집·프레임 제출·GPU 패킹과 Hardware/WARP GPU 테스트를 포함해 정적 집계상 195개 실행 케이스가 예상됩니다. Game 환경광 비교 캡처는 공개됐으나 캡처에 SHA·빌드 구성이 없어 최신 SHA의 빌드·195개 전체 통과 근거로 확대하지 않습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
@@ -30,11 +30,11 @@ Environment Lighting의 첫 코드로 `Light`는 Intensity, `DirectLight`는 Col
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
 | 에셋 | OBJ 파서, WIC 텍스처 로더, GPU 핸들 관리, 경로별 `ResourceManager` 공유 캐시 | 데모 소비 경로 연결 / 캐시·실패 테스트 구성, 최신 실행 대기 |
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
-| 기본 조명 | World Normal, Directional Lambert, Uniform Ambient | 실행 화면 기록 / 최신 코드 실행 기록 없음 |
-| LightingSystem | 공통 등록 훅, Level 단위 등록·해제, 방향광 수집, SkyLight 등록 목록 | 방향광 CPU 프레임 데이터 연결 / 환경광 수집 미연결 |
-| Environment Lighting | Light 계층 분리, SkyLight 데이터·Component 값 검증·등록/해제 | 구현·시스템 등록 / RenderData·GPU·HLSL·Game 미연결 |
-| RenderingSystem | 메시 명령과 방향광 프레임 데이터를 렌더러에 제출 | Game 방향광 배치 연결 / 최신 실행 검증 대기 |
-| 방향광 GPU 경로 | 최대 4개 배열 상수 버퍼, 개수 기반 셰이더 누적 | 첫 번째 방향광 1개만 업로드 |
+| 기본 조명 | World Normal, Directional Lambert, Hemisphere Ambient, Albedo 단일 곱셈 | 코드 연결 / 환경광 비교 화면 기록, 최신 전체 회귀 대기 |
+| LightingSystem | Level 단위 비소유 등록·해제, 방향광 수집, 다중 SkyLight 색×강도 합산 | CPU 프레임 데이터 연결 |
+| Environment Lighting | SkyLight → RenderData → 프레임 복사 → GPU 패킹 → Hemisphere HLSL → Game | 구현·통합 / 비교 캡처 존재, 최신 SHA 실행 근거 보완 대기 |
+| RenderingSystem | 메시 명령·방향광·환경광 프레임 값을 렌더러에 제출 | Level Draw와 연결 / 최신 전체 테스트 실행 대기 |
+| 방향광 GPU 경로 | 수집 순서상 최대 4개 패킹·업로드, 개수 기반 셰이더 누적 | 코드 연결 / 용량·초과·GPU readback 테스트 소스 존재 |
 | 충돌 | `BoxCollider`, AABB overlap, 등록 컨테이너 | 기반 구현 / 게임 루프 통합 미완료 |
 
 ## 무엇을 직접 구현했는가
@@ -65,31 +65,33 @@ DirectionalLightComponent
       ↓
 RenderingSystem → D3D11Renderer::RenderFrameData
   └─ OpaqueLayer Lighting Constant Buffer
-      └─ 첫 번째 방향광 → Mesh Pixel Shader
+      └─ 최대 4개 방향광 → Mesh Pixel Shader
 
 SkyLightComponent
-  └─ LightingSystem 등록 · 값 검증
+  └─ LightingSystem 등록 · 색×강도 합산
       ↓
-EnvironmentLightingRenderData / GPU Constant Buffer / HLSL
-  └─ 미연결
+EnvironmentLightingRenderData → RenderFrameData 값 복사
+  └─ BuildLightingConstantBuffer → OpaqueLayer PS b1
+      └─ World +Z Hemisphere Ambient → Mesh Pixel Shader
 ```
 
 - `IRenderer`와 `D3D11Renderer`를 분리해 게임 코드가 D3D11 구현 세부사항을 직접 참조하지 않도록 구성했습니다.
 - `RenderingSystem`이 현재 Level에 등록된 `MeshRendererComponent`를 순회하고, 카메라의 View/Projection과 각 Actor의 World 행렬로 `RenderCommand`를 구성해 제출합니다.
 - Component 생명주기의 비공개 시스템 훅이 `BeginPlay` 직전에 등록하고 `OnRemove` 직전에 해제합니다. `LightComponent`가 Level의 `LightingSystem` 연결을 공통 처리하고, 구체 광원은 타입별 등록·해제만 구현합니다.
 - `DirectionalLightComponent`는 Root Transform의 +X Forward를 방향으로 사용하고, 색상·강도와 함께 CPU 렌더 데이터로 변환합니다. `LightingSystem`이 등록된 방향광 전체를 수집해 `RenderingSystem`과 `D3D11Renderer`의 프레임 데이터로 전달합니다.
-- `SkyLightComponent`는 SkyColor·GroundColor·Intensity를 보유하고, 음수·NaN·무한대 입력과 종료 중/종료 후 변경을 거부합니다. 등록 목록까지는 연결됐지만 환경광 렌더 데이터로 수집하는 함수와 렌더러 전달 경로는 아직 없습니다.
-- OpaqueLayer와 HLSL의 방향광 배열 용량은 4개지만 현재 업로드 구현은 목록의 첫 번째 광원만 0번 슬롯에 기록하고 개수를 1로 설정합니다. 셰이더는 전달된 개수만큼 누적하도록 구성되어 있으나 다중 광원 업로드는 아직 연결되지 않았습니다.
+- `SkyLightComponent`는 SkyColor·GroundColor·Intensity를 보유하고, 음수·NaN·무한대 입력과 종료 중/종료 후 변경을 거부합니다. `LightingSystem`이 매 수집 시 SkyColor·GroundColor에 강도를 한 번 곱해 각각 합산합니다. 광원이 없으면 0이고 별도 합산 캐시를 두지 않습니다.
+- `RenderingSystem`은 환경광이 없을 때도 0을 제출하며, `D3D11Renderer`는 프레임 값을 복사하고 BeginFrame·Shutdown에서 초기화합니다. `BuildLightingConstantBuffer()`는 D3D 호출 없이 값을 패킹하고 OpaqueLayer는 Map·업로드·바인딩을 담당합니다.
+- 방향광은 수집 순서상 최대 4개를 패킹·업로드하고 초과분은 제외합니다. 환경광 두 RGB 기여는 w=0으로 전달하며 HLSL은 `saturate(N.z * 0.5 + 0.5)`로 하늘·지면을 보간합니다. 최종 출력에서 Albedo를 한 번만 곱합니다.
 - 렌더 요청을 `RenderCommand`로 모은 뒤 Opaque/Wireframe 버킷에서 실행합니다. 현재 구조는 Render Target을 소유하는 진짜 RenderPass가 아니므로 이름을 `RenderLayer`로 정정했습니다.
 - OBJ의 position/normal/UV를 파싱하고 중복 정점을 제거해 Vertex/Index Buffer를 생성합니다.
 - WIC로 이미지를 RGBA8로 변환하고 Texture2D/SRV를 생성해 픽셀 셰이더에서 샘플링합니다.
-- Material의 BaseColor와 Texture를 렌더 명령으로 전달하고, Lambert Diffuse와 Uniform Ambient를 적용하는 셰이더 경로를 구현했습니다.
+- Material의 BaseColor와 Texture를 렌더 명령으로 전달하고, Lambert Diffuse와 Hemisphere Ambient를 적용하는 셰이더 경로를 구현했습니다.
 
 | Directional Lambert만 적용 | Uniform Ambient 추가 |
 |---|---|
 | ![Directional Lambert만 적용한 지구](Docs/LambertOnly.png) | ![Uniform Ambient를 추가한 지구](Docs/UniformAmbient.png) |
 
-왼쪽은 광원이 닿지 않는 면이 완전히 어두운 Lambert 단독 결과이고, 오른쪽은 Uniform Ambient를 더해 암부의 기본 밝기를 보완한 결과입니다.
+왼쪽은 광원이 닿지 않는 면이 완전히 어두운 Lambert 단독 결과이고, 오른쪽은 Uniform Ambient를 더한 과거 결과입니다. 현재 구현은 아래 Hemisphere Ambient 경로로 대체됐습니다.
 
 ### 오브젝트와 생명주기
 
@@ -125,7 +127,7 @@ Level
 - 초기화 경로의 기존 `FAILCHECK`는 제거됐지만 런타임 Buffer·Texture 생성과 `Map()` 실패 정책은 아직 통일되지 않았습니다.
 - Engine은 `final`이며 Game은 상속 대신 생성 결과를 받아 조합합니다. `RequestLevelChange()`는 null·busy·accepted를 구분하고 accepted일 때만 pending Level 소유권을 가져옵니다. `Run()`은 프레임 작업이 끝난 뒤 `ProcessPendingLevelChange()`를 호출하며, 후보 활성화 실패 시 단계 오류를 보관하고 기존 Level을 유지합니다.
 - Level의 Actor 처리와 Engine의 Level 전환 가드는 공통 `ScopedFlag` RAII 보조 타입으로 복귀를 보장합니다. Level은 처리 중 추가·재진입·종료를 거부하고, MainCamera를 소유한 Actor가 제거될 때 관찰 포인터를 먼저 해제합니다.
-- 전환 성공·실패·종료 예외·Quit 시 후보 해제는 `a32014f`의 실제 `Engine::Run()` 기반 6개 테스트로 확인됐습니다. Game의 전환 UI와 오류 표시, 최신 `a8d47d4` 전체 회귀 실행은 별도 검증 대상입니다.
+- 전환 성공·실패·종료 예외·Quit 시 후보 해제는 `a32014f`의 실제 `Engine::Run()` 기반 6개 테스트로 확인됐습니다. Game의 전환 UI와 오류 표시, 최신 `cc0471b` 전체 회귀 실행은 별도 검증 대상입니다.
 
 ### 기반 시스템
 
@@ -141,13 +143,27 @@ Level
 
 ## 데모
 
+### Hemisphere Environment Lighting
+
+빌드 출력 폴더에서 `Game.exe --colored-ambient`로 실행합니다. Visual Studio에서는 Game의 명령 인수에 `--colored-ambient`를 지정합니다. 이 모드는 방향광을 배치하지 않고 SkyColor (0.2, 0.5, 1.0), GroundColor (1.0, 0.2, 0.06), Intensity 0.5의 SkyLight를 배치합니다. 옵션이 없으면 Intensity 0.1의 방향광 데모를 실행합니다.
+
+| 색 환경광 실행 자료 | 무광원 비교 자료 |
+|---|---|
+| ![푸른 하늘색과 붉은 지면색이 보이는 지구](Docs/ColoredEnvironmentLightingDark.png) | ![광원 없이 검게 보이는 지구](Docs/No_Light.png) |
+
+| 색 환경광 Intensity 0.1 자료 | 색 환경광 Intensity 0.5 자료 |
+|---|---|
+| ![낮은 환경광 강도 비교](Docs/Sky_Light_Intensity_0.1.png) | ![높은 환경광 강도 비교](Docs/Sky_Light_Intensity_0.5.png) |
+
+2026-10-15에 게시된 자료에서 색과 밝기 차이를 확인했습니다. 강도·무광원 조건명은 파일명과 커밋 설명에 근거하며 화면에 실행 SHA·빌드 구성은 없습니다. 현재 main의 기본 옵션은 위 0.5 설정이고, 무광원·0.1 전환용 실행 옵션은 없습니다. 캡처를 최신 SHA 전체 빌드·테스트 통과 또는 동일 조건 재현의 증거로 사용하지 않습니다.
+
 ### 방향광 데모
 
 ![방향광 데모의 지구 렌더링 화면](Docs/directional-light-after.gif)
 
-`DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 1.0과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
+`DirectionalLightActor`는 생성자에서 광원 Component를 구성하고, Initialize에서 흰색·Intensity 0.1과 초기 회전을 설정합니다. Tick에서 Pitch를 초당 100도 증가시키며, Game/Main이 이를 Level에 추가합니다.
 
-이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 기준 커밋 `a8d47d4`의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
+이 GIF는 `DirectionalLightActor`를 추가하기 전 `Mini Engine` 빌드의 실행 기록입니다. 현재 Bootstrap의 창 제목은 `Eden Engine`이며, 캡처에 SHA와 빌드 구성을 함께 남기지 않았습니다. 따라서 현재 기준 커밋의 시작 Level·생명주기 실패 경로와 Color/Intensity 변경, 다중 광원 동작은 별도 실행 기록이 필요합니다.
 
 ### 회전 규칙과 실행 기록
 
@@ -182,7 +198,7 @@ Level
 
 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
-최신 `a8d47d4`의 테스트 프로젝트는 정적 집계상 162개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
+최신 `cc0471b`의 테스트 프로젝트는 정적 집계상 195개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
@@ -197,14 +213,17 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | EngineSettingsInitialization | 2 | 설정 경로 I/O 실패, 잘못된 설정값 오류 반환 |
 | EngineInitialization | 3 | null 시작 Level 거부, `Run()` 전 초기 Actor 활성화, 실패 후 재생성 |
 | LevelTransitionDeath | 6 | 성공·활성화 실패·정리 예외·Quit와 요청/오류 계약 |
-| RenderingSystem | 6 | 중복 등록, 제거 안전성, Level 격리, 명령 제출 |
+| RenderingSystem | 10 | 중복 등록, 제거 안전성, Level 격리, 명령·환경광 제출 |
 | ResourceManager | 12 | Mesh/Texture 캐시, 실패 재시도, 참조 수명, 부분 버퍼 실패 정리 |
 | ScopedFlag | 4 | 설정·복귀, 기존 값 보존, 비복사·비이동 계약 |
 | SkyLightComponent | 9 | 기본값·유효/무효 값·수명 종료 거부·Release 로그 계약(테스트 소스) |
+| LightingSystem | 12 | 환경광 합산·변경·등록/해제·Level 생명주기 |
+| LightingPacking | 10 | 환경광 값·w·초기화·CPU 배치, 방향광 0/1/4/초과 |
+| LightingGpu / LightingShaderLayout | 6 / 1 | Hardware·WARP 각 3개 GPU 테스트, 생산 셰이더 reflection 배치(소스) |
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager, SkyLightComponent 테스트가 추가되어 최신 `a8d47d4`에는 정적 집계상 162개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `a8d47d4` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
+2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 테스트가 추가되어 최신 `cc0471b`에는 정적 집계상 195개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 새 GPU 테스트는 실제 OpaqueLayer의 b1 버퍼 readback, probe shader 출력, 생산 MeshPixelShader의 Hemisphere·Albedo·alpha 출력과 컴파일된 셰이더 배치를 검사하도록 작성됐습니다. 테스트 코드 존재는 실행 통과가 아닙니다. Game 캡처는 화면 자료이며 최신 SHA의 HLSL 컴파일·Hardware/WARP 테스트 실행 로그를 대체하지 않습니다.
 
 2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. 이 화면들을 최신 162개 전체 통과 기록으로 분류하지 않습니다.
 
@@ -254,7 +273,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드, Light 계층·SkyLightComponent·시스템 등록 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` · `e49c249` · `aa9b677` · `1f0cca8` |
+| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드, Light 계층·SkyLight, 환경광 수집·GPU·HLSL·Game 연결 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` · `e49c249` · `aa9b677` · `1f0cca8` · `b6bfc45` · `e8dfe3c` · `a5503f5` · `5239d8e` · `cc0471b` |
 
 ## 로드맵
 
@@ -262,8 +281,8 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 162개 실행 검증 대기 |
-| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | Light 계층·SkyLight 등록 구현 / 렌더 연결 진행 전 |
+| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 195개 실행 검증 대기 |
+| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | Runtime → Render → GPU → HLSL·Game 연결 / 비교 화면 존재, 최신 실행 근거 보완 대기 |
 | 2 | Quaternion Transform · Transform 계층 | 예정 |
 | 3 | Forward Lighting 기준선 | 예정 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
@@ -277,7 +296,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-다음 순서는 **Environment Lighting → Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow**입니다. SkyColor / GroundColor / AmbientIntensity의 런타임 소유 위치는 코드에 반영됐으므로, 다음은 `EnvironmentLightingRenderData` 수집 → GPU 상수 버퍼 패킹 → Hemisphere Ambient HLSL 순으로 연결하고 Ambient Albedo 중복 곱셈을 실제 Game/HLSL 경로에서 검증합니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다. 다중 광원 업로드는 Forward Lighting 단계에서 다룹니다.
+Environment Lighting의 데이터·렌더 연결과 Albedo 중복 곱셈 수정은 코드에 반영됐습니다. 최신 SHA의 빌드·전체 테스트·Game/HLSL 실행 근거를 보완한 뒤 **Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순으로 진행합니다. 방향광 최대 4개 업로드는 이번에 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
 ## 프로젝트 구조
 
