@@ -23,11 +23,10 @@ int main(int argc, char* argv[])
 	if (coloredAmbientDemo)
 	{
 		auto environment = std::make_unique<Engine::Actor>();
-		auto* skyLight = environment->AddComponent<Engine::SkyLightComponent>();
-		// Linear RGB: cool sky and warm ground, with no directional light.
-		skyLight->SetSkyColor({ 0.12f, 0.45f, 1.0f });
-		skyLight->SetGroundColor({ 1.0f, 0.2f, 0.06f });
-		skyLight->SetIntensity(1.0f);
+		auto* skyCom = environment->AddComponent<Engine::SkyLightComponent>();
+		skyCom->SetSkyColor({ 0.2f, 0.5f, 1.0f });
+		skyCom->SetGroundColor({ 1.0f, 0.2f, 0.06f });
+		skyCom->SetIntensity(0.5f);
 		startupLevel->AddNewActor(std::move(environment));
 	}
 	else

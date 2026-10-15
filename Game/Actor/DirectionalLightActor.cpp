@@ -10,7 +10,7 @@ DirectionalLightActor::DirectionalLightActor()
 void DirectionalLightActor::Initialize()
 {
     directionalLight->SetColor({ 1.0f, 1.0f, 1.0f });
-    directionalLight->SetIntensity(1.0f);
+    directionalLight->SetIntensity(0.1f);
     rootComponent->SetLocalRotationEulerDeg({ 0.0f, 0.0f, 0.0f });
 }
 
