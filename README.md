@@ -204,7 +204,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager, SkyLightComponent 테스트가 추가되어 최신 `a8d47d4`에는 정적 집계상 162개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 `Lighting/Direct`·`Lighting/Environment` 헤더의 상대 include가 프로젝트의 선언된 include 루트에서 정상 해석되는지도 Windows/MSVC 빌드로 확인해야 합니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `a8d47d4` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
+2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 Component·Level 경계, ScopedFlag, ResourceManager, SkyLightComponent 테스트가 추가되어 최신 `a8d47d4`에는 정적 집계상 162개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 저장소의 기존 캡처들도 최신 `a8d47d4` 전체 회귀나 Game/HLSL 실행을 증명하지 않습니다.
 
 2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. 이 화면들을 최신 162개 전체 통과 기록으로 분류하지 않습니다.
 
