@@ -196,6 +196,7 @@ xcopy /Y /E /I "$(SolutionDir)Bin\$(Configuration)\Game\Shader" "$(OutDir)Shader
     <ClCompile Include="TimeTest.cpp" />
     <ClCompile Include="RenderingSystemTest.cpp" />
     <ClCompile Include="SkyLightComponentTest.cpp" />
+    <ClCompile Include="LightingSystemTest.cpp" />
     <ClCompile Include="ResourceManagerTest.cpp" />
     <ClCompile Include="Vector2Test.cpp" />
     <ClCompile Include="Vector3Test.cpp" />

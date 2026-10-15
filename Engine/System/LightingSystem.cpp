@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Component/Light/DirectionalLightComponent.h"
+#include "Component/Light/SkyLightComponent.h"
 
 namespace Engine
 {
@@ -64,6 +65,21 @@ namespace Engine
                 outRenderData.emplace_back(lightComponent->BuildRenderData());
             }
         }
+    }
+
+    EnvironmentLightingRenderData LightingSystem::BuildEnvironmentLightingRenderData() const
+    {
+        EnvironmentLightingRenderData result{};
+
+        for (const auto* sky : skyLights)
+        {
+            const float intensity = sky->GetIntensity();
+
+            result.skyContribution = result.skyContribution + sky->GetSkyColor() * intensity;
+            result.groundContribution = result.groundContribution + sky->GetGroundColor() * intensity;
+        }
+
+        return result;
     }
 
     void LightingSystem::Clear()

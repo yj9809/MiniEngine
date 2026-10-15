@@ -36,6 +36,9 @@
     <ClCompile Include="SkyLightComponentTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="LightingSystemTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="LevelTransitionTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
