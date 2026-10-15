@@ -39,6 +39,15 @@
     <ClCompile Include="LightingSystemTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="LightingPackingTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="LightingGpuTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Engine\Renderer\RenderLayer\OpaqueLayer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="LevelTransitionTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>

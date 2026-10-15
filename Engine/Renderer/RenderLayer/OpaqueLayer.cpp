@@ -65,19 +65,7 @@ namespace Engine
         context->VSSetConstantBuffers(1, 1, worldConstantBuffer.GetAddressOf());
 
         #pragma region Lighting 상수 버퍼 업데이트.
-        LightingConstantBuffer lightingBuffer{};
-        lightingBuffer.ambientColor = Vector4(0.1f, 0.1f, 0.1f, 1.0f); // 어두운 환경 조명.
-
-        // 첫 구현에서는 등록된 방향광 중 첫 번째 광원만 GPU에 전달한다.
-        if (!frameData.directionalLights.empty())
-        {
-            const DirectionalLightRenderData& light = frameData.directionalLights.front();
-            DirectionalLightGPUData& gpuLight = lightingBuffer.directionalLights[0];
-
-            gpuLight.direction = Vector4(light.direction, 0.0f);
-            gpuLight.colorAndIntensity = Vector4(light.color, light.intensity);
-            lightingBuffer.directionalLightCount = 1;
-        }
+        const LightingConstantBuffer lightingBuffer = BuildLightingConstantBuffer(frameData);
 
         D3D11_MAPPED_SUBRESOURCE mappedResource{};
         HRESULT hr = context->Map(lightingConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);

@@ -1,0 +1,336 @@
+#include <gtest/gtest.h>
+
+#include <array>
+#include <cstddef>
+#include <cstring>
+#include <filesystem>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+#include <d3d11.h>
+#include <d3d11sdklayers.h>
+#include <d3dcompiler.h>
+#include <d3d11shader.h>
+#include <wrl/client.h>
+
+#include "Renderer/RenderLayer/OpaqueLayer.h"
+
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "dxguid.lib")
+
+namespace
+{
+    using namespace Engine;
+    using Microsoft::WRL::ComPtr;
+
+    std::filesystem::path ExecutableDirectory()
+    {
+        wchar_t path[32768]{};
+        const DWORD length = GetModuleFileNameW(nullptr, path, static_cast<DWORD>(std::size(path)));
+        if (length == 0 || length >= std::size(path))
+            throw std::runtime_error("Cannot locate test executable");
+        return std::filesystem::path(path).parent_path();
+    }
+
+    RenderFrameData MakeGpuFrame(uint32_t count)
+    {
+        RenderFrameData frame;
+        frame.environmentLighting.skyContribution = Vector3(0.25f, 2.0f, 8.0f);
+        frame.environmentLighting.groundContribution = Vector3(4.0f, 0.0f, 0.125f);
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            const float value = static_cast<float>(i + 1);
+            DirectionalLightRenderData light;
+            light.direction = Vector3(value, -2 * value, 3 * value);
+            light.color = Vector3(0.25f * value, 2 * value, 0.5f * value);
+            light.intensity = 1.5f * value;
+            frame.directionalLights.push_back(light);
+        }
+        return frame;
+    }
+
+    void ExpectVector(const Vector4& actual, const Vector4& expected)
+    {
+        EXPECT_FLOAT_EQ(actual.x, expected.x);
+        EXPECT_FLOAT_EQ(actual.y, expected.y);
+        EXPECT_FLOAT_EQ(actual.z, expected.z);
+        EXPECT_FLOAT_EQ(actual.w, expected.w);
+    }
+
+    uint32_t ExpectedCount(const RenderFrameData& frame)
+    {
+        return frame.directionalLights.size() > MaxDirectionalLights
+            ? MaxDirectionalLights : static_cast<uint32_t>(frame.directionalLights.size());
+    }
+
+    // Expected values come from input semantics, not the production packing function.
+    std::vector<Vector4> ExpectedPixels(const RenderFrameData& frame)
+    {
+        const uint32_t count = ExpectedCount(frame);
+        std::vector<Vector4> values = {
+            Vector4(frame.environmentLighting.skyContribution, 0),
+            Vector4(frame.environmentLighting.groundContribution, 0),
+            Vector4(static_cast<float>(count), 0, 0, 0)
+        };
+        for (uint32_t i = 0; i < MaxDirectionalLights; ++i)
+        {
+            values.push_back(i < count ? Vector4(frame.directionalLights[i].direction, 0) : Vector4{});
+            values.push_back(i < count ? Vector4(frame.directionalLights[i].color,
+                frame.directionalLights[i].intensity) : Vector4{});
+        }
+        return values;
+    }
+
+    class LightingGpuTest : public ::testing::TestWithParam<D3D_DRIVER_TYPE>
+    {
+    protected:
+        void SetUp() override
+        {
+            originalDirectory = std::filesystem::current_path();
+            std::filesystem::current_path(ExecutableDirectory());
+            const D3D_FEATURE_LEVEL requested = D3D_FEATURE_LEVEL_11_0;
+            D3D_FEATURE_LEVEL actual{};
+            HRESULT hr = D3D11CreateDevice(nullptr, GetParam(), nullptr, D3D11_CREATE_DEVICE_DEBUG,
+                &requested, 1, D3D11_SDK_VERSION, &device, &actual, &context);
+            if (hr == DXGI_ERROR_SDK_COMPONENT_MISSING)
+            {
+                device.Reset();
+                context.Reset();
+                hr = D3D11CreateDevice(nullptr, GetParam(), nullptr, 0,
+                    &requested, 1, D3D11_SDK_VERSION, &device, &actual, &context);
+            }
+            ASSERT_TRUE(SUCCEEDED(hr)) << "D3D11CreateDevice HRESULT=" << std::hex << hr;
+            ASSERT_EQ(actual, D3D_FEATURE_LEVEL_11_0);
+            RecordProperty("debug_layer", SUCCEEDED(device.As(&infoQueue)) ? "enabled" : "unavailable");
+            ComPtr<IDXGIDevice> dxgiDevice;
+            ComPtr<IDXGIAdapter> adapter;
+            ASSERT_TRUE(SUCCEEDED(device.As(&dxgiDevice)));
+            ASSERT_TRUE(SUCCEEDED(dxgiDevice->GetAdapter(&adapter)));
+            DXGI_ADAPTER_DESC description{};
+            ASSERT_TRUE(SUCCEEDED(adapter->GetDesc(&description)));
+            const std::wstring adapterName(description.Description);
+            RecordProperty("adapter", std::string(adapterName.begin(), adapterName.end()));
+            ASSERT_NO_THROW(layer = std::make_unique<OpaqueLayer>(device.Get()));
+        }
+
+        void TearDown() override
+        {
+            layer.reset();
+            if (context) context->ClearState();
+            if (infoQueue)
+            {
+                for (UINT64 i = 0; i < infoQueue->GetNumStoredMessages(); ++i)
+                {
+                    SIZE_T size = 0;
+                    if (FAILED(infoQueue->GetMessage(i, nullptr, &size))) continue;
+                    std::vector<unsigned char> storage(size);
+                    auto* message = reinterpret_cast<D3D11_MESSAGE*>(storage.data());
+                    if (SUCCEEDED(infoQueue->GetMessage(i, message, &size)) &&
+                        message->Severity <= D3D11_MESSAGE_SEVERITY_WARNING)
+                    {
+                        ADD_FAILURE() << message->pDescription;
+                    }
+                }
+            }
+            if (!originalDirectory.empty()) std::filesystem::current_path(originalDirectory);
+        }
+
+        void ReadBoundLighting(LightingConstantBuffer& result)
+        {
+            ComPtr<ID3D11Buffer> bound;
+            context->PSGetConstantBuffers(1, 1, &bound);
+            ASSERT_NE(bound.Get(), nullptr);
+            D3D11_BUFFER_DESC description{};
+            bound->GetDesc(&description);
+            ASSERT_EQ(description.ByteWidth, sizeof(LightingConstantBuffer));
+            EXPECT_EQ(description.BindFlags, D3D11_BIND_CONSTANT_BUFFER);
+            EXPECT_EQ(description.Usage, D3D11_USAGE_DYNAMIC);
+
+            description.Usage = D3D11_USAGE_STAGING;
+            description.BindFlags = 0;
+            description.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+            ComPtr<ID3D11Buffer> staging;
+            ASSERT_TRUE(SUCCEEDED(device->CreateBuffer(&description, nullptr, &staging)));
+            context->CopyResource(staging.Get(), bound.Get());
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            ASSERT_TRUE(SUCCEEDED(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)));
+            std::memcpy(&result, mapped.pData, sizeof(result));
+            context->Unmap(staging.Get(), 0);
+        }
+
+        void ExpectUploaded(const RenderFrameData& frame)
+        {
+            layer->Prepare(context.Get(), frame);
+            LightingConstantBuffer uploaded{};
+            ASSERT_NO_FATAL_FAILURE(ReadBoundLighting(uploaded));
+            const auto expected = ExpectedPixels(frame);
+            ExpectVector(uploaded.skyContribution, expected[0]);
+            ExpectVector(uploaded.groundContribution, expected[1]);
+            EXPECT_EQ(uploaded.directionalLightCount, ExpectedCount(frame));
+            for (uint32_t i = 0; i < MaxDirectionalLights; ++i)
+            {
+                SCOPED_TRACE(i);
+                ExpectVector(uploaded.directionalLights[i].direction, expected[3 + 2 * i]);
+                ExpectVector(uploaded.directionalLights[i].colorAndIntensity, expected[4 + 2 * i]);
+            }
+            for (float value : uploaded.padding) EXPECT_FLOAT_EQ(value, 0.0f);
+        }
+
+        std::filesystem::path originalDirectory;
+        ComPtr<ID3D11Device> device;
+        ComPtr<ID3D11DeviceContext> context;
+        ComPtr<ID3D11InfoQueue> infoQueue;
+        std::unique_ptr<OpaqueLayer> layer;
+    };
+
+    TEST_P(LightingGpuTest, PrepareUploadsAndBindsCurrentValuesAcrossFrames)
+    {
+        for (uint32_t count : {0u, 1u, MaxDirectionalLights, MaxDirectionalLights + 1, 1u})
+        {
+            SCOPED_TRACE(count);
+            ASSERT_NO_FATAL_FAILURE(ExpectUploaded(MakeGpuFrame(count)));
+        }
+        ASSERT_NO_FATAL_FAILURE(ExpectUploaded(RenderFrameData{}));
+    }
+
+    TEST_P(LightingGpuTest, PixelShaderReadsActualBoundBuffer)
+    {
+        // Probe only transports b1 values to float pixels. It does not implement hemisphere lighting.
+        const char* shader = R"(
+struct Light { float4 direction; float4 colorAndIntensity; };
+cbuffer LightingConstantBuffer : register(b1) {
+    Light lights[CAPACITY];
+    float4 sky;
+    float4 ground;
+    uint count;
+    float3 padding;
+};
+float4 VS(uint id : SV_VertexID) : SV_POSITION {
+    float2 p = id == 0 ? float2(-1,-1) : (id == 1 ? float2(-1,3) : float2(3,-1));
+    return float4(p, 0, 1);
+}
+float4 PS(float4 position : SV_POSITION) : SV_TARGET {
+    uint pixel = (uint)position.x;
+    if (pixel == 0) return sky;
+    if (pixel == 1) return ground;
+    if (pixel == 2) return float4(count, padding);
+    uint index = (pixel - 3) / 2;
+    return ((pixel - 3) % 2) == 0 ? lights[index].direction : lights[index].colorAndIntensity;
+})";
+        const std::string capacity = std::to_string(MaxDirectionalLights);
+        const D3D_SHADER_MACRO macros[] = {{"CAPACITY", capacity.c_str()}, {nullptr, nullptr}};
+        ComPtr<ID3DBlob> vsCode, psCode, errors;
+        HRESULT hr = D3DCompile(shader, std::strlen(shader), "LightingGpuProbe", macros, nullptr,
+            "VS", "vs_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &vsCode, &errors);
+        ASSERT_TRUE(SUCCEEDED(hr)) << (errors ? static_cast<const char*>(errors->GetBufferPointer()) : "VS compile failed");
+        errors.Reset();
+        hr = D3DCompile(shader, std::strlen(shader), "LightingGpuProbe", macros, nullptr,
+            "PS", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &psCode, &errors);
+        ASSERT_TRUE(SUCCEEDED(hr)) << (errors ? static_cast<const char*>(errors->GetBufferPointer()) : "PS compile failed");
+        ComPtr<ID3D11VertexShader> vs;
+        ComPtr<ID3D11PixelShader> ps;
+        ASSERT_TRUE(SUCCEEDED(device->CreateVertexShader(vsCode->GetBufferPointer(), vsCode->GetBufferSize(), nullptr, &vs)));
+        ASSERT_TRUE(SUCCEEDED(device->CreatePixelShader(psCode->GetBufferPointer(), psCode->GetBufferSize(), nullptr, &ps)));
+
+        const UINT width = 3 + 2 * MaxDirectionalLights;
+        D3D11_TEXTURE2D_DESC textureDesc{};
+        textureDesc.Width = width;
+        textureDesc.Height = textureDesc.MipLevels = textureDesc.ArraySize = 1;
+        textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        textureDesc.SampleDesc.Count = 1;
+        textureDesc.Usage = D3D11_USAGE_DEFAULT;
+        textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+        ComPtr<ID3D11Texture2D> target, staging;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, nullptr, &target)));
+        ComPtr<ID3D11RenderTargetView> rtv;
+        ASSERT_TRUE(SUCCEEDED(device->CreateRenderTargetView(target.Get(), nullptr, &rtv)));
+        textureDesc.Usage = D3D11_USAGE_STAGING;
+        textureDesc.BindFlags = 0;
+        textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, nullptr, &staging)));
+        D3D11_RASTERIZER_DESC rasterDesc{};
+        rasterDesc.FillMode = D3D11_FILL_SOLID;
+        rasterDesc.CullMode = D3D11_CULL_NONE;
+        rasterDesc.DepthClipEnable = TRUE;
+        ComPtr<ID3D11RasterizerState> raster;
+        ASSERT_TRUE(SUCCEEDED(device->CreateRasterizerState(&rasterDesc, &raster)));
+        const D3D11_VIEWPORT viewport{0, 0, static_cast<float>(width), 1, 0, 1};
+
+        const std::array<RenderFrameData, 3> frames = {
+            MakeGpuFrame(MaxDirectionalLights + 1), MakeGpuFrame(1), RenderFrameData{}
+        };
+        for (const auto& frame : frames)
+        {
+            SCOPED_TRACE(frame.directionalLights.size());
+            layer->Prepare(context.Get(), frame);
+            // Keep b1 from the real Prepare call; only replace shaders for observation.
+            context->VSSetShader(vs.Get(), nullptr, 0);
+            context->PSSetShader(ps.Get(), nullptr, 0);
+            context->IASetInputLayout(nullptr);
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context->RSSetState(raster.Get());
+            context->RSSetViewports(1, &viewport);
+            context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+            const float sentinel[4] = {-99, -99, -99, -99};
+            context->ClearRenderTargetView(rtv.Get(), sentinel);
+            context->Draw(3, 0);
+            context->OMSetRenderTargets(0, nullptr, nullptr);
+            context->CopyResource(staging.Get(), target.Get());
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            ASSERT_TRUE(SUCCEEDED(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)));
+            std::vector<Vector4> pixels(width);
+            std::memcpy(pixels.data(), mapped.pData, width * sizeof(Vector4));
+            context->Unmap(staging.Get(), 0);
+            const auto expected = ExpectedPixels(frame);
+            for (UINT pixel = 0; pixel < width; ++pixel)
+            {
+                SCOPED_TRACE(pixel);
+                ExpectVector(pixels[pixel], expected[pixel]);
+            }
+        }
+    }
+
+    INSTANTIATE_TEST_SUITE_P(D3D11, LightingGpuTest,
+        ::testing::Values(D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP),
+        [](const ::testing::TestParamInfo<D3D_DRIVER_TYPE>& info) {
+            return info.param == D3D_DRIVER_TYPE_HARDWARE ? "Hardware" : "Warp";
+        });
+}
+
+TEST(LightingShaderLayoutTest, CompiledProductionShaderMatchesCpuLayoutAndBinding)
+{
+    ComPtr<ID3DBlob> bytecode;
+    const auto path = ExecutableDirectory() / "Shader" / "MeshPixelShader.cso";
+    ASSERT_TRUE(SUCCEEDED(D3DReadFileToBlob(path.c_str(), &bytecode)));
+    ComPtr<ID3D11ShaderReflection> reflection;
+    ASSERT_TRUE(SUCCEEDED(D3DReflect(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+        IID_ID3D11ShaderReflection, reinterpret_cast<void**>(reflection.GetAddressOf()))));
+    auto* buffer = reflection->GetConstantBufferByName("LightingConstantBuffer");
+    D3D11_SHADER_BUFFER_DESC bufferDesc{};
+    ASSERT_TRUE(SUCCEEDED(buffer->GetDesc(&bufferDesc)));
+    EXPECT_EQ(bufferDesc.Size, sizeof(Engine::LightingConstantBuffer));
+    const std::pair<const char*, UINT> fields[] = {
+        {"gDirectionalLights", offsetof(Engine::LightingConstantBuffer, directionalLights)},
+        {"gSkyContribution", offsetof(Engine::LightingConstantBuffer, skyContribution)},
+        {"gGroundContribution", offsetof(Engine::LightingConstantBuffer, groundContribution)},
+        {"gDirectionalLightCount", offsetof(Engine::LightingConstantBuffer, directionalLightCount)},
+        {"gLightingPadding", offsetof(Engine::LightingConstantBuffer, padding)}
+    };
+    for (const auto& [name, offset] : fields)
+    {
+        SCOPED_TRACE(name);
+        D3D11_SHADER_VARIABLE_DESC variable{};
+        ASSERT_TRUE(SUCCEEDED(buffer->GetVariableByName(name)->GetDesc(&variable)));
+        EXPECT_EQ(variable.StartOffset, offset);
+    }
+    D3D11_SHADER_TYPE_DESC lights{};
+    ASSERT_TRUE(SUCCEEDED(buffer->GetVariableByName("gDirectionalLights")->GetType()->GetDesc(&lights)));
+    EXPECT_EQ(lights.Elements, Engine::MaxDirectionalLights);
+    D3D11_SHADER_INPUT_BIND_DESC binding{};
+    ASSERT_TRUE(SUCCEEDED(reflection->GetResourceBindingDescByName("LightingConstantBuffer", &binding)));
+    EXPECT_EQ(binding.Type, D3D_SIT_CBUFFER);
+    EXPECT_EQ(binding.BindPoint, 1u);
+}

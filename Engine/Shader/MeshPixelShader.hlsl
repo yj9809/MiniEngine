@@ -20,7 +20,10 @@ cbuffer MaterialConstantBuffer : register(b0)
 cbuffer LightingConstantBuffer : register(b1)
 {
 	DirectionalLightGPUData gDirectionalLights[MAX_DIRECTIONAL_LIGHTS];
-	float4 gAmbientColor;
+
+	float4 gSkyContribution;
+	float4 gGroundContribution;
+
 	uint gDirectionalLightCount;
 	float3 gLightingPadding;
 };
@@ -33,7 +36,8 @@ float4 PS(VSOutput input) : SV_TARGET
 	float4 albedo = gTexture.Sample(gSampler, input.uv) * gBaseColor;
 
 	float3 N = normalize(input.normal);
-	float3 ambient = gAmbientColor.rgb * albedo.rgb;
+	// 임시: Hemisphere Ambient 적용 전까지 기존 고정 환경광 계산 유지.
+	float3 ambient = float3(0.1f, 0.1f, 0.1f) * albedo.rgb;
 	float3 diffuse = float3(0.0f, 0.0f, 0.0f);
 
 	for (uint index = 0; index < gDirectionalLightCount; ++index)
