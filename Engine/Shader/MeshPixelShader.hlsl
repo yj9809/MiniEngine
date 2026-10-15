@@ -36,8 +36,8 @@ float4 PS(VSOutput input) : SV_TARGET
 	float4 albedo = gTexture.Sample(gSampler, input.uv) * gBaseColor;
 
 	float3 N = normalize(input.normal);
-	// 임시: Hemisphere Ambient 적용 전까지 기존 고정 환경광 계산 유지.
-	float3 ambient = float3(0.1f, 0.1f, 0.1f) * albedo.rgb;
+	float skyWeight = saturate(N.z * 0.5f + 0.5f);
+	float3 ambient = lerp(gGroundContribution.rgb, gSkyContribution.rgb, skyWeight);
 	float3 diffuse = float3(0.0f, 0.0f, 0.0f);
 
 	for (uint index = 0; index < gDirectionalLightCount; ++index)

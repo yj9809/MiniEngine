@@ -293,6 +293,151 @@ float4 PS(float4 position : SV_POSITION) : SV_TARGET {
         }
     }
 
+    TEST_P(LightingGpuTest, ProductionPixelShaderBlendsHemisphereAndAppliesAlbedoOnce)
+    {
+        // Supply controlled world normals; keep the production PS and Prepare's lighting binding.
+        const char* source = R"(
+cbuffer TestNormal : register(b0) { float4 normal; };
+struct Output { float4 pos : SV_POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD; };
+Output VS(uint id : SV_VertexID) {
+    Output result;
+    float2 p = id == 0 ? float2(-1,-1) : (id == 1 ? float2(-1,3) : float2(3,-1));
+    result.pos = float4(p, 0, 1);
+    result.normal = normal.xyz;
+    result.uv = float2(0.5, 0.5);
+    return result;
+})";
+        ComPtr<ID3DBlob> code, errors;
+        const HRESULT hr = D3DCompile(source, std::strlen(source), "HemisphereTestInput", nullptr,
+            nullptr, "VS", "vs_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &code, &errors);
+        ASSERT_TRUE(SUCCEEDED(hr)) << (errors ? static_cast<const char*>(errors->GetBufferPointer()) : "VS compile failed");
+        ComPtr<ID3D11VertexShader> vs;
+        ASSERT_TRUE(SUCCEEDED(device->CreateVertexShader(code->GetBufferPointer(), code->GetBufferSize(), nullptr, &vs)));
+
+        D3D11_BUFFER_DESC bufferDesc{};
+        bufferDesc.ByteWidth = sizeof(Vector4);
+        bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+        bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        ComPtr<ID3D11Buffer> normalBuffer, materialBuffer;
+        ASSERT_TRUE(SUCCEEDED(device->CreateBuffer(&bufferDesc, nullptr, &normalBuffer)));
+        const Vector4 white(1, 1, 1, 1);
+        D3D11_SUBRESOURCE_DATA whiteData{};
+        whiteData.pSysMem = &white;
+        whiteData.SysMemPitch = sizeof(white);
+        ASSERT_TRUE(SUCCEEDED(device->CreateBuffer(&bufferDesc, &whiteData, &materialBuffer)));
+
+        D3D11_TEXTURE2D_DESC textureDesc{};
+        textureDesc.Width = textureDesc.Height = textureDesc.MipLevels = textureDesc.ArraySize = 1;
+        textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        textureDesc.SampleDesc.Count = 1;
+        textureDesc.Usage = D3D11_USAGE_DEFAULT;
+        textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        ComPtr<ID3D11Texture2D> texture, target, staging;
+        ComPtr<ID3D11ShaderResourceView> textureView;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, &whiteData, &texture)));
+        ASSERT_TRUE(SUCCEEDED(device->CreateShaderResourceView(texture.Get(), nullptr, &textureView)));
+        textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, nullptr, &target)));
+        ComPtr<ID3D11RenderTargetView> rtv;
+        ASSERT_TRUE(SUCCEEDED(device->CreateRenderTargetView(target.Get(), nullptr, &rtv)));
+        textureDesc.Usage = D3D11_USAGE_STAGING;
+        textureDesc.BindFlags = 0;
+        textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, nullptr, &staging)));
+
+        D3D11_RASTERIZER_DESC rasterDesc{};
+        rasterDesc.FillMode = D3D11_FILL_SOLID;
+        rasterDesc.CullMode = D3D11_CULL_NONE;
+        rasterDesc.DepthClipEnable = TRUE;
+        ComPtr<ID3D11RasterizerState> raster;
+        ASSERT_TRUE(SUCCEEDED(device->CreateRasterizerState(&rasterDesc, &raster)));
+        const D3D11_VIEWPORT viewport{0, 0, 1, 1, 0, 1};
+
+        // Explicit expected colors detect swapped endpoints, wrong up axis, scalar truncation,
+        // missing normalization, stale frame data, and accidental clamping of HDR contributions.
+        const Vector3 sky(0.2f, 0.6f, 2.0f), ground(1.0f, 0.2f, 0.4f);
+        struct Case
+        {
+            const char* name;
+            Vector4 normal;
+            Vector3 sky, ground, expected;
+            Vector4 baseColor{1, 1, 1, 1};
+            Vector4 texel{1, 1, 1, 1};
+            Vector3 directionalColor{};
+            float directionalIntensity = 0;
+            float expectedAlpha = 1;
+        };
+        const Case cases[] = {
+            {"up", {0,0,1,0}, sky, ground, sky},
+            {"down", {0,0,-1,0}, sky, ground, ground},
+            {"right", {0,1,0,0}, sky, ground, {0.6f,0.4f,1.2f}},
+            {"left", {0,-1,0,0}, sky, ground, {0.6f,0.4f,1.2f}},
+            {"forward", {1,0,0,0}, sky, ground, {0.6f,0.4f,1.2f}},
+            {"back", {-1,0,0,0}, sky, ground, {0.6f,0.4f,1.2f}},
+            {"sloped", {0.6f,0,0.8f,0}, sky, ground, {0.28f,0.56f,1.84f}},
+            {"nonunit sloped", {3,0,4,0}, sky, ground, {0.28f,0.56f,1.84f}},
+            {"equal up", {0,0,1,0}, sky, sky, sky},
+            {"equal side", {1,0,0,0}, sky, sky, sky},
+            {"equal down", {0,0,-1,0}, sky, sky, sky},
+            {"zero", {0,0,1,0}, {}, {}, {}},
+            // These nonwhite inputs distinguish one albedo multiplication from two.
+            {"colored material ambient", {0,0,1,0}, {0.4f,0.4f,0.4f}, {}, {0.2f,0.1f,0.3f},
+                {0.5f,0.25f,0.75f,0.6f}, {1,1,1,1}, {}, 0, 0.6f},
+            {"colored texture and material ambient", {0,0,1,0}, {0.4f,0.6f,0.8f}, {}, {0.1f,0.12f,0.16f},
+                {0.5f,0.25f,0.8f,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {}, 0, 0.3f},
+            {"colored direct only", {0,0,1,0}, {}, {}, {0.3f,0.08f,0.16f},
+                {0.5f,0.25f,0.8f,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {0.6f,0.2f,0.4f}, 2, 0.3f},
+            {"colored ambient plus direct", {0,0,1,0}, {0.4f,0.6f,0.8f}, {}, {0.4f,0.2f,0.32f},
+                {0.5f,0.25f,0.8f,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {0.6f,0.2f,0.4f}, 2, 0.3f},
+            {"black material", {0,0,1,0}, sky, ground, {},
+                {0,0,0,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {0.6f,0.2f,0.4f}, 2, 0.3f},
+            {"colored unlit", {0,0,1,0}, {}, {}, {},
+                {0.5f,0.25f,0.8f,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {}, 0, 0.3f}
+        };
+        for (const auto& test : cases)
+        {
+            SCOPED_TRACE(test.name);
+            RenderFrameData frame;
+            frame.environmentLighting.skyContribution = test.sky;
+            frame.environmentLighting.groundContribution = test.ground;
+            if (test.directionalIntensity > 0)
+            {
+                DirectionalLightRenderData light;
+                light.direction = Vector3(0, 0, -1);
+                light.color = test.directionalColor;
+                light.intensity = test.directionalIntensity;
+                frame.directionalLights.push_back(light);
+            }
+            layer->Prepare(context.Get(), frame);
+            context->VSSetShader(vs.Get(), nullptr, 0);
+            context->UpdateSubresource(normalBuffer.Get(), 0, nullptr, &test.normal, 0, 0);
+            context->UpdateSubresource(materialBuffer.Get(), 0, nullptr, &test.baseColor, 0, 0);
+            context->UpdateSubresource(texture.Get(), 0, nullptr, &test.texel, sizeof(Vector4), 0);
+            context->VSSetConstantBuffers(0, 1, normalBuffer.GetAddressOf());
+            context->PSSetConstantBuffers(0, 1, materialBuffer.GetAddressOf());
+            context->PSSetShaderResources(0, 1, textureView.GetAddressOf());
+            context->IASetInputLayout(nullptr);
+            context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context->RSSetState(raster.Get());
+            context->RSSetViewports(1, &viewport);
+            context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+            const float sentinel[4] = {-99, -99, -99, -99};
+            context->ClearRenderTargetView(rtv.Get(), sentinel);
+            context->Draw(3, 0);
+            context->OMSetRenderTargets(0, nullptr, nullptr);
+            context->CopyResource(staging.Get(), target.Get());
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            ASSERT_TRUE(SUCCEEDED(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)));
+            Vector4 actual;
+            std::memcpy(&actual, mapped.pData, sizeof(actual));
+            context->Unmap(staging.Get(), 0);
+            EXPECT_NEAR(actual.x, test.expected.x, 0.00001f);
+            EXPECT_NEAR(actual.y, test.expected.y, 0.00001f);
+            EXPECT_NEAR(actual.z, test.expected.z, 0.00001f);
+            EXPECT_NEAR(actual.w, test.expectedAlpha, 0.00001f);
+        }
+    }
+
     INSTANTIATE_TEST_SUITE_P(D3D11, LightingGpuTest,
         ::testing::Values(D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP),
         [](const ::testing::TestParamInfo<D3D_DRIVER_TYPE>& info) {
