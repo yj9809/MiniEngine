@@ -32,7 +32,7 @@ Environment Lighting의 첫 코드로 `Light`는 Intensity, `DirectLight`는 Col
 | Material | BaseColor · MainTexture, PS 상수 버퍼 연동 | 완료 |
 | 기본 조명 | World Normal, Directional Lambert, Hemisphere Ambient, Albedo 단일 곱셈 | 코드 연결 / 환경광 비교 화면 기록, 최신 전체 회귀 대기 |
 | LightingSystem | Level 단위 비소유 등록·해제, 방향광 수집, 다중 SkyLight 색×강도 합산 | CPU 프레임 데이터 연결 |
-| Environment Lighting | SkyLight → RenderData → 프레임 복사 → GPU 패킹 → Hemisphere HLSL → Game | 구현·통합 / 비교 캡처 존재, 최신 SHA 실행 근거 보완 대기 |
+| Environment Lighting | SkyLight → RenderData → 프레임 복사 → GPU 패킹 → Hemisphere HLSL → Game | 1-2 완료 / 관련 60개 테스트·비교 캡처 확인, 최신 전체 회귀와 구분 |
 | RenderingSystem | 메시 명령·방향광·환경광 프레임 값을 렌더러에 제출 | Level Draw와 연결 / 최신 전체 테스트 실행 대기 |
 | 방향광 GPU 경로 | 수집 순서상 최대 4개 패킹·업로드, 개수 기반 셰이더 누적 | 코드 연결 / 용량·초과·GPU readback 테스트 소스 존재 |
 | 충돌 | `BoxCollider`, AABB overlap, 등록 컨테이너 | 기반 구현 / 게임 루프 통합 미완료 |
@@ -169,18 +169,17 @@ Level
 
 `TransformComponent`의 Euler 입력은 `Vector3(x, y, z) = Pitch, Yaw, Roll`이며 +X를 Forward로 사용합니다. 현재 행렬 구성은 이 좌표계와 회전 방향을 맞추기 위해 `Rotation(-Roll, -Pitch, Yaw)`를 사용합니다. 데모에서는 `1` / `2` / `3` 키로 Pitch / Yaw / Roll 회전을 각각 토글합니다.
 
-![Roll 회전 실행 화면](Docs/Roll_Rotation.gif)
+| Pitch 회전 | Yaw 회전 | Roll 회전 |
+|---|---|---|
+| ![Pitch 회전 실행 화면](Docs/Pitch_Rotation.gif) | ![Yaw 회전 실행 화면](Docs/Yaw_Rotation.gif) | ![Roll 회전 실행 화면](Docs/Roll_Rotation.gif) |
 
-`Roll_Rotation.gif`은 2026-10-10에 기록한 89프레임 실행 캡처입니다. 입력 키와 빌드 SHA를 화면에 함께 남기지 않아 현재 `main`의 재현 결과로 분류하지 않았습니다. 다음 캡처에서는 축 입력과 기준 커밋을 함께 기록할 예정입니다.
+| Pitch 0도 비교 | Pitch 90도 짐벌락 비교 |
+|---|---|
+| ![Pitch 0도에서 기록한 회전 비교](Docs/Pitch_0_Gimbal_Lock.gif) | ![Pitch 90도에서 기록한 짐벌락 비교](Docs/Pitch_90_Gimbal_Lock.gif) |
 
-기존 X/Y/Z 및 짐벌락 GIF도 `Docs/`에 공개되어 있습니다. 파일명은 당시 기록의 분류이며, 이 자료는 현재 축 입력 의미를 정리하기 전인 2026-06-13에 추가됐습니다. GIF의 화면 내용은 이번 점검에서 직접 재생해 확인하지 못했으므로 파일명만으로 실제 입력 축이나 현재 코드의 재현 결과를 단정하지 않습니다.
+2026-10-15에 새로 기록한 회전 GIF입니다. Pitch / Yaw / Roll은 각각 76 / 75 / 77프레임, Pitch 0도 / 90도 비교는 각각 147 / 169프레임이며, 원본과 동일한 파일을 연결했습니다. 기존 회색 배경의 Roll 캡처와 달리 검은 배경에서 지구의 회전을 확인할 수 있습니다.
 
-- [X축 회전 기록](Docs/Earth_X축%20회전.gif)
-- [Y축 회전 기록](Docs/Earth_Y축%20회전.gif)
-- [Z축 회전 기록](Docs/Earth_Z축%20회전.gif)
-- [짐벌락 현상 기록](Docs/Earth_짐벌락%20현상.gif)
-
-현재도 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있습니다.
+Pitch 0도 / 90도 조건은 캡처 파일의 구분이며, 화면에 입력 키·각도값·빌드 SHA를 함께 남기지는 않았습니다. 따라서 이 자료는 회전과 짐벌락 비교를 위한 실행 기록으로 남기고, 현재 main의 정확한 입력 조건 재현이나 Quaternion 전환 완료 근거로 확대하지 않습니다. 현재도 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있습니다.
 
 ## 빌드와 검증
 
@@ -231,6 +230,8 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
 2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 테스트가 추가되어 최신 `cc0471b`에는 정적 집계상 195개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 새 GPU 테스트는 실제 OpaqueLayer의 b1 버퍼 readback, probe shader 출력, 생산 MeshPixelShader의 Hemisphere·Albedo·alpha 출력과 컴파일된 셰이더 배치를 검사하도록 작성됐습니다. 테스트 코드 존재는 실행 통과가 아닙니다. Game 캡처는 화면 자료이며 최신 SHA의 HLSL 컴파일·Hardware/WARP 테스트 실행 로그를 대체하지 않습니다.
+
+2026-10-15의 로컬 `Bin/{Debug,Release}/Tests/precommit-results.xml`과 실행 로그에서는 환경광 관련 7개 스위트, 각 구성 60개 통과와 실패·오류·비활성 0을 확인했습니다. RenderingSystem 10, SkyLightComponent 9, LightingSystem 12, LightingPacking 10, Shader Layout 1, ResourceManager 12, Hardware/WARP GPU 6개 결과입니다. `5239d8e`·`926c19b` 작업 범위의 기존 실행 기록이며 이번 문서 갱신에서 테스트를 다시 실행하지 않았습니다. 이후 `cc0471b`의 Game 비교 설정 변경이나 195개 전체 회귀 통과 기록과는 구분합니다.
 
 2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. 이 화면들을 최신 162개 전체 통과 기록으로 분류하지 않습니다.
 
@@ -289,7 +290,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 단계 | 내용 | 상태 |
 |---|---|---|
 | 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 195개 실행 검증 대기 |
-| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | Runtime → Render → GPU → HLSL·Game 연결 / 비교 화면 존재, 최신 실행 근거 보완 대기 |
+| 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 1-1·1-2 완료 / 관련 범위 테스트·실행 화면 확인 |
 | 2 | Quaternion Transform · Transform 계층 | 예정 |
 | 3 | Forward Lighting 기준선 | 예정 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
@@ -303,7 +304,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-Environment Lighting의 데이터·렌더 연결과 Albedo 중복 곱셈 수정은 코드에 반영됐습니다. 최신 SHA의 빌드·전체 테스트·Game/HLSL 실행 근거를 보완한 뒤 **Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순으로 진행합니다. 방향광 최대 4개 업로드는 이번에 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
+Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지하며, 다음은 **Quaternion 회전 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 관련 범위의 테스트·실행 화면과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 이번에 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
 ## 프로젝트 구조
 
