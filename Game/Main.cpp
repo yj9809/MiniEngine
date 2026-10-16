@@ -17,9 +17,10 @@ int main(int argc, char* argv[])
 	auto startupLevel = std::make_unique<Engine::Level>();
 
 	auto camera = std::make_unique<CameraActor>();
-	if (coloredAmbientDemo) camera->SetPosition({ -1.2f, 0.0f, 0.0f });
+	camera->SetPosition({ -1.2f, 0.0f, 0.0f });
 	startupLevel->AddNewActor(std::move(camera));
-	startupLevel->AddNewActor(std::make_unique<TestMeshActor>());
+	auto testMeshActor = std::make_unique<TestMeshActor>();
+	startupLevel->AddNewActor(std::move(testMeshActor));
 	if (coloredAmbientDemo)
 	{
 		auto environment = std::make_unique<Engine::Actor>();
