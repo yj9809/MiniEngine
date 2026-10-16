@@ -79,16 +79,59 @@ namespace Engine
 		return sqrt(LengthSquared());
 	}
 
-	Vector3 Vector3::Normalize() const
+	bool Vector3::Normalize(float minLengthSquared)
 	{
-		float len = Length();
-
-		if (len == 0)
+		Vector3 normalized;
+		if(TryNormalize(normalized, minLengthSquared))
 		{
-			return Vector3::zero;
+			x = normalized.x;
+			y = normalized.y;
+			z = normalized.z;
+			return true;
 		}
 
-		return Vector3(x / len, y / len, z / len);
+		return false;
+	}
+
+	bool Vector3::TryNormalize(Vector3& outResult, float minLengthSquared) const
+	{
+		if (!std::isfinite(minLengthSquared) || minLengthSquared < 0.0f)
+		{
+			outResult = Vector3::zero;
+			return false;
+		}
+
+		if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+		{
+			outResult = Vector3::zero;
+			return false;
+		}
+
+		const double dx = static_cast<double>(x);
+		const double dy = static_cast<double>(y);
+		const double dz = static_cast<double>(z);
+
+		const double lenSquared = (dx * dx) + (dy * dy) + (dz * dz);
+		if (lenSquared <= minLengthSquared)
+		{
+			outResult = Vector3::zero;
+			return false;
+		}
+
+		const double len = sqrt(lenSquared);
+
+		const double rx = dx / len;
+		const double ry = dy / len;
+		const double rz = dz / len;
+
+		if (!std::isfinite(rx) || !std::isfinite(ry) || !std::isfinite(rz))
+		{
+			outResult = Vector3::zero;
+			return false;
+		}
+
+		outResult = Vector3(static_cast<float>(rx), static_cast<float>(ry), static_cast<float>(rz));
+		return true;
 	}
 
 	const Vector3 Vector3::zero = Vector3(0, 0, 0);

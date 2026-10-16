@@ -27,9 +27,10 @@ void CameraActor::Tick(float deltaTime)
     forward.x = std::cos(pitch) * std::cos(yaw);
     forward.y = std::cos(pitch) * std::sin(yaw);
     forward.z = std::sin(pitch);
-    forward = forward.Normalize();
+    forward.Normalize();
 
-    Engine::Vector3 right = Engine::Vector3::up.Cross(forward).Normalize();
+    Engine::Vector3 right = Engine::Vector3::up.Cross(forward);
+    right.Normalize();
 
     Engine::Vector3 position = rootComponent->GetLocalPosition();
 

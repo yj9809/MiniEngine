@@ -42,6 +42,7 @@ namespace Engine
 		// 카메라 변환 행렬.
 		// eye: 카메라 위치, at: 바라보는 지점, up: 월드 업 벡터.
 		static Matrix4 LookAt(const Vector3& eye, const Vector3& at, const Vector3& up);
+		static bool TryLookAt(const Vector3& eye, const Vector3& at, const Vector3& up, Matrix4& outResult);
 		// 투영 행렬.
 		// 왼손 좌표계.
 		static Matrix4 PerspectiveFOV(float fovY, float aspect, float nearZ, float farZ);

@@ -66,16 +66,61 @@ namespace Engine
 		return sqrt(LengthSquared());
 	}
 
-	Vector4 Vector4::Normalize() const
+	bool Vector4::Normalize(float minLengthSquared)
 	{
-		float len = Length();
-
-		if (len == 0)
+		Vector4 normalized;
+		if (TryNormalize(normalized, minLengthSquared))
 		{
-			return Vector4::zero;
+			x = normalized.x;
+			y = normalized.y;
+			z = normalized.z;
+			w = normalized.w;
+			return true;
 		}
 
-		return Vector4(x / len, y / len, z / len, w / len);
+		return false;
+	}
+
+	bool Vector4::TryNormalize(Vector4& outResult, float minLengthSquared) const
+	{
+		if (!std::isfinite(minLengthSquared) || minLengthSquared < 0.0f)
+		{
+			outResult = Vector4::zero;
+			return false;
+		}
+
+		if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || !std::isfinite(w))
+		{
+			outResult = Vector4::zero;
+			return false;
+		}
+
+		const double dx = static_cast<double>(x);
+		const double dy = static_cast<double>(y);
+		const double dz = static_cast<double>(z);
+		const double dw = static_cast<double>(w);
+
+		const double lenSquared = (dx * dx) + (dy * dy) + (dz * dz) + (dw * dw);
+		if (lenSquared <= minLengthSquared)
+		{
+			outResult = Vector4::zero;
+			return false;
+		}
+
+		const double len = sqrt(lenSquared);
+
+		const double rx = dx / len;
+		const double ry = dy / len;
+		const double rz = dz / len;
+		const double rw = dw / len;
+		if (!std::isfinite(rx) || !std::isfinite(ry) || !std::isfinite(rz) || !std::isfinite(rw))
+		{
+			outResult = Vector4::zero;
+			return false;
+		}
+
+		outResult = Vector4(static_cast<float>(rx), static_cast<float>(ry), static_cast<float>(rz), static_cast<float>(rw));
+		return true;
 	}
 
 	Vector3 Vector4::ToVector3() const

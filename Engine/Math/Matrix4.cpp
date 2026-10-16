@@ -275,11 +275,26 @@ namespace Engine
 	Matrix4 Matrix4::LookAt(const Vector3& eye, const Vector3& at, const Vector3& up)
 	{
 		Matrix4 result;
+		TryLookAt(eye, at, up, result);
+		return result;
+	}
+
+	bool Matrix4::TryLookAt(const Vector3& eye, const Vector3& at, const Vector3& up, Matrix4& outResult)
+	{
+		outResult = Matrix4::identity;
 
 		// 카메라 기준 깊이 방향.
-		Vector3 forward = (at - eye).Normalize();
+		Vector3 forward;
+		if (!(at - eye).TryNormalize(forward))
+		{
+			return false;
+		}
 		// 카메라 기준 가로 방향.
-		Vector3 right = up.Cross(forward).Normalize();
+		Vector3 right;
+		if (!up.Cross(forward).TryNormalize(right))
+		{
+			return false;
+		}
 		// 카메라 기준 세로 방향.
 		Vector3 upVector = forward.Cross(right);
 
@@ -287,6 +302,8 @@ namespace Engine
 		// right.y				upVector.y				forward.y		0
 		// right.z				upVector.z				forward.z		0
 		// -right.Dot(eye)		-upVector.Dot(eye)		-forward.Dot	0 
+
+		Matrix4 result = Matrix4::identity;
 
 		// X Vector.
 		result.m00 = right.x;
@@ -308,7 +325,16 @@ namespace Engine
 		result.m31 = -upVector.Dot(eye);
 		result.m32 = -forward.Dot(eye);
 
-		return result;
+		for (float value : result.elements)
+		{
+			if (!std::isfinite(value))
+			{
+				return false;
+			}
+		}
+
+		outResult = result;
+		return true;
 	}
 
 	Matrix4 Matrix4::PerspectiveFOV(float fovY, float aspect, float nearZ, float farZ)

@@ -135,23 +135,26 @@ TEST(Vector4Test, Length)
 TEST(Vector4Test, Normalize_LengthIsOne)
 {
     Vector4 a(1.0f, 2.0f, 3.0f, 4.0f);
-    Vector4 n = a.Normalize();
+    Vector4 n = a;
+    ASSERT_TRUE(n.Normalize());
     EXPECT_NEAR(n.Length(), 1.0f, kEps);
 }
 
 TEST(Vector4Test, Normalize_Direction)
 {
     Vector4 a(3.0f, 0.0f, 0.0f, 0.0f);
-    Vector4 n = a.Normalize();
+    Vector4 n = a;
+    ASSERT_TRUE(n.Normalize());
     EXPECT_NEAR(n.x, 1.0f, kEps);
     EXPECT_NEAR(n.y, 0.0f, kEps);
     EXPECT_NEAR(n.z, 0.0f, kEps);
     EXPECT_NEAR(n.w, 0.0f, kEps);
 }
 
-TEST(Vector4Test, Normalize_ZeroVector_ReturnsZero)
+TEST(Vector4Test, Normalize_ZeroVector_ReturnsFalseAndPreservesInput)
 {
-    Vector4 n = Vector4::zero.Normalize();
+    Vector4 n = Vector4::zero;
+    EXPECT_FALSE(n.Normalize());
     EXPECT_FLOAT_EQ(n.x, 0.0f);
     EXPECT_FLOAT_EQ(n.y, 0.0f);
     EXPECT_FLOAT_EQ(n.z, 0.0f);

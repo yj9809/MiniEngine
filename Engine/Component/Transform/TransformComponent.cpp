@@ -55,7 +55,9 @@ namespace Engine
 
     Vector3 TransformComponent::GetForward() const
     {
-        return GetRotationMatrix().TransformVector(Vector3::unitX).Normalize();
+        Vector3 forward = GetRotationMatrix().TransformVector(Vector3::unitX);
+        forward.Normalize();
+        return forward;
     }
 
     Matrix4 TransformComponent::GetRotationMatrix() const

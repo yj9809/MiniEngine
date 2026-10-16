@@ -19,6 +19,9 @@ namespace Engine
 		bool operator==(const Vector2& other) const;
 		bool operator!=(const Vector2& other) const;
 
+		bool Normalize(float minLengthSquared = 1e-8f);
+		bool TryNormalize(Vector2& outResult, float minLengthSquared = 1e-8f) const;
+
 		static const Vector2 zero;
 		static const Vector2 one;
 		static const Vector2 up;

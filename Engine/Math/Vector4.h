@@ -31,7 +31,8 @@ namespace Engine
 		// Vector4 길이.
 		float Length() const;
 		// Vector4 정규화.
-		Vector4 Normalize() const;
+		bool Normalize(float minLengthSquared = 1e-8f);
+		bool TryNormalize(Vector4& outResult, float minLengthSquared = 1e-8f) const;
 		// Vector3 변환.
 		Vector3 ToVector3() const;
 

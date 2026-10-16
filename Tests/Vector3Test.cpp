@@ -142,22 +142,25 @@ TEST(Vector3Test, Length)
 TEST(Vector3Test, Normalize_LengthIsOne)
 {
     Vector3 a(3.0f, 1.0f, 2.0f);
-    Vector3 n = a.Normalize();
+    Vector3 n = a;
+    ASSERT_TRUE(n.Normalize());
     EXPECT_NEAR(n.Length(), 1.0f, kEps);
 }
 
 TEST(Vector3Test, Normalize_Direction)
 {
     Vector3 a(2.0f, 0.0f, 0.0f);
-    Vector3 n = a.Normalize();
+    Vector3 n = a;
+    ASSERT_TRUE(n.Normalize());
     EXPECT_NEAR(n.x, 1.0f, kEps);
     EXPECT_NEAR(n.y, 0.0f, kEps);
     EXPECT_NEAR(n.z, 0.0f, kEps);
 }
 
-TEST(Vector3Test, Normalize_ZeroVector_ReturnsZero)
+TEST(Vector3Test, Normalize_ZeroVector_ReturnsFalseAndPreservesInput)
 {
-    Vector3 n = Vector3::zero.Normalize();
+    Vector3 n = Vector3::zero;
+    EXPECT_FALSE(n.Normalize());
     EXPECT_FLOAT_EQ(n.x, 0.0f);
     EXPECT_FLOAT_EQ(n.y, 0.0f);
     EXPECT_FLOAT_EQ(n.z, 0.0f);
