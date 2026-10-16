@@ -116,6 +116,7 @@
     <ClInclude Include="Math\Vector2.h" />
     <ClInclude Include="Math\Vector3.h" />
     <ClInclude Include="Math\Vector4.h" />
+    <ClInclude Include="Math\Quaternion.h" />
     <ClInclude Include="Renderer\D3D11Renderer.h" />
     <ClInclude Include="Renderer\IRenderer.h" />
     <ClInclude Include="Renderer\Material.h" />
@@ -159,6 +160,7 @@
     <ClCompile Include="Math\Vector2.cpp" />
     <ClCompile Include="Math\Vector3.cpp" />
     <ClCompile Include="Math\Vector4.cpp" />
+    <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Renderer\D3D11Renderer.cpp" />
     <ClCompile Include="Renderer\Mesh.cpp" />
     <ClCompile Include="Renderer\RenderLayer\OpaqueLayer.cpp" />

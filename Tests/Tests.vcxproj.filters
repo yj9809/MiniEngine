@@ -21,6 +21,9 @@
     <ClCompile Include="Vector2Test.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="QuaternionTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="LevelTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
