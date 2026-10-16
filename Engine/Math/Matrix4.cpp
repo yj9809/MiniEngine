@@ -259,8 +259,8 @@ namespace Engine
 		return result;
 	}
 
-	// 곱하는 순서에 따라 결과가 달라진다.
-	// ZYX 순서로 회전 행렬이라면 X * Y * Z 순서로 곱해야 한다.
+	// 행벡터 변환 규칙에서 X축 회전 후 Y축, Z축 회전을 적용한다.
+	// roll, pitch, yaw는 각각 X, Y, Z축의 라디안 각도다.
 	Matrix4 Matrix4::Rotation(float roll, float pitch, float yaw)
 	{
 		return RotationX(roll) * RotationY(pitch) * RotationZ(yaw);
@@ -271,7 +271,7 @@ namespace Engine
 		return Rotation(rotation.x, rotation.y, rotation.z);
 	}
 
-	// 카메라 뷰 변환 시 기존 열벡터가 역행렬로 인해 행벡터로 바뀌는 것을 고려해야 함.
+	// 월드 위치를 카메라의 right, up, forward 축에 투영하는 뷰 행렬을 만든다.
 	Matrix4 Matrix4::LookAt(const Vector3& eye, const Vector3& at, const Vector3& up)
 	{
 		Matrix4 result;
@@ -301,7 +301,7 @@ namespace Engine
 		// right.x				upVector.x				forward.x		0
 		// right.y				upVector.y				forward.y		0
 		// right.z				upVector.z				forward.z		0
-		// -right.Dot(eye)		-upVector.Dot(eye)		-forward.Dot	0 
+		// -right.Dot(eye)		-upVector.Dot(eye)		-forward.Dot(eye)	1
 
 		Matrix4 result = Matrix4::identity;
 
