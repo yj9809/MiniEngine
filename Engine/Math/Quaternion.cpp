@@ -3,12 +3,24 @@
 #include <cmath>
 #include <limits>
 
+#include "Vector3.h"
+
 namespace Engine
 {
     Quaternion::Quaternion(float x, float y, float z, float w)
         : x(x), y(y), z(z), w(w)
     {
 
+    }
+
+    Quaternion Quaternion::operator*(const Quaternion& other) const
+    {
+        return Quaternion(
+          w * other.x + x * other.w + y * other.z - z * other.y,
+          w * other.y + y * other.w + z * other.x - x * other.z,
+          w * other.z + z * other.w + x * other.y - y * other.x,
+          w * other.w - x * other.x - y * other.y - z * other.z
+        );
     }
 
     bool Quaternion::Normalize(float minLengthSquared)
@@ -133,6 +145,30 @@ namespace Engine
         }
 
         outResult = Quaternion(static_cast<float>(rx), static_cast<float>(ry), static_cast<float>(rz), static_cast<float>(rw));
+        return true;
+    }
+
+    bool Quaternion::TryFromAxisAngle(const Vector3& axis, float radians, Quaternion& outResult)
+    {
+        if (!std::isfinite(radians))
+        {
+            outResult = Quaternion::identity;
+            return false;
+        }
+
+        Vector3 normalizedAxis;
+
+        if (!axis.TryNormalize(normalizedAxis))
+        {
+            outResult = Quaternion::identity;
+            return false;
+        }
+
+        const float halfAngle = radians * 0.5f;
+        const float s = std::sin(halfAngle);
+        const float c = std::cos(halfAngle);
+
+        outResult = Quaternion(normalizedAxis.x * s, normalizedAxis.y * s, normalizedAxis.z * s, c);
         return true;
     }
 

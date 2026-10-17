@@ -4,6 +4,7 @@
 
 namespace Engine
 {
+    class Vector3;
     /**
      * (x, y, z, w) 순서의 쿼터니언 값 타입입니다. xyz는 벡터부, w는 스칼라부입니다.
      * 회전에는 단위 쿼터니언을 사용합니다. 생성자는 자동 정규화하지 않습니다.
@@ -19,6 +20,8 @@ namespace Engine
          * 네 성분을 그대로 저장합니다. 정규화와 입력 검증은 별도로 수행해야 합니다.
          */
         Quaternion(float x, float y, float z, float w);
+
+        Quaternion operator*(const Quaternion& other) const;
 
         /**
          * 자신의 길이를 1로 정규화합니다. 성분 사이의 비율은 유지합니다.
@@ -74,6 +77,8 @@ namespace Engine
          * @return 성공하면 true, 실패하면 false.
          */
         bool TryInvert(Quaternion& outResult, float minLengthSquared = 1e-8f) const;
+
+        static bool TryFromAxisAngle(const Vector3& axis, float radians, Quaternion& outResult);
 
         /**
          * 회전하지 않는 단위 쿼터니언 (0, 0, 0, 1).
