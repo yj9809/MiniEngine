@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-기준 커밋: [`699e6a0`](https://github.com/yj9809/MiniEngine/commit/699e6a022d96d18763ace8988a399d6db592ce6c) (2026-10-16)
+기준 커밋: [`0fc50dc`](https://github.com/yj9809/MiniEngine/commit/0fc50dc5f37299e2cb343cf61846ba8a61da460b) (2026-10-17)
 
 개편된 Notion 로드맵은 Bootstrap / Shutdown과 Level 전환을 완료 기준선으로 두고, **1단계 Environment Lighting → 2단계 Quaternion 회전** 순서로 진행합니다. 최신 코드는 시작 Level과 런타임 후보를 같은 활성화 경로로 처리하고, Tick·Draw·Actor 처리·입력 정리가 끝난 프레임 경계에서 Level을 교체합니다. 후보 활성화가 실패하면 후보만 정리하고 기존 Level을 유지하며, 전환·종료 콜백 중 추가 요청은 거부합니다.
 
@@ -16,9 +16,9 @@ Component는 Actor가 `Constructed` 상태일 때만 추가할 수 있도록 현
 
 Environment Lighting의 첫 코드로 `Light`는 Intensity, `DirectLight`는 Color, `DirectionalLight`는 방향광 타입, `SkyLight`는 SkyColor·GroundColor와 기본 Intensity 0.1을 소유하도록 계층을 분리했습니다. `SkyLightComponent`는 값 검증과 수명 종료 이후 변경 거부를 수행하고 `LightingSystem`의 비소유 목록에 등록·해제됩니다. 현재는 매 수집 시 하늘·지면의 색×강도를 합산하고, 프레임 값 복사 → GPU 패킹 → OpaqueLayer 업로드 → World +Z 기준 Hemisphere Ambient HLSL까지 연결했습니다. Game의 `--colored-ambient` 옵션으로 방향광 없이 색 환경광을 관찰할 수 있습니다.
 
-Quaternion의 Identity·정규화·켤레·역원과 실패 시 Identity 대체가 수학 값 타입으로 구현됐습니다. Vector2/3/4 정규화는 성공 여부를 반환하는 직접 변경형과 출력 매개변수형으로 정리했고, `Matrix4::TryLookAt()`은 잘못된 시선·up 입력을 실패로 반환합니다. Quaternion은 아직 `TransformComponent`의 회전 원본이나 Camera·Light 회전 경로에 연결되지 않았습니다.
+Quaternion의 Identity·정규화·켤레·역원에 이어 Hamilton Product, Axis-Angle 입력, Euler 입력 변환, 벡터 회전, Nlerp/Slerp와 최단 경로 처리가 수학 값 타입으로 구현됐습니다. 실패 가능한 변환·회전·보간 API는 `bool`과 출력 매개변수로 결과를 구분합니다. `Matrix4::Rotation`과 `Quaternion::TryFromEuler`는 같은 Unreal식 Roll/Pitch/Yaw 방향을 사용하도록 맞췄지만, `TransformComponent`는 여전히 Euler `Vector3`를 회전 원본으로 저장합니다. Quaternion은 아직 Transform·Camera·DirectionalLight의 실제 회전 경로에 통합되지 않았습니다.
 
-`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 최신 `699e6a0` 소스는 기존 195개 구성에 Quaternion 63개를 더해 정적 집계상 258개 실행 케이스가 예상됩니다. 새 회전 GIF는 공개됐지만 Quaternion 구현 전 Euler 데모 기록이며, 최신 258개 전체 테스트나 Quaternion Transform 통합을 증명하지 않습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
+`a32014f`에서는 Debug / Release x64에서 당시 118개 테스트가 모두 통과했다는 실행 기록이 있습니다. 최신 `0fc50dc` 소스는 정적 집계상 325개 실행 케이스가 예상됩니다. 개발 일지에는 `4ba8c95` 변경 범위의 Quaternion·Matrix4·TransformEuler·LightingSystem·RenderingSystem 173개가 Debug / Release에서 각각 통과했다는 기록이 있지만, 이후 문서 병합까지 포함한 최신 `0fc50dc` 전체 325개 실행 결과는 아닙니다. 회전 GIF도 Euler 데모 기록이므로 Quaternion Transform 통합을 증명하지 않습니다. 구현 존재, 시스템 통합, 테스트 코드, 실행 검증을 구분하며 범용 엔진 전체의 완성을 의미하지 않습니다.
 
 완성된 범위와 현재 확장 중인 범위를 구분하면 다음과 같습니다.
 
@@ -27,7 +27,7 @@ Quaternion의 Identity·정규화·켤레·역원과 실패 시 Identity 대체�
 | Win32 런타임 | 창, 메시지 루프, 목표 프레임 루프, HWND·등록 클래스 RAII 정리 | 구현 / Window 실패 주입 검증 대기 |
 | Engine Bootstrap | `Create(EngineCreateInfo)` → Settings·Renderer 단계 오류 → 시작 Level 활성화 → Game의 오류 분기 | 실패 전파 코드 연결·관련 테스트 6개 구성 / 최신 전체 실행 검증 대기 |
 | Actor / Component | `Initialize` → `BeginPlay` → `OnDestroy`, 실패 상태, 정리 예외 수집, Root Transform | 구성 단계 추가만 지원하도록 제한 / 최신 테스트 실행 대기 |
-| 수학·Quaternion | Vector 정규화 실패 계약, `TryLookAt`, Quaternion Identity·정규화·켤레·역원 | 2-1 첫 항목 구현 / Transform 연결·최신 실행 검증 대기 |
+| 수학·Quaternion | Vector 정규화 실패 계약, `TryLookAt`, Quaternion 기본 연산·변환·벡터 회전·보간 | 2-1 수학 구현 / Transform 연결·최신 전체 실행 검증 대기 |
 | Level 전환 | 요청 결과, pending Level 소유권, 단계 오류, 프레임 경계 교체 | Engine 루프 통합 / `a32014f` Debug·Release 6개 전환 테스트 포함 118개 통과 |
 | DX11 기반 | Device · SwapChain · RTV · DSV · Viewport · 상수 버퍼 | 완료 |
 | 3D 렌더링 | WVP, 자유 시점 카메라, 깊이 테스트, Indexed Draw | 완료 |
@@ -170,7 +170,7 @@ Level
 
 ### 회전 규칙과 실행 기록
 
-`TransformComponent`의 Euler 입력은 `Vector3(x, y, z) = Pitch, Yaw, Roll`이며 +X를 Forward로 사용합니다. 현재 행렬 구성은 이 좌표계와 회전 방향을 맞추기 위해 `Rotation(-Roll, -Pitch, Yaw)`를 사용합니다. 데모에서는 `1` / `2` / `3` 키로 Pitch / Yaw / Roll 회전을 각각 토글합니다.
+`TransformComponent`의 Euler 입력은 `Vector3(x, y, z) = Pitch, Yaw, Roll` 도 단위이며 +X를 Forward로 사용합니다. Transform은 이를 라디안으로 바꿔 `Matrix4::Rotation(Roll, Pitch, Yaw)`에 전달하고, Matrix4가 내부에서 `RotationX(-Roll) * RotationY(-Pitch) * RotationZ(Yaw)`로 Unreal식 방향을 적용합니다. `Quaternion::TryFromEuler`도 같은 자세를 만들도록 맞췄지만 Transform의 저장 원본은 아직 Euler입니다. 데모에서는 `1` / `2` / `3` 키로 Pitch / Yaw / Roll 회전을 각각 토글합니다.
 
 | Pitch 회전 | Yaw 회전 | Roll 회전 |
 |---|---|---|
@@ -207,13 +207,14 @@ Pitch 0도 / 90도 조건은 캡처 파일의 구분이며, 화면에 입력 키
 
 OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와 GIF로 남겼습니다. 2026-10-05에는 생명주기·수학·Time의 6개 스위트, 86개 테스트가 모두 통과했습니다. 아래 기존 6개 캡처는 당시 실행 기록이며, 현재 기준 커밋의 전체 회귀 결과는 아닙니다.
 
-최신 `699e6a0`의 테스트 프로젝트는 정적 집계상 258개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
+최신 `0fc50dc`의 테스트 프로젝트는 정적 집계상 325개 케이스를 등록할 것으로 예상되고, `Tests/Main.cpp`는 필터 없이 `RUN_ALL_TESTS()`를 호출합니다. 이 수는 최신 SHA의 실행 통과 수가 아닙니다.
 
 | 스위트 | 케이스 | 범위 |
 |---|---:|---|
 | Vector2 / 3 / 4 | 2 / 19 / 18 | 산술, 내적·외적, 정규화, 상수 |
-| Matrix4 | 21 | 변환, 역행렬, LookAt, 투영 |
-| Quaternion | 63 | Identity·정규화·켤레·역원, 임계값·비유한 입력·출력 범위(테스트 소스) |
+| Matrix4 | 27 | 변환, 역행렬, LookAt, 투영, Unreal식 Euler 방향·혼합 기저 |
+| TransformEuler | 1 | Transform의 Pitch/Yaw/Roll 도 입력, World 기저·Forward(테스트 소스) |
+| Quaternion | 123 | 기본 연산, Axis-Angle·Euler, 벡터 회전, Nlerp/Slerp, 수치 경계·최단 경로(테스트 소스) |
 | Time | 17 | 스무딩, clamp, TimeScale, Pause/Resume |
 | Lifecycle | 14 | 호출 순서, 실패 상태, Component 구성 시점 제한, 종료 순서 |
 | Level | 13 | Actor 추가·제거, owner, 대량 처리, EndLevel 중복 호출 방지 |
@@ -233,11 +234,11 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-06에는 변경된 Lifecycle 11개와 새 RenderingSystem 6개를 각각 실행해 모두 통과했습니다. 두 스위트를 따로 실행한 기록이므로 당시 전체 106개의 통합 실행 결과와는 구분합니다. 2026-10-09 로드맵에는 `b210cdf` 기준 Release x64 빌드와 전체 106개 테스트 통과를 기록했지만, 원본 실행 로그는 저장소에 남기지 않았습니다.
 
-2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 테스트가 추가되어 최신 `699e6a0`에는 정적 집계상 258개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 새 GPU 테스트는 실제 OpaqueLayer의 b1 버퍼 readback, probe shader 출력, 생산 MeshPixelShader의 Hemisphere·Albedo·alpha 출력과 컴파일된 셰이더 배치를 검사하도록 작성됐습니다. Quaternion 63개도 테스트 소스 구성만 확인했으며 실행 결과 캡처나 저장된 로그는 없습니다. 테스트 코드 존재는 실행 통과가 아닙니다. Game 캡처는 화면 자료이며 최신 SHA의 HLSL 컴파일·Hardware/WARP 테스트 실행 로그를 대체하지 않습니다.
+2026-10-13 개발 일지에는 `a32014f` 기준 Debug / Release x64 테스트 빌드와 각 구성 118개 전체 통과가 기록돼 있습니다. 이후 테스트가 추가되어 최신 `0fc50dc`에는 정적 집계상 325개가 등록될 것으로 예상되지만, 최신 전체 실행 기록은 확인되지 않았습니다. 2026-10-17 개발 일지에는 `4ba8c95` 변경 범위의 관련 173개가 Debug / Release에서 각각 통과했다는 기록이 있습니다. 구성은 Quaternion 123, Matrix4 27, TransformEuler 1, LightingSystem 12, RenderingSystem 10이며 전체 325개 회귀와 구분합니다. 새 ResourceManager 테스트는 대역 Renderer를 사용하므로 통과하더라도 실제 D3D11/WIC 실행 검증과는 구분해야 합니다. 새 GPU 테스트는 실제 OpaqueLayer의 b1 버퍼 readback, probe shader 출력, 생산 MeshPixelShader의 Hemisphere·Albedo·alpha 출력과 컴파일된 셰이더 배치를 검사하도록 작성됐습니다. 테스트 코드 존재는 실행 통과가 아니며 Game 캡처도 최신 SHA의 HLSL 컴파일·Hardware/WARP 테스트 실행 로그를 대체하지 않습니다.
 
 2026-10-15의 로컬 `Bin/{Debug,Release}/Tests/precommit-results.xml`과 실행 로그에서는 환경광 관련 7개 스위트, 각 구성 60개 통과와 실패·오류·비활성 0을 확인했습니다. RenderingSystem 10, SkyLightComponent 9, LightingSystem 12, LightingPacking 10, Shader Layout 1, ResourceManager 12, Hardware/WARP GPU 6개 결과입니다. `5239d8e`·`926c19b` 작업 범위의 기존 실행 기록이며 이번 문서 갱신에서 테스트를 다시 실행하지 않았습니다. 이후 `cc0471b`의 Game 비교 설정 변경이나 195개 전체 회귀 통과 기록과는 구분합니다.
 
-2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. 이 화면들을 최신 162개 전체 통과 기록으로 분류하지 않습니다.
+2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. ResourceManager 화면은 2026-10-17에 별도 게시됐으며 12개 개별 OK를 직접 확인했습니다. 화면에는 실행 SHA와 빌드 경로가 없으므로 이 자료들을 최신 325개 전체 통과 기록으로 분류하지 않습니다.
 
 | Lifecycle (14, Release, 2026-10-14) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
@@ -251,7 +252,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 |---|---|---|
 | ![EngineSettingsInitialization Release 테스트 2개 실행 결과](Docs/EngineSettingsInitializationTestsLatest.png) | ![LevelTransitionDeath Release 테스트 6개 실행 결과](Docs/LevelTransitionDeathTestsLatest.png) | ![LevelBoundary Release 테스트 4개 실행 결과](Docs/LevelBoundaryTestsLatest.png) |
 
-| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) | ResourceManager (12, Release, 2026-10-14) |
+| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) | ResourceManager (12, 게시 2026-10-17) |
 |---|---|---|
 | ![LevelProcessingBoundary Release 테스트 8개 실행 결과](Docs/LevelProcessingBoundaryTestsLatest.png) | ![LevelCameraBoundary Release 테스트 4개 실행 결과](Docs/LevelCameraBoundaryTestsLatest.png) | ![ResourceManager Release 테스트 12개 실행 결과](Docs/ResourceManagerTestsLatest.png) |
 
@@ -285,7 +286,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 2026-05 | OBJ 메시, MeshRenderer, WIC 텍스처 | `0cf264f` · `5ce9493` |
 | 2026-06 | Z-up 전환, 회전 데모, 상대 에셋 경로 | `9963637` · `af58973` |
 | 2026-09 | Material, BaseColor, Lambert + Ambient | `b956a29` · `c1ac4c5` · `714511c` · `dc8a878` |
-| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드, Light 계층·SkyLight, 환경광 수집·GPU·HLSL·Game 연결 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` · `e49c249` · `aa9b677` · `1f0cca8` · `b6bfc45` · `e8dfe3c` · `a5503f5` · `5239d8e` · `cc0471b` |
+| 2026-10 | RenderingSystem·방향광 통합, Bootstrap/Shutdown, 프레임 경계 Level 전환, Component·Actor 처리 경계, 리소스 캐시 검증 코드, Light 계층·SkyLight, 환경광 수집·GPU·HLSL·Game 연결, Quaternion 2-1 수학 | `381b4c2` · `f3e58f3` · `b210cdf` · `9e6ce70` · `b25aa9c` · `3bbe504` · `b669597` · `db0ab18` · `f9bb399` · `287f433` · `f87c3ef` · `e49c249` · `aa9b677` · `1f0cca8` · `b6bfc45` · `e8dfe3c` · `a5503f5` · `5239d8e` · `cc0471b` · `9bd8340` · `3f5c06d` · `4ba8c95` |
 
 ## 로드맵
 
@@ -293,9 +294,9 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 | 단계 | 내용 | 상태 |
 |---|---|---|
-| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 258개 실행 검증 대기 |
+| 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 325개 전체 실행 검증 대기 |
 | 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 1-1·1-2 완료 / 관련 범위 테스트·실행 화면 확인 |
-| 2 | Quaternion Transform · Transform 계층 | 2-1 첫 항목 구현 / Hamilton Product부터 미완료, Transform 미연결 |
+| 2 | Quaternion Transform · Transform 계층 | 2-1 수학 구현 / Transform은 여전히 Euler 원본, 2-2 통합 미완료 |
 | 3 | Forward Lighting 기준선 | 예정 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
 | 5 | Deferred Rendering | 예정 |
@@ -308,7 +309,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion은 Identity·Normalize·Conjugate·Inverse까지 구현됐으며, 다음은 **Hamilton Product와 변환 API → Transform·Camera·Light 회전 전환 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 관련 범위의 테스트·실행 화면과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
+Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵은 2-2의 ‘Quaternion 단일 원본’과 ‘Euler 입력 인터페이스’를 체크했지만, 현재 코드의 `TransformComponent`는 Euler `Vector3`를 저장하므로 문서와 코드가 일치하지 않습니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
 ## 프로젝트 구조
 
