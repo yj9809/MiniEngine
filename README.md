@@ -251,9 +251,9 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 |---|---|---|
 | ![EngineSettingsInitialization Release 테스트 2개 실행 결과](Docs/EngineSettingsInitializationTestsLatest.png) | ![LevelTransitionDeath Release 테스트 6개 실행 결과](Docs/LevelTransitionDeathTestsLatest.png) | ![LevelBoundary Release 테스트 4개 실행 결과](Docs/LevelBoundaryTestsLatest.png) |
 
-| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) |
-|---|---|
-| ![LevelProcessingBoundary Release 테스트 8개 실행 결과](Docs/LevelProcessingBoundaryTestsLatest.png) | ![LevelCameraBoundary Release 테스트 4개 실행 결과](Docs/LevelCameraBoundaryTestsLatest.png) |
+| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) | ResourceManager (12, Release, 2026-10-14) |
+|---|---|---|
+| ![LevelProcessingBoundary Release 테스트 8개 실행 결과](Docs/LevelProcessingBoundaryTestsLatest.png) | ![LevelCameraBoundary Release 테스트 4개 실행 결과](Docs/LevelCameraBoundaryTestsLatest.png) | ![ResourceManager Release 테스트 12개 실행 결과](Docs/ResourceManagerTestsLatest.png) |
 
 | Matrix4 (21) | Time (17) | Vector2 (2) |
 |---|---|---|
