@@ -78,7 +78,63 @@ namespace Engine
          */
         bool TryInvert(Quaternion& outResult, float minLengthSquared = 1e-8f) const;
 
+        /**
+         * 주어진 축과 각도를 사용하여 쿼터니언을 생성합니다.
+         * @param axis 회전 축
+         * @param radians 회전 각도 (라디안)
+         * @param outResult 생성된 쿼터니언을 받을 객체
+         * @return 성공하면 true, 실패하면 false.
+         */
         static bool TryFromAxisAngle(const Vector3& axis, float radians, Quaternion& outResult);
+
+        /**
+         * roll, pitch, yaw는 각각 X, Y, Z축의 라디안 각도입니다.
+         * Matrix4::Rotation(roll, pitch, yaw)와 같은 자세를 나타냅니다.
+         * 합성 결과를 정규화합니다.
+         * 비유한 입력 또는 결과 정규화 실패 시 outResult에 Identity를 저장합니다.
+         * @param roll X축 회전 각도 (라디안)
+         * @param pitch Y축 회전 각도 (라디안)
+         * @param yaw Z축 회전 각도 (라디안)
+         * @param outResult 생성된 쿼터니언을 받을 객체
+         * @return 성공하면 true, 실패하면 false.
+         */
+        static bool TryFromEuler(float roll, float pitch, float yaw, Quaternion& outResult);
+
+        /**
+         * Euler 각도를 사용하여 쿼터니언을 생성합니다.
+         * @param euler Euler 각도 (roll, pitch, yaw)
+         * @param outResult 생성된 쿼터니언을 받을 객체
+         * @return 성공하면 true, 실패하면 false.
+         */
+        static bool TryFromEuler(const Vector3& euler, Quaternion& outResult);
+
+        /**
+         * 주어진 쿼터니언을 사용하여 벡터를 회전합니다.
+         * @param vector 회전할 벡터
+         * @param outResult 회전된 벡터를 받을 객체
+         * @return 성공하면 true, 실패하면 false.
+         */
+        bool TryRotateVector(const Vector3& vector, Vector3& outResult) const;
+
+        /**
+         * 선형 보간 (Nlerp)을 사용하여 두 쿼터니언 사이를 보간합니다.
+         * @param from 시작 쿼터니언
+         * @param to 끝 쿼터니언
+         * @param t 보간 파라미터 (0.0f ~ 1.0f)
+         * @param outResult 보간된 쿼터니언을 받을 객체
+         * @return 성공하면 true, 실패하면 false.
+         */
+        static bool TryNlerp(const Quaternion& from, const Quaternion& to, float t, Quaternion& outResult);
+
+        /**
+         * 구면 선형 보간 (Slerp)을 사용하여 두 쿼터니언 사이를 보간합니다.
+         * @param from 시작 쿼터니언
+         * @param to 끝 쿼터니언
+         * @param t 보간 파라미터 (0.0f ~ 1.0f)
+         * @param outResult 보간된 쿼터니언을 받을 객체
+         * @return 성공하면 true, 실패하면 false.
+         */
+        static bool TrySlerp(const Quaternion& from, const Quaternion& to, float t, Quaternion& outResult);
 
         /**
          * 회전하지 않는 단위 쿼터니언 (0, 0, 0, 1).
