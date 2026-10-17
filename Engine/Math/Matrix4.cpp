@@ -259,11 +259,11 @@ namespace Engine
 		return result;
 	}
 
-	// 행벡터 변환 규칙에서 X축 회전 후 Y축, Z축 회전을 적용한다.
-	// roll, pitch, yaw는 각각 X, Y, Z축의 라디안 각도다.
+	// 언리얼식 Euler 방향: +Pitch는 위쪽, +Yaw는 오른쪽.
+	// roll, pitch, yaw는 라디안이며 고정축 X → Y → Z 순으로 적용한다.
 	Matrix4 Matrix4::Rotation(float roll, float pitch, float yaw)
 	{
-		return RotationX(roll) * RotationY(pitch) * RotationZ(yaw);
+		return RotationX(-roll) * RotationY(-pitch) * RotationZ(yaw);
 	}
 
 	Matrix4 Matrix4::Rotation(const Vector3& rotation)

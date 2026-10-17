@@ -2,6 +2,7 @@
 #include "Math/Matrix4.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
+#include "Component/Transform/TransformComponent.h"
 
 #include <cmath>
 
@@ -148,6 +149,101 @@ TEST(Matrix4Test, RotationX_360_IsIdentity)
     Matrix4 r = Matrix4::RotationX(3.141592f * 2.0f);
     Vector3 p(1.0f, 2.0f, 3.0f);
     ExpectVec3Near(r.TransformVector(p), p);
+}
+
+// -----------------------------------------------------------------------
+// Euler conventions and Transform integration
+// -----------------------------------------------------------------------
+// Euler inputs use Unreal-style signs; raw RotationX/Y/Z retain axis-angle signs.
+TEST(Matrix4Test, EulerZeroPreservesVector)
+{
+    const Vector3 v(2.0f, -3.0f, 4.0f);
+    ExpectVec3Near(Matrix4::Rotation(0.0f, 0.0f, 0.0f).TransformVector(v), v);
+}
+
+TEST(Matrix4Test, EulerRollUsesUnrealDirection)
+{
+    constexpr float halfPi = 1.5707963267948966f;
+    for (float sign : {1.0f, -1.0f})
+    {
+        SCOPED_TRACE(sign);
+        const Matrix4 r = Matrix4::Rotation(sign * halfPi, 0.0f, 0.0f);
+        ExpectVec3Near(r.TransformVector(Vector3::unitX), Vector3::unitX);
+        ExpectVec3Near(r.TransformVector(Vector3::unitY), Vector3(0.0f, 0.0f, -sign));
+        ExpectVec3Near(r.TransformVector(Vector3::unitZ), Vector3(0.0f, sign, 0.0f));
+    }
+}
+
+TEST(Matrix4Test, EulerPitchUsesUnrealDirection)
+{
+    constexpr float halfPi = 1.5707963267948966f;
+    for (float sign : {1.0f, -1.0f})
+    {
+        SCOPED_TRACE(sign);
+        const Matrix4 r = Matrix4::Rotation(0.0f, sign * halfPi, 0.0f);
+        ExpectVec3Near(r.TransformVector(Vector3::unitX), Vector3(0.0f, 0.0f, sign));
+        ExpectVec3Near(r.TransformVector(Vector3::unitY), Vector3::unitY);
+        ExpectVec3Near(r.TransformVector(Vector3::unitZ), Vector3(-sign, 0.0f, 0.0f));
+    }
+}
+
+TEST(Matrix4Test, EulerYawUsesUnrealDirection)
+{
+    constexpr float halfPi = 1.5707963267948966f;
+    for (float sign : {1.0f, -1.0f})
+    {
+        SCOPED_TRACE(sign);
+        const Matrix4 r = Matrix4::Rotation(0.0f, 0.0f, sign * halfPi);
+        ExpectVec3Near(r.TransformVector(Vector3::unitX), Vector3(0.0f, sign, 0.0f));
+        ExpectVec3Near(r.TransformVector(Vector3::unitY), Vector3(-sign, 0.0f, 0.0f));
+        ExpectVec3Near(r.TransformVector(Vector3::unitZ), Vector3::unitZ);
+    }
+}
+
+// Independent basis reference for Roll=30, Pitch=20, Yaw=40 degrees.
+// Derived from intrinsic yaw/pitch/roll axes, not Matrix4's rotation factories:
+// F=(cp*cy,cp*sy,sp), R=(sr*sp*cy-cr*sy,sr*sp*sy+cr*cy,-sr*cp),
+// U=(-cr*sp*cy-sr*sy,-cr*sp*sy+sr*cy,cr*cp).
+static void ExpectMixedEulerBasis(const Matrix4& rotation)
+{
+    ExpectVec3Near(rotation.TransformVector(Vector3::unitX),
+        Vector3(0.71984631f, 0.60402277f, 0.34202014f));
+    ExpectVec3Near(rotation.TransformVector(Vector3::unitY),
+        Vector3(-0.42566908f, 0.77333710f, -0.46984631f));
+    ExpectVec3Near(rotation.TransformVector(Vector3::unitZ),
+        Vector3(-0.54829474f, 0.19262973f, 0.81379768f));
+}
+
+TEST(Matrix4Test, EulerMixedAnglesMatchIntrinsicYawPitchRoll)
+{
+    constexpr float toRadians = 0.017453292519943295f;
+    ExpectMixedEulerBasis(Matrix4::Rotation(
+        30.0f * toRadians, 20.0f * toRadians, 40.0f * toRadians));
+}
+
+TEST(Matrix4Test, EulerVectorStoresRollPitchYawRadians)
+{
+    constexpr float toRadians = 0.017453292519943295f;
+    ExpectMixedEulerBasis(Matrix4::Rotation(Vector3(
+        30.0f * toRadians, 20.0f * toRadians, 40.0f * toRadians)));
+}
+
+TEST(TransformEulerTest, PitchYawRollDegreesPreserveWorldBasisAndForward)
+{
+    TransformComponent transform;
+    ExpectVec3Near(transform.GetWorldMatrix().TransformPosition(Vector3::zero), Vector3::zero);
+
+    // Transform storage is Pitch/Yaw/Roll degrees, unlike Matrix4's Roll/Pitch/Yaw radians.
+    transform.SetLocalRotationEulerDeg(Vector3(20.0f, 40.0f, 30.0f));
+    transform.SetLocalScale(Vector3(2.0f, 3.0f, 4.0f));
+    transform.SetLocalPosition(Vector3(10.0f, -20.0f, 30.0f));
+    const Matrix4& world = transform.GetWorldMatrix();
+
+    ExpectVec3Near(world.TransformPosition(Vector3::zero), Vector3(10.0f, -20.0f, 30.0f));
+    ExpectVec3Near(world.TransformPosition(Vector3::unitX), Vector3(11.43969262f, -18.79195446f, 30.68404028f));
+    ExpectVec3Near(world.TransformPosition(Vector3::unitY), Vector3(8.72299276f, -17.67998870f, 28.59046107f));
+    ExpectVec3Near(world.TransformPosition(Vector3::unitZ), Vector3(7.80682104f, -19.22948108f, 33.25519072f));
+    ExpectVec3Near(transform.GetForward(), Vector3(0.71984631f, 0.60402277f, 0.34202014f));
 }
 
 // -----------------------------------------------------------------------
