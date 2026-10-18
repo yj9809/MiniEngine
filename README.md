@@ -238,6 +238,26 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 2026-10-15의 로컬 `Bin/{Debug,Release}/Tests/precommit-results.xml`과 실행 로그에서는 환경광 관련 7개 스위트, 각 구성 60개 통과와 실패·오류·비활성 0을 확인했습니다. RenderingSystem 10, SkyLightComponent 9, LightingSystem 12, LightingPacking 10, Shader Layout 1, ResourceManager 12, Hardware/WARP GPU 6개 결과입니다. `5239d8e`·`926c19b` 작업 범위의 기존 실행 기록이며 이번 문서 갱신에서 테스트를 다시 실행하지 않았습니다. 이후 `cc0471b`의 Game 비교 설정 변경이나 195개 전체 회귀 통과 기록과는 구분합니다.
 
+2026-10-17에 수정된 원본 캡처에서는 LightingGpu 6개, LightingPacking 10개, LightingShaderLayout 1개, LightingSystem 12개, RenderingSystem 10개의 개별 OK를 확인했습니다. 아래 Release 표기는 원본 파일명에 근거하며, 화면에는 실행 SHA와 빌드 구성이 표시돼 있지 않습니다. 이번에는 기존 파일을 확인해 게시했으며 테스트를 새로 실행하지 않았습니다.
+
+| LightingGpu (6, Release, 2026-10-17) | LightingPacking (10, Release, 2026-10-17) | LightingShaderLayout (1, Release, 2026-10-17) |
+|---|---|---|
+| ![LightingGpu Hardware·WARP 테스트 6개 실행 결과](Docs/LightingGpuTestsLatest.png) | ![LightingPacking 테스트 10개 실행 결과](Docs/LightingPackingTestsLatest.png) | ![LightingShaderLayout 테스트 1개 실행 결과](Docs/LightingShaderLayoutTestsLatest.png) |
+
+| LightingSystem (12, Release, 2026-10-17) | RenderingSystem (10, Release, 2026-10-17) |
+|---|---|
+| ![LightingSystem 테스트 12개 실행 결과](Docs/LightingSystemTestsLatest.png) | ![RenderingSystem 테스트 10개 실행 결과](Docs/RenderingSystemTestsLatest.png) |
+
+같은 날짜의 Quaternion 캡처 4장은 일반 37개와 실패 입력 42개, 총 79개의 개별 OK를 나누어 담았습니다. 기본 연산·Hamilton Product·Axis-Angle 범위의 과거 기록이며, 현재 Quaternion 123개 구성이나 관련 173개·전체 325개 실행 결과를 증명하지 않습니다.
+
+| Quaternion (37, Release, 1/2) | Quaternion (37, Release, 2/2) |
+|---|---|
+| ![Quaternion 일반 테스트 37개 실행 기록 전반](Docs/QuaternionTestsReleasePart1.png) | ![Quaternion 일반 테스트 37개 실행 기록 후반](Docs/QuaternionTestsReleasePart2.png) |
+
+| QuaternionFailure (42, Release, 1/2) | QuaternionFailure (42, Release, 2/2) |
+|---|---|
+| ![Quaternion 실패 입력 테스트 42개 실행 기록 전반](Docs/QuaternionFailureTestsReleasePart1.png) | ![Quaternion 실패 입력 테스트 42개 실행 기록 후반](Docs/QuaternionFailureTestsReleasePart2.png) |
+
 2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. ResourceManager 화면은 2026-10-17에 별도 게시됐으며 12개 개별 OK를 직접 확인했습니다. 화면에는 실행 SHA와 빌드 경로가 없으므로 이 자료들을 최신 325개 전체 통과 기록으로 분류하지 않습니다.
 
 | Lifecycle (14, Release, 2026-10-14) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
