@@ -329,7 +329,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵은 2-2의 ‘Quaternion 단일 원본’과 ‘Euler 입력 인터페이스’를 체크했지만, 현재 코드의 `TransformComponent`는 Euler `Vector3`를 저장하므로 문서와 코드가 일치하지 않습니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
+Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵은 2-2의 ‘Quaternion 단일 원본’·‘Euler 입력 인터페이스’·‘Local / World 회전 합성 순서’·‘Forward / Right / Up 계산 통일’·‘Matrix 생성 경로 전환’을 체크했지만, 공개 `main`의 `TransformComponent`는 여전히 Euler `Vector3`를 저장하고 Euler 행렬로 World Matrix와 Forward를 계산합니다. 따라서 해당 체크를 공개 코드의 구현·통합 완료 근거로 사용하지 않습니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
 ## 프로젝트 구조
 
