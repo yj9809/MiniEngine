@@ -16,6 +16,8 @@
 #include <wrl/client.h>
 
 #include "Renderer/RenderLayer/OpaqueLayer.h"
+#include "Actor/Actor.h"
+#include "Component/Light/DirectionalLightComponent.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
@@ -366,6 +368,7 @@ Output VS(uint id : SV_VertexID) {
             Vector3 directionalColor{};
             float directionalIntensity = 0;
             float expectedAlpha = 1;
+            Vector3 lightEuler{-90, 0, 0};
         };
         const Case cases[] = {
             {"up", {0,0,1,0}, sky, ground, sky},
@@ -392,7 +395,15 @@ Output VS(uint id : SV_VertexID) {
             {"black material", {0,0,1,0}, sky, ground, {},
                 {0,0,0,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {0.6f,0.2f,0.4f}, 2, 0.3f},
             {"colored unlit", {0,0,1,0}, {}, {}, {},
-                {0.5f,0.25f,0.8f,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {}, 0, 0.3f}
+                {0.5f,0.25f,0.8f,0.6f}, {0.5f,0.8f,0.25f,0.5f}, {}, 0, 0.3f},
+            {"quaternion yaw lights negative Y normal", {0,-1,0,0}, {}, {}, {1,1,1},
+                {1,1,1,1}, {1,1,1,1}, {1,1,1}, 1, 1, {0,90,0}},
+            {"quaternion yaw rejects back face", {0,1,0,0}, {}, {}, {},
+                {1,1,1,1}, {1,1,1,1}, {1,1,1}, 1, 1, {0,90,0}},
+            {"quaternion positive pitch lights downward normal", {0,0,-1,0}, {}, {}, {1,1,1},
+                {1,1,1,1}, {1,1,1,1}, {1,1,1}, 1, 1, {90,0,0}},
+            {"quaternion roll preserves forward direction", {-1,0,0,0}, {}, {}, {1,1,1},
+                {1,1,1,1}, {1,1,1,1}, {1,1,1}, 1, 1, {0,0,90}}
         };
         for (const auto& test : cases)
         {
@@ -402,11 +413,13 @@ Output VS(uint id : SV_VertexID) {
             frame.environmentLighting.groundContribution = test.ground;
             if (test.directionalIntensity > 0)
             {
-                DirectionalLightRenderData light;
-                light.direction = Vector3(0, 0, -1);
-                light.color = test.directionalColor;
-                light.intensity = test.directionalIntensity;
-                frame.directionalLights.push_back(light);
+                // Feed the production shader from an actual Quaternion-backed light.
+                Actor lightActor;
+                auto* light = lightActor.AddComponent<DirectionalLightComponent>();
+                lightActor.SetRotation(test.lightEuler);
+                light->SetColor(test.directionalColor);
+                light->SetIntensity(test.directionalIntensity);
+                frame.directionalLights.push_back(light->BuildRenderData());
             }
             layer->Prepare(context.Get(), frame);
             context->VSSetShader(vs.Get(), nullptr, 0);

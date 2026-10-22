@@ -13,11 +13,14 @@
 #include "Component/Camera/CameraComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/SkyLightComponent.h"
+#include "Component/Transform/TransformComponent.h"
 #include "Component/Mesh/MeshRendererComponent.h"
 #include "Level/Level.h"
 #include "Renderer/IRenderer.h"
 #include "Renderer/Mesh.h"
 #include "Renderer/RenderCommand.h"
+#include "Renderer/GPUData/LightingPacking.h"
+#include "Renderer/RenderData/RenderFrameData.h"
 #include "Resource/ResourceManager.h"
 #include "System/RenderingSystem.h"
 #include "System/LightingSystem.h"
@@ -430,4 +433,44 @@ TEST(RenderingSystemTest, LevelDrawForwardsEnvironmentAndReflectsActorRemoval)
     EXPECT_EQ(renderer.environmentSubmissions, 2);
     ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
     level.EndLevel();
+}
+
+TEST(RenderingSystemTest, QuaternionLightDirectionReachesSubmissionAndPackingInWorldSpace)
+{
+    using namespace Engine;
+    RecordingRenderer renderer;
+    RenderingSystem rendering(renderer);
+    Actor actor;
+    auto* light = actor.AddComponent<DirectionalLightComponent>();
+    light->SetColor(Vector3(0.25f, 0.5f, 2.0f));
+    light->SetIntensity(3.0f);
+    LightingSystem lighting;
+    lighting.Register(light);
+    const Quaternion rotations[] = {Quaternion(), Quaternion(1, 1, 1, 1), Quaternion(0, 1, 0, 0)};
+    const Vector3 expected[] = {Vector3::unitX, Vector3::unitY, Vector3(-1, 0, 0)};
+    for (int pose = 0; pose < 3; ++pose)
+    {
+        ASSERT_TRUE(actor.GetRootComponent()->TrySetLocalRotation(rotations[pose]));
+        // Vary the camera view too: lighting must remain in world space.
+        rendering.Render(Matrix4::Rotation(0, 0, pose * PI * 0.5f), Matrix4::identity, &lighting);
+        ASSERT_EQ(renderer.submittedDirectionalLights.size(), 1u);
+        const auto& submitted = renderer.submittedDirectionalLights[0];
+        EXPECT_NEAR(submitted.direction.x, expected[pose].x, 1e-6f);
+        EXPECT_NEAR(submitted.direction.y, expected[pose].y, 1e-6f);
+        EXPECT_NEAR(submitted.direction.z, expected[pose].z, 1e-6f);
+        ExpectColor(submitted.color, Vector3(0.25f, 0.5f, 2.0f));
+        EXPECT_FLOAT_EQ(submitted.intensity, 3.0f);
+        RenderFrameData frame;
+        frame.directionalLights = renderer.submittedDirectionalLights;
+        const auto packed = BuildLightingConstantBuffer(frame);
+        ASSERT_EQ(packed.directionalLightCount, 1u);
+        const auto& direction = packed.directionalLights[0].direction;
+        EXPECT_NEAR(direction.x, expected[pose].x, 1e-6f);
+        EXPECT_NEAR(direction.y, expected[pose].y, 1e-6f);
+        EXPECT_NEAR(direction.z, expected[pose].z, 1e-6f);
+        EXPECT_FLOAT_EQ(direction.w, 0.0f);
+    }
+    lighting.Unregister(light);
+    rendering.Render(Matrix4::identity, Matrix4::identity, &lighting);
+    EXPECT_TRUE(renderer.submittedDirectionalLights.empty());
 }

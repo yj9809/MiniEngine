@@ -6,31 +6,53 @@ namespace Engine
     void TransformComponent::SetLocalPosition(const Vector3& position)
     {
         dirty = true;
-        
+
         if (onTransformChanged)
         {
             onTransformChanged();
         }
-        
+
         localPosition = position;
     }
 
     void TransformComponent::SetLocalRotationEulerDeg(const Vector3& rotation)
     {
-        dirty = true;
+        const float toRadians = PI / 180.0f;
         
-        if (onTransformChanged)
+        Quaternion converted;
+        if (!Quaternion::TryFromEuler(
+            rotation.z * toRadians, // Roll
+            rotation.x * toRadians, // Pitch
+            rotation.y * toRadians, // Yaw
+            converted))
         {
-            onTransformChanged();
+            return;
         }
         
-        localRotationEulerDeg = rotation;
+        TrySetLocalRotation(converted);
     }
 
     void TransformComponent::SetLocalScale(const Vector3& scale)
     {
         dirty = true;
         localScale = scale;
+    }
+
+    Vector3 TransformComponent::GetLocalRotationEulerDeg() const
+    {
+        Vector3 eulerRadians;
+        if (!localRotation.TryToEuler(eulerRadians))
+        {
+            return Vector3::zero;
+        }
+
+        const float toDegrees = 180.0f / PI;
+
+        return Vector3(
+            eulerRadians.y * toDegrees, // Pitch
+            eulerRadians.z * toDegrees, // Yaw
+            eulerRadians.x * toDegrees  // Roll
+        );
     }
 
     const Matrix4& TransformComponent::GetWorldMatrix() const
@@ -40,16 +62,16 @@ namespace Engine
         {
             return cachedWorldMatrix;
         }
-        
+
         // 새로운 World 행렬 대입.
         const Matrix4 rotationMatrix = GetRotationMatrix();
 
         cachedWorldMatrix = Matrix4::Scale(localScale) *
-                            rotationMatrix *
-                            Matrix4::Translation(localPosition);
-        
+            rotationMatrix *
+            Matrix4::Translation(localPosition);
+
         dirty = false;
-        
+
         return cachedWorldMatrix;
     }
 
@@ -60,10 +82,68 @@ namespace Engine
         return forward;
     }
 
+    Vector3 TransformComponent::GetRight() const
+    {
+        Vector3 right = GetRotationMatrix().TransformVector(Vector3::unitY);
+        right.Normalize();
+        return right;
+    }
+
+    Vector3 TransformComponent::GetUp() const
+    {
+        Vector3 up = GetRotationMatrix().TransformVector(Vector3::unitZ);
+        up.Normalize();
+        return up;
+    }
+
+    bool TransformComponent::TrySetLocalRotation(const Quaternion& rotation)
+    {
+        Quaternion normalizedRotation;
+
+        if (!rotation.TryNormalize(normalizedRotation))
+        {
+            return false;
+        }
+
+        localRotation = normalizedRotation;
+        dirty = true;
+
+        if (onTransformChanged)
+        {
+            onTransformChanged();
+        }
+
+        return true;
+    }
+
+    bool TransformComponent::TryRotateLocal(const Quaternion& deltaRotation)
+    {
+        Quaternion normalizedDelta;
+        if (!deltaRotation.TryNormalize(normalizedDelta))
+        {
+            return false;
+        }
+
+        const Quaternion combinedRotation = localRotation * normalizedDelta;
+
+        return TrySetLocalRotation(combinedRotation);
+    }
+
+    bool TransformComponent::TryRotateWorld(const Quaternion& deltaRotation)
+    {
+        Quaternion normalizedDelta;
+        if (!deltaRotation.TryNormalize(normalizedDelta))
+        {
+            return false;
+        }
+
+        const Quaternion combinedRotation = normalizedDelta * localRotation;
+
+        return TrySetLocalRotation(combinedRotation);
+    }
+
     Matrix4 TransformComponent::GetRotationMatrix() const
     {
-        const Vector3 rotationRad = localRotationEulerDeg * (PI / 180.0f);
-
-        return Matrix4::Rotation(rotationRad.z, rotationRad.x, rotationRad.y);
+        return Matrix4::Rotation(localRotation);
     }
 }

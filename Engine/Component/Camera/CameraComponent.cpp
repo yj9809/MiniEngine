@@ -18,9 +18,8 @@ namespace Engine
 
     Matrix4 CameraComponent::GetViewMatrix() const
     {
-        if (dirtyView)
+        if (dirtyView && TryUpdateViewMatrix())
         {
-            LookAt();
             dirtyView = false;
         }
         
@@ -38,27 +37,22 @@ namespace Engine
         return cachedProjectionMatrix;
     }
 
-    void CameraComponent::LookAt() const
+    bool CameraComponent::TryUpdateViewMatrix() const
     {
-        Vector3 rotation = GetOwner().GetRotation();
-        Vector3 forward;
+        const TransformComponent* transform = GetOwner().GetRootComponent();
         
-        // Degree -> Radian 값으로 변환.
-        // rotation.x = pitch.
-        // rotation.y = yaw.
-        float pitch = rotation.x * (PI / 180.f);
-        float yaw = rotation.y * (PI / 180.f);
+        const Vector3 position = transform->GetLocalPosition();
+        const Vector3 forward = transform->GetForward();
+        const Vector3 up = transform->GetUp();
         
-        forward.x = std::cos(pitch) * std::cos(yaw);
-        forward.y = std::cos(pitch) * std::sin(yaw);
-        forward.z = std::sin(pitch);
+        Matrix4 candidateView;
+        if (!Matrix4::TryLookAt(position, position + forward, up, candidateView))
+        {
+            return false;
+        }
         
-        Vector3 cameraPosition = GetOwner().GetPosition();
-        
-        cachedViewMatrix = Matrix4::LookAt(
-            cameraPosition, 
-            cameraPosition + forward, 
-            Vector3::up);
+        cachedViewMatrix = candidateView;
+        return true;
     }
 
     void CameraComponent::Projection() const

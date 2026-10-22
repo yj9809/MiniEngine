@@ -194,6 +194,12 @@ xcopy /Y /E /I "$(SolutionDir)Bin\$(Configuration)\Game\Shader" "$(OutDir)Shader
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Matrix4Test.cpp" />
     <ClCompile Include="QuaternionTest.cpp" />
+    <ClCompile Include="QuaternionEulerTest.cpp" />
+    <ClCompile Include="TransformQuaternionTest.cpp" />
+    <ClCompile Include="CameraQuaternionTest.cpp" />
+    <ClCompile Include="CameraMovementQuaternionTest.cpp" />
+    <!-- Exercise the production game camera input path without duplicating Tick. -->
+    <ClCompile Include="..\Game\Actor\CameraActor.cpp" />
     <ClCompile Include="TimeTest.cpp" />
     <ClCompile Include="RenderingSystemTest.cpp" />
     <ClCompile Include="SkyLightComponentTest.cpp" />

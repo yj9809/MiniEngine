@@ -228,6 +228,92 @@ TEST(Matrix4Test, EulerVectorStoresRollPitchYawRadians)
         30.0f * toRadians, 20.0f * toRadians, 40.0f * toRadians)));
 }
 
+TEST(Matrix4QuaternionTest, IdentityPreservesHomogeneousCoordinates)
+{
+    const Matrix4 rotation = Matrix4::Rotation(Quaternion::identity);
+    for (const Vector4& input : {Vector4(1, 0, 0, 0), Vector4(0, 1, 0, 0),
+        Vector4(0, 0, 1, 0), Vector4(0, 0, 0, 1), Vector4(2, -3, 4, 1)})
+    {
+        ExpectVec4Near(rotation * input, input, 1e-6f);
+    }
+}
+
+TEST(Matrix4QuaternionTest, AxisQuarterTurnsFollowRowVectorConvention)
+{
+    const float half = std::sqrt(0.5f);
+    for (float sign : {1.0f, -1.0f})
+    {
+        SCOPED_TRACE(sign);
+        // Raw quaternion axes have the same signs as RotationX/Y/Z.
+        const Matrix4 x = Matrix4::Rotation(Quaternion(sign * half, 0, 0, half));
+        ExpectVec3Near(x.TransformVector(Vector3::unitX), Vector3::unitX, 1e-6f);
+        ExpectVec3Near(x.TransformVector(Vector3::unitY), Vector3(0, 0, sign), 1e-6f);
+        ExpectVec3Near(x.TransformVector(Vector3::unitZ), Vector3(0, -sign, 0), 1e-6f);
+
+        const Matrix4 y = Matrix4::Rotation(Quaternion(0, sign * half, 0, half));
+        ExpectVec3Near(y.TransformVector(Vector3::unitX), Vector3(0, 0, -sign), 1e-6f);
+        ExpectVec3Near(y.TransformVector(Vector3::unitY), Vector3::unitY, 1e-6f);
+        ExpectVec3Near(y.TransformVector(Vector3::unitZ), Vector3(sign, 0, 0), 1e-6f);
+
+        const Matrix4 z = Matrix4::Rotation(Quaternion(0, 0, sign * half, half));
+        ExpectVec3Near(z.TransformVector(Vector3::unitX), Vector3(0, sign, 0), 1e-6f);
+        ExpectVec3Near(z.TransformVector(Vector3::unitY), Vector3(-sign, 0, 0), 1e-6f);
+        ExpectVec3Near(z.TransformVector(Vector3::unitZ), Vector3::unitZ, 1e-6f);
+    }
+}
+
+TEST(Matrix4QuaternionTest, MixedEulerMatchesIndependentBasis)
+{
+    constexpr float toRadians = 0.017453292519943295f;
+    Quaternion input;
+    ASSERT_TRUE(Quaternion::TryFromEuler(30 * toRadians, 20 * toRadians, 40 * toRadians, input));
+    ExpectMixedEulerBasis(Matrix4::Rotation(input));
+}
+
+TEST(Matrix4QuaternionTest, MatchesQuaternionVectorRotationAcrossEulerSamples)
+{
+    constexpr float toRadians = 0.017453292519943295f;
+    for (float roll : {-180.0f, -30.0f, 0.0f, 45.0f})
+    for (float pitch : {-90.0f, -89.99f, -20.0f, 0.0f, 20.0f, 89.99f, 90.0f})
+    for (float yaw : {-170.0f, 0.0f, 40.0f, 180.0f})
+    {
+        SCOPED_TRACE(::testing::Message() << roll << ',' << pitch << ',' << yaw);
+        Quaternion input;
+        ASSERT_TRUE(Quaternion::TryFromEuler(roll * toRadians, pitch * toRadians, yaw * toRadians, input));
+        const Matrix4 rotation = Matrix4::Rotation(input);
+        for (const Vector3& axis : {Vector3::unitX, Vector3::unitY, Vector3::unitZ, Vector3(2, -3, 4)})
+        {
+            Vector3 expected;
+            ASSERT_TRUE(input.TryRotateVector(axis, expected));
+            ExpectVec3Near(rotation.TransformVector(axis), expected, 3e-6f);
+        }
+    }
+}
+
+TEST(Matrix4QuaternionTest, OppositeQuaternionSignsProduceSameMatrix)
+{
+    for (const Quaternion& input : {Quaternion::identity, Quaternion(0.5f, 0.5f, 0.5f, 0.5f),
+        Quaternion(0, 1, 0, 0)})
+    {
+        const Matrix4 positive = Matrix4::Rotation(input);
+        const Matrix4 negative = Matrix4::Rotation(Quaternion(-input.x, -input.y, -input.z, -input.w));
+        for (const Vector4& basis : {Vector4(1, 0, 0, 0), Vector4(0, 1, 0, 0),
+            Vector4(0, 0, 1, 0), Vector4(0, 0, 0, 1)})
+        {
+            ExpectVec4Near(positive * basis, negative * basis, 1e-6f);
+        }
+    }
+}
+
+TEST(Matrix4QuaternionTest, PureRotationPreservesOriginAndHomogeneousW)
+{
+    // This unit quaternion maps X -> Y, Y -> Z, Z -> X.
+    const Matrix4 rotation = Matrix4::Rotation(Quaternion(0.5f, 0.5f, 0.5f, 0.5f));
+    ExpectVec4Near(rotation * Vector4(0, 0, 0, 1), Vector4(0, 0, 0, 1), 1e-6f);
+    ExpectVec4Near(rotation * Vector4(2, -3, 4, 0), Vector4(4, 2, -3, 0), 1e-6f);
+    ExpectVec4Near(rotation * Vector4(2, -3, 4, 1), Vector4(4, 2, -3, 1), 1e-6f);
+}
+
 TEST(TransformEulerTest, PitchYawRollDegreesPreserveWorldBasisAndForward)
 {
     TransformComponent transform;

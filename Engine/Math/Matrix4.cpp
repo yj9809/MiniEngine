@@ -2,7 +2,8 @@
 
 #include <cmath>
 #include <string>
-#include <utility>
+
+#include "Quaternion.h"
 
 namespace Engine
 {
@@ -269,6 +270,37 @@ namespace Engine
 	Matrix4 Matrix4::Rotation(const Vector3& rotation)
 	{
 		return Rotation(rotation.x, rotation.y, rotation.z);
+	}
+
+	Matrix4 Matrix4::Rotation(const Quaternion& rotation)
+	{
+		Matrix4 result;
+
+		float xx = rotation.x * rotation.x;
+		float yy = rotation.y * rotation.y;
+		float zz = rotation.z * rotation.z;
+
+		float xy = rotation.x * rotation.y;
+		float xz = rotation.x * rotation.z;
+		float yz = rotation.y * rotation.z;
+
+		float wx = rotation.w * rotation.x;
+		float wy = rotation.w * rotation.y;
+		float wz = rotation.w * rotation.z;
+
+		result.m00 = 1.0f - 2.0f * (yy + zz);
+		result.m01 = 2.0f * (xy + wz);
+		result.m02 = 2.0f * (xz - wy);
+
+		result.m10 = 2.0f * (xy - wz);
+		result.m11 = 1.0f - 2.0f * (xx + zz);
+		result.m12 = 2.0f * (yz + wx);
+
+		result.m20 = 2.0f * (xz + wy);
+		result.m21 = 2.0f * (yz - wx);
+		result.m22 = 1.0f - 2.0f * (xx + yy);
+
+		return result;
 	}
 
 	// 월드 위치를 카메라의 right, up, forward 축에 투영하는 뷰 행렬을 만든다.

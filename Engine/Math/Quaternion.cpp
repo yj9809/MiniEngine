@@ -194,6 +194,89 @@ namespace Engine
         return TryFromEuler(euler.x, euler.y, euler.z, outResult);
     }
 
+    bool Quaternion::TryToEuler(Vector3& outEuler) const
+    {
+        outEuler = Vector3::zero;
+
+        Quaternion rotation;
+        if (!TryNormalize(rotation))
+        {
+            return false;
+        }
+
+        const double qx = static_cast<double>(rotation.x);
+        const double qy = static_cast<double>(rotation.y);
+        const double qz = static_cast<double>(rotation.z);
+        const double qw = static_cast<double>(rotation.w);
+
+        const double lengthSquared = (qx * qx) + (qy * qy) + (qz * qz) + (qw * qw);
+
+        const double k = 2.0 / lengthSquared;
+
+        // Forward: 회전된 +X.
+        const double fx = 1.0 - k * (qy * qy + qz * qz);
+        const double fy = k * (qx * qy + qw * qz);
+        const double fz = k * (qx * qz - qw * qy);
+
+        // Right: 회전된 +Y.
+        const double rx = k * (qx * qy - qw * qz);
+        const double ry = 1.0 - k * (qx * qx + qz * qz);
+        const double rz = k * (qy * qz + qw * qx);
+
+        // Up: 회전된 +Z.
+        const double uz = 1.0 - k * (qx * qx + qy * qy);
+
+        constexpr double epsilon = 1e-6;
+        constexpr double pi = 3.14159265358979323846;
+
+        const double horizontal = std::hypot(fx, fy);
+
+        double roll, pitch, yaw;
+
+        if (horizontal > epsilon)
+        {
+            pitch = std::atan2(fz, horizontal);
+            yaw = std::atan2(fy, fx);
+            roll = std::atan2(-rz, uz);
+        }
+        else
+        {
+            pitch = std::copysign(pi * 0.5, fz);
+            roll = 0.0;
+            yaw = std::atan2(-rx, ry);
+        }
+
+        float rollRadians = static_cast<float>(roll);
+        float yawRadians = static_cast<float>(yaw);
+        float pitchRadians = static_cast<float>(pitch);
+        if (!std::isfinite(rollRadians) || !std::isfinite(pitchRadians) || !std::isfinite(yawRadians))
+        {
+            outEuler = Vector3::zero;
+            return false;
+        }
+
+        if (rollRadians >= PI)
+        {
+            rollRadians -= 2.0f * PI;
+        }
+        else if (rollRadians < -PI)
+        {
+            rollRadians += 2.0f * PI;
+        }
+
+        if (yawRadians >= PI)
+        {
+            yawRadians -= 2.0f * PI;
+        }
+        else if (yawRadians < -PI)
+        {
+            yawRadians += 2.0f * PI;
+        }
+
+        outEuler = Vector3(rollRadians, pitchRadians, yawRadians);
+        return true;
+    }
+
     bool Quaternion::TryRotateVector(const Vector3& vector, Vector3& outResult) const
     {
         if (!std::isfinite(vector.x) || !std::isfinite(vector.y) || !std::isfinite(vector.z))

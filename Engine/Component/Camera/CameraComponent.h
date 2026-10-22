@@ -59,12 +59,27 @@ namespace Engine
             dirtyProjection = true;
         }
         
-        // Getter.
+        /**
+         * 현재 카메라의 View 행렬을 반환합니다.
+         * 갱신이 필요하면 재계산하며, 성공했을 때만 갱신 요청을 해제합니다.
+         * 실패 시 기존 View를 반환하고 다음 조회에서 다시 시도합니다.
+         * 아직 성공적으로 계산한 View가 없으면 초기값인 Identity를 반환합니다.
+         * @return 마지막으로 성공적으로 계산한 View 행렬 또는 초기 Identity.
+         */
         Matrix4 GetViewMatrix() const;
         Matrix4 GetProjectionMatrix() const;
         
     private:
-        void LookAt() const;
+        /**
+         * 소유 Actor의 위치와 Quaternion 기반 방향으로 View 행렬 갱신을 시도합니다.
+         * Transform의 Forward와 Up을 사용하므로 Roll을 포함한 자세를 반영합니다.
+         * 위치와 회전만 사용하며 Transform의 스케일은 반영하지 않습니다.
+         * 현재 부모 Transform 계층이 없는 구조를 기준으로 합니다.
+         * 성공 시 계산한 행렬을 캐시에 저장하고, 실패 시 기존 캐시를 유지합니다.
+         * dirtyView의 갱신은 호출부에서 처리합니다.
+         * @return View 행렬 생성과 캐시 갱신에 성공하면 true, 실패하면 false.
+         */
+        bool TryUpdateViewMatrix() const;
         void Projection() const;
         
     private:

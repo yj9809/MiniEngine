@@ -5,6 +5,8 @@
 
 namespace Engine
 {
+    class Quaternion;
+
     /**
      * 4x4 float 행렬 값 타입입니다. 반환형 연산과 변환은 원본을 변경하지 않습니다.
      * m00~m33을 행별로 저장하며 이동 성분은 m30, m31, m32입니다.
@@ -108,6 +110,13 @@ namespace Engine
          * Rotation(rotation.x, rotation.y, rotation.z)와 같습니다.
          */
         static Matrix4 Rotation(const Vector3& rotation);
+
+        /**
+         * 유한한 단위 Quaternion이 나타내는 회전 행렬을 생성합니다.
+         * 입력의 정규화와 유효성 검사는 하지 않습니다.
+         * 행벡터 v * M 규칙이며, q * v * Conjugate(q)와 같은 회전입니다.
+         */
+        static Matrix4 Rotation(const Quaternion& rotation);
         /**
          * eye에서 at을 바라보는 왼손 뷰 행렬을 반환합니다. 뷰 공간의 앞쪽은 +Z입니다.
          * @param eye 월드 공간 카메라 위치.

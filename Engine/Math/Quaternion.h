@@ -80,9 +80,9 @@ namespace Engine
 
         /**
          * 주어진 축과 각도를 사용하여 쿼터니언을 생성합니다.
-         * @param axis 회전 축
-         * @param radians 회전 각도 (라디안)
-         * @param outResult 생성된 쿼터니언을 받을 객체
+         * @param axis 회전 축.
+         * @param radians 회전 각도 (라디안).
+         * @param outResult 생성된 쿼터니언을 받을 객체.
          * @return 성공하면 true, 실패하면 false.
          */
         static bool TryFromAxisAngle(const Vector3& axis, float radians, Quaternion& outResult);
@@ -92,10 +92,10 @@ namespace Engine
          * Matrix4::Rotation(roll, pitch, yaw)와 같은 자세를 나타냅니다.
          * 합성 결과를 정규화합니다.
          * 비유한 입력 또는 결과 정규화 실패 시 outResult에 Identity를 저장합니다.
-         * @param roll X축 회전 각도 (라디안)
-         * @param pitch Y축 회전 각도 (라디안)
-         * @param yaw Z축 회전 각도 (라디안)
-         * @param outResult 생성된 쿼터니언을 받을 객체
+         * @param roll X축 회전 각도 (라디안).
+         * @param pitch Y축 회전 각도 (라디안).
+         * @param yaw Z축 회전 각도 (라디안).
+         * @param outResult 생성된 쿼터니언을 받을 객체.
          * @return 성공하면 true, 실패하면 false.
          */
         static bool TryFromEuler(float roll, float pitch, float yaw, Quaternion& outResult);
@@ -103,10 +103,21 @@ namespace Engine
         /**
          * Euler 각도를 사용하여 쿼터니언을 생성합니다.
          * @param euler Euler 각도 (roll, pitch, yaw)
-         * @param outResult 생성된 쿼터니언을 받을 객체
+         * @param outResult 생성된 쿼터니언을 받을 객체.
          * @return 성공하면 true, 실패하면 false.
          */
         static bool TryFromEuler(const Vector3& euler, Quaternion& outResult);
+
+        /**
+         * 쿼터니언을 Euler 각도로 변환합니다.
+         * 출력은 x=roll, y=pitch, z=yaw 순서이며 라디안 단위입니다.
+         * 출력 범위는 roll,yaw는 [-PI, PI), pitch는 [-PI/2, PI/2]입니다.
+         * 정규화된 복사본을 사용하며 원본은 유지합니다.
+         * Forward의 수평 길이가 1e-6f 이하이면 pitch는 ±π/2, roll을 0으로 고정됩니다.
+         * @param outEuler 변환된 Euler 각도를 받을 객체.
+         * @return 성공하면 true, 실패하면 false이며 실패 시 outEuler를 zero로 설정합니다.
+         */
+        bool TryToEuler(Vector3& outEuler) const;
 
         /**
          * 주어진 쿼터니언을 사용하여 벡터를 회전합니다.
