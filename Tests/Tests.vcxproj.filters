@@ -39,6 +39,12 @@
     <ClCompile Include="..\Game\Actor\CameraActor.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="RotationDemoQuaternionTest.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Game\Actor\TestMeshActor.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="LevelTest.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
