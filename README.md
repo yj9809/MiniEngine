@@ -184,6 +184,18 @@ Level
 
 Pitch 0도 / 90도 조건은 캡처 파일의 구분이며, 화면에 입력 키·각도값·빌드 SHA를 함께 남기지는 않았습니다. 따라서 이 자료는 회전과 짐벌락 비교를 위한 실행 기록으로 남기고, 현재 main의 정확한 입력 조건 재현이나 Quaternion 전환 완료 근거로 확대하지 않습니다. 현재도 쿼터니언 도입 전까지 오일러 회전의 짐벌락 가능성은 남아 있습니다.
 
+### 로컬 Quaternion 비교 기록 — 공개 main 미반영
+
+2026-10-22 로컬 비교 데모의 실행 자료입니다. 두 모드 모두 Transform에는 Quaternion을 저장하며, Euler 모드는 별도 입력 각도를 누적해 변환하고 Quaternion 모드는 로컬 증분을 합성합니다. 로컬 `0fb4b80`에서 `4`는 모드 전환과 Pitch 90도 초기화, `0`은 Identity 초기화, `9`는 Pitch 90도 초기화, `1/2/3`은 Pitch/Yaw/Roll 토글입니다. 이 조작은 아직 공개 main에 포함되지 않았습니다.
+
+| Euler 누적 · Pitch 90도 | Quaternion 증분 · Pitch 90도 | Quaternion · Pitch 0도 연속 회전 |
+|---|---|---|
+| ![로컬 Euler 누적 모드의 Pitch 90도 Yaw·Roll 비교](Docs/Euler_Pitch_90_Yaw_Roll_Rotation.gif) | ![로컬 Quaternion 증분 모드의 Pitch 90도 Yaw·Roll 비교](Docs/Quaternion_Pitch_90_Yaw_Roll_Rotation.gif) | ![로컬 Quaternion 모드의 Pitch 0도 연속 회전](Docs/Pitch_0_Quaternion.gif) |
+
+Pitch 90도 두 GIF의 입력 순서는 사용자 확인 기록의 `9 → 2 → 9 → 3`으로, 초기화 후 Yaw와 Roll을 각각 비교한 자료입니다. Pitch 0도 GIF는 사용자가 제공한 두 축 연속 회전 자료입니다. 프레임 수는 각각 136 / 142 / 133이며 원본을 그대로 연결했습니다. 화면에는 입력 키·빌드 구성·실행 SHA가 없어 촬영 바이너리를 특정 커밋으로 확정하거나 공개 main의 재현·성능 검증으로 확대하지 않습니다.
+
+별도의 로컬 저장 로그와 XML에는 두 기능 커밋 직전 작업 트리에서 관련 296개 테스트(24 suites)가 Debug / Release x64 각각 통과한 기록이 있습니다. 실패·오류·비활성·건너뜀은 0이며 기존 로컬 변경을 포함한 선택 범위 실행입니다. 각 커밋의 독립 실행 결과나 공개 main의 최신 전체 회귀 결과는 아닙니다.
+
 ## 빌드와 검증
 
 ### 요구 환경
@@ -329,7 +341,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵의 2-2 체크리스트는 DirectionalLight 이전과 반복 회전·짐벌락 비교 데모까지 전체 항목이 체크돼 있습니다. 다만 같은 문서의 상단·본문 요약에는 이전 여섯 체크와 두 항목 미체크 설명이 남아 있습니다. 사용자는 2026-10-21에 해당 로컬 작업이 아직 커밋 전이라고 설명했습니다. 현재 상태는 **사용자 로컬 작업 진행 / 공개 코드 반영·검증 확인 대기**로 구분합니다. 공개 `main`의 `TransformComponent`는 여전히 Euler `Vector3`를 저장하고 Euler 행렬로 World Matrix와 Forward를 계산하며 CameraActor도 Euler 입력 경로를 사용합니다. 로컬 구현의 구체 범위·통합·실행 결과는 커밋과 근거가 공개된 뒤 대조합니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
+Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵의 2-2 체크리스트는 DirectionalLight 이전과 반복 회전·짐벌락 비교 데모까지 전체 항목이 체크돼 있습니다. 로컬에는 2026-10-22에 Quaternion 통합 `1a9782f`와 회전 비교 데모 `0fb4b80`가 커밋됐지만 공개 `main`에는 아직 반영되지 않았습니다. 현재 상태는 **로컬 구현·관련 범위 검증 기록 확인 / 공개 코드 반영 대기**로 구분합니다. 공개 `main`의 `TransformComponent`는 여전히 Euler `Vector3`를 저장하고 Euler 행렬로 World Matrix와 Forward를 계산하며 CameraActor도 Euler 입력 경로를 사용합니다. 로드맵 체크와 로컬 실행 기록을 공개 코드의 통합·전체 회귀 완료 근거로 사용하지 않습니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
 ## 프로젝트 구조
 
