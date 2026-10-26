@@ -41,6 +41,8 @@ namespace Engine
 			
 		virtual void Submit(const RenderCommand& command) override;
 
+		virtual void SubmitCameraPosition(const Vector3& position) override;
+
 		virtual void SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights) override;
 
 		virtual void SubmitEnvironmentLighting(const EnvironmentLightingRenderData& environmentLighting) override;

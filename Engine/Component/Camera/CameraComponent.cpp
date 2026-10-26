@@ -37,6 +37,12 @@ namespace Engine
         return cachedProjectionMatrix;
     }
 
+    Vector3 CameraComponent::GetViewPosition() const
+    {
+        GetViewMatrix();
+        return cachedViewPosition;
+    }
+
     bool CameraComponent::TryUpdateViewMatrix() const
     {
         const TransformComponent* transform = GetOwner().GetRootComponent();
@@ -52,6 +58,7 @@ namespace Engine
         }
         
         cachedViewMatrix = candidateView;
+        cachedViewPosition = position;
         return true;
     }
 

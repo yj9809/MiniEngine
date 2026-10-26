@@ -118,7 +118,9 @@ TEST_F(CameraQuaternionTest, IgnoresNonuniformNegativeAndZeroScale)
 TEST_F(CameraQuaternionTest, InitialFailureReturnsIdentityThenRecovers)
 {
     transform->SetLocalPosition(Vector3(std::numeric_limits<float>::infinity(), 0, 0));
+    ExpectVectorNear(camera->GetViewPosition(), Vector3::zero);
     ExpectMatrixNear(camera->GetViewMatrix(), Matrix4::identity);
+    ExpectVectorNear(camera->GetViewPosition(), Vector3::zero);
     ExpectMatrixNear(camera->GetViewMatrix(), Matrix4::identity);
     transform->SetLocalPosition(Vector3(4, -3, 2));
     ExpectCameraBasis(camera->GetViewMatrix(), Vector3(4, -3, 2),
@@ -138,10 +140,13 @@ TEST_F(CameraQuaternionTest, InvalidPositionsPreserveLastSuccessfulViewAndRecove
         // The large finite position loses the unit target offset in float,
         // exercising a degenerate LookAt input as well as nonfinite inputs.
         transform->SetLocalPosition(invalid);
+        ExpectVectorNear(camera->GetViewPosition(), Vector3(3, -2, 5));
         ExpectMatrixNear(camera->GetViewMatrix(), previous);
+        ExpectVectorNear(camera->GetViewPosition(), Vector3(3, -2, 5));
         ExpectMatrixNear(camera->GetViewMatrix(), previous);
     }
     transform->SetLocalPosition(Vector3(-4, 1, 2));
+    ExpectVectorNear(camera->GetViewPosition(), Vector3(-4, 1, 2));
     ExpectCameraBasis(camera->GetViewMatrix(), Vector3(-4, 1, 2),
         Vector3::unitY, Vector3::unitZ, Vector3::unitX);
 }
@@ -157,6 +162,7 @@ TEST_F(CameraQuaternionTest, FailedUpdateRemainsPendingWithoutAnotherNotificatio
     // callback setting dirtyView again. This is only test instrumentation.
     transform->onTransformChanged = {};
     transform->SetLocalPosition(Vector3(-4, 1, 2));
+    ExpectVectorNear(camera->GetViewPosition(), Vector3(-4, 1, 2));
     ExpectCameraBasis(camera->GetViewMatrix(), Vector3(-4, 1, 2),
         Vector3::unitX, Vector3::unitY, Vector3::unitZ);
 }

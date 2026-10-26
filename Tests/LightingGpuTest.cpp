@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -300,13 +303,14 @@ float4 PS(float4 position : SV_POSITION) : SV_TARGET {
         // Supply controlled world normals; keep the production PS and Prepare's lighting binding.
         const char* source = R"(
 cbuffer TestNormal : register(b0) { float4 normal; };
-struct Output { float4 pos : SV_POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD; };
+struct Output { float4 pos : SV_POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD; float3 worldPosition : TEXCOORD1; };
 Output VS(uint id : SV_VertexID) {
     Output result;
     float2 p = id == 0 ? float2(-1,-1) : (id == 1 ? float2(-1,3) : float2(3,-1));
     result.pos = float4(p, 0, 1);
     result.normal = normal.xyz;
     result.uv = float2(0.5, 0.5);
+    result.worldPosition = float3(p, 0);
     return result;
 })";
         ComPtr<ID3DBlob> code, errors;
@@ -451,6 +455,188 @@ Output VS(uint id : SV_VertexID) {
         }
     }
 
+    TEST_P(LightingGpuTest, ProductionShadersReceiveObjectAndCameraDataAndSkipSingularDraws)
+    {
+        // Observe the real VS output; Execute still runs the production upload and Draw paths.
+        const char* probe = R"(
+struct Input { float4 pos : SV_POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD; };
+float4 PS(Input input) : SV_TARGET { return float4(input.normal, 1); }
+)";
+        ComPtr<ID3DBlob> code, errors;
+        ASSERT_TRUE(SUCCEEDED(D3DCompile(probe, std::strlen(probe), "NormalProbe", nullptr,
+            nullptr, "PS", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0, &code, &errors)))
+            << (errors ? static_cast<const char*>(errors->GetBufferPointer()) : "compile failed");
+        ComPtr<ID3D11PixelShader> probePS;
+        ASSERT_TRUE(SUCCEEDED(device->CreatePixelShader(code->GetBufferPointer(), code->GetBufferSize(),
+            nullptr, &probePS)));
+
+        // Reuse the production PS declarations so semantic/register mismatches fail here.
+        // Its normal entry point does not consume positions yet and may optimize them away.
+        const auto sourcePath = ExecutableDirectory() / "../../../Engine/Shader/MeshPixelShader.hlsl";
+        std::ifstream sourceFile(sourcePath);
+        ASSERT_TRUE(sourceFile.is_open());
+        std::string positionSource((std::istreambuf_iterator<char>(sourceFile)),
+            std::istreambuf_iterator<char>());
+        positionSource += R"(
+float4 WorldProbe(VSOutput input) : SV_TARGET { return float4(input.worldPosition, 1); }
+float4 CameraProbe(VSOutput input) : SV_TARGET { return gCameraPosition; }
+)";
+        ComPtr<ID3D11PixelShader> positionShaders[2];
+        const char* entries[] = {"WorldProbe", "CameraProbe"};
+        for (int i = 0; i < 2; ++i)
+        {
+            ComPtr<ID3DBlob> positionCode, positionErrors;
+            ASSERT_TRUE(SUCCEEDED(D3DCompile(positionSource.data(), positionSource.size(),
+                "ProductionPositionProbe", nullptr, nullptr, entries[i], "ps_5_0",
+                D3DCOMPILE_ENABLE_STRICTNESS, 0, &positionCode, &positionErrors)))
+                << (positionErrors ? static_cast<const char*>(positionErrors->GetBufferPointer()) : "compile failed");
+            ASSERT_TRUE(SUCCEEDED(device->CreatePixelShader(positionCode->GetBufferPointer(),
+                positionCode->GetBufferSize(), nullptr, &positionShaders[i])));
+        }
+
+        struct Vertex { float position[3]; float normal[3]; float uv[2]; };
+        const Vertex vertices[] = {
+            {{-1,-1,0.5f}, {1,1,1}, {0,0}},
+            {{-1, 3,0.5f}, {1,1,1}, {0,0}},
+            {{ 3,-1,0.5f}, {1,1,1}, {0,0}}
+        };
+        const uint32_t indices[] = {0,1,2};
+        D3D11_BUFFER_DESC bufferDesc{};
+        bufferDesc.ByteWidth = sizeof(vertices);
+        bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+        bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA data{};
+        data.pSysMem = vertices;
+        ComPtr<ID3D11Buffer> vb, ib;
+        ASSERT_TRUE(SUCCEEDED(device->CreateBuffer(&bufferDesc, &data, &vb)));
+        bufferDesc.ByteWidth = sizeof(indices);
+        bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        data.pSysMem = indices;
+        ASSERT_TRUE(SUCCEEDED(device->CreateBuffer(&bufferDesc, &data, &ib)));
+        const std::unordered_map<BufferHandle, ComPtr<ID3D11Buffer>> buffers = {{1, vb}, {2, ib}};
+        const std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>> textures;
+
+        D3D11_TEXTURE2D_DESC textureDesc{};
+        textureDesc.Width = textureDesc.Height = textureDesc.MipLevels = textureDesc.ArraySize = 1;
+        textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        textureDesc.SampleDesc.Count = 1;
+        textureDesc.Usage = D3D11_USAGE_DEFAULT;
+        textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET;
+        ComPtr<ID3D11Texture2D> target, staging;
+        ComPtr<ID3D11RenderTargetView> rtv;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, nullptr, &target)));
+        ASSERT_TRUE(SUCCEEDED(device->CreateRenderTargetView(target.Get(), nullptr, &rtv)));
+        textureDesc.Usage = D3D11_USAGE_STAGING;
+        textureDesc.BindFlags = 0;
+        textureDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+        ASSERT_TRUE(SUCCEEDED(device->CreateTexture2D(&textureDesc, nullptr, &staging)));
+        D3D11_RASTERIZER_DESC rasterDesc{};
+        rasterDesc.FillMode = D3D11_FILL_SOLID;
+        rasterDesc.CullMode = D3D11_CULL_NONE;
+        rasterDesc.DepthClipEnable = TRUE;
+        ComPtr<ID3D11RasterizerState> raster;
+        ASSERT_TRUE(SUCCEEDED(device->CreateRasterizerState(&rasterDesc, &raster)));
+        const D3D11_VIEWPORT viewport{0,0,1,1,0,1};
+        D3D11_QUERY_DESC queryDesc{D3D11_QUERY_PIPELINE_STATISTICS, 0};
+        ComPtr<ID3D11Query> query;
+        ASSERT_TRUE(SUCCEEDED(device->CreateQuery(&queryDesc, &query)));
+
+        const Matrix4 scale = Matrix4::Scale(2,3,4);
+        const Matrix4 undoScale = Matrix4::Scale(0.5f,1.0f/3,0.25f);
+        const Matrix4 rotation = Matrix4::RotationZ(1.57079632679f);
+        const Matrix4 undoRotation = Matrix4::RotationZ(-1.57079632679f);
+        struct Case { const char* name; Matrix4 world; Matrix4 view; Vector3 normal; bool draws; Vector3 worldPosition; };
+        // View cancels the known transform to keep coverage fixed. Expected normals are analytic.
+        const Case cases[] = {
+            {"identity", Matrix4::identity, Matrix4::identity, {1,1,1}, true, {0,0,0.5f}},
+            {"uniform", Matrix4::Scale(3), Matrix4::Scale(1.0f/3), {1,1,1}, true, {0,0,1.5f}},
+            {"nonuniform", scale, undoScale, {0.5f,1.0f/3,0.25f}, true, {0,0,2}},
+            {"rotated", scale * rotation, undoRotation * undoScale, {-1.0f/3,0.5f,0.25f}, true, {0,0,2}},
+            {"translated", scale * rotation * Matrix4::Translation(5,6,7),
+                Matrix4::Translation(-5,-6,-7) * undoRotation * undoScale,
+                {-1.0f/3,0.5f,0.25f}, true, {5,6,9}},
+            {"mirrored", Matrix4::Scale(-2,3,4), Matrix4::Scale(-0.5f,1.0f/3,0.25f),
+                {-0.5f,1.0f/3,0.25f}, true, {0,0,2}},
+            {"zero X", Matrix4::Scale(0,2,3), Matrix4::identity, {}, false},
+            {"zero Y", Matrix4::Scale(2,0,3), Matrix4::identity, {}, false},
+            {"zero Z", Matrix4::Scale(2,3,0), Matrix4::identity, {}, false},
+            {"valid after failures", Matrix4::identity, Matrix4::identity, {1,1,1}, true, {0,0,0.5f}}
+        };
+        for (const Case& test : cases)
+        {
+            SCOPED_TRACE(test.name);
+            RenderFrameData positionFrame;
+            positionFrame.cameraPosition = test.worldPosition + Vector3(11, -13, 17);
+            layer->Prepare(context.Get(), positionFrame);
+            context->PSSetShader(probePS.Get(), nullptr, 0);
+            context->RSSetState(raster.Get());
+            context->RSSetViewports(1, &viewport);
+            context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+            const float sentinel[4] = {-99,-99,-99,-99};
+            context->ClearRenderTargetView(rtv.Get(), sentinel);
+            RenderCommand command;
+            command.vertexBuffer = 1;
+            command.indexBuffer = 2;
+            command.indexCount = 3;
+            command.stride = sizeof(Vertex);
+            command.worldMatrix = test.world;
+            command.viewMatrix = test.view;
+            context->Begin(query.Get());
+            layer->Execute(context.Get(), {command}, buffers, textures);
+            context->End(query.Get());
+            context->OMSetRenderTargets(0, nullptr, nullptr);
+            context->CopyResource(staging.Get(), target.Get());
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            ASSERT_TRUE(SUCCEEDED(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)));
+            Vector4 actual;
+            std::memcpy(&actual, mapped.pData, sizeof(actual));
+            context->Unmap(staging.Get(), 0);
+            D3D11_QUERY_DATA_PIPELINE_STATISTICS stats{};
+            HRESULT queryResult = S_FALSE;
+            const ULONGLONG deadline = GetTickCount64() + 5000;
+            do {
+                queryResult = context->GetData(query.Get(), &stats, sizeof(stats), 0);
+                if (queryResult == S_FALSE) Sleep(1);
+            } while (queryResult == S_FALSE && GetTickCount64() < deadline);
+            ASSERT_EQ(queryResult, S_OK);
+            if (!test.draws)
+            {
+                EXPECT_EQ(stats.VSInvocations, 0u);
+                ExpectVector(actual, Vector4(-99,-99,-99,-99));
+                continue;
+            }
+            EXPECT_GT(stats.VSInvocations, 0u);
+            const float length = std::sqrt(test.normal.x * test.normal.x +
+                test.normal.y * test.normal.y + test.normal.z * test.normal.z);
+            EXPECT_NEAR(actual.x, test.normal.x / length, 0.00001f);
+            EXPECT_NEAR(actual.y, test.normal.y / length, 0.00001f);
+            EXPECT_NEAR(actual.z, test.normal.z / length, 0.00001f);
+            EXPECT_FLOAT_EQ(actual.w, 1);
+
+            const Vector4 expectedPositions[] = {
+                Vector4(test.worldPosition, 1),
+                Vector4(positionFrame.cameraPosition, 1)
+            };
+            for (int i = 0; i < 2; ++i)
+            {
+                SCOPED_TRACE(entries[i]);
+                context->PSSetShader(positionShaders[i].Get(), nullptr, 0);
+                context->OMSetRenderTargets(1, rtv.GetAddressOf(), nullptr);
+                context->ClearRenderTargetView(rtv.Get(), sentinel);
+                layer->Execute(context.Get(), {command}, buffers, textures);
+                context->OMSetRenderTargets(0, nullptr, nullptr);
+                context->CopyResource(staging.Get(), target.Get());
+                ASSERT_TRUE(SUCCEEDED(context->Map(staging.Get(), 0, D3D11_MAP_READ, 0, &mapped)));
+                std::memcpy(&actual, mapped.pData, sizeof(actual));
+                context->Unmap(staging.Get(), 0);
+                EXPECT_NEAR(actual.x, expectedPositions[i].x, 0.00001f);
+                EXPECT_NEAR(actual.y, expectedPositions[i].y, 0.00001f);
+                EXPECT_NEAR(actual.z, expectedPositions[i].z, 0.00001f);
+                EXPECT_FLOAT_EQ(actual.w, expectedPositions[i].w);
+            }
+        }
+    }
+
     INSTANTIATE_TEST_SUITE_P(D3D11, LightingGpuTest,
         ::testing::Values(D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP),
         [](const ::testing::TestParamInfo<D3D_DRIVER_TYPE>& info) {
@@ -489,6 +675,38 @@ TEST(LightingShaderLayoutTest, CompiledProductionShaderMatchesCpuLayoutAndBindin
     EXPECT_EQ(lights.Elements, Engine::MaxDirectionalLights);
     D3D11_SHADER_INPUT_BIND_DESC binding{};
     ASSERT_TRUE(SUCCEEDED(reflection->GetResourceBindingDescByName("LightingConstantBuffer", &binding)));
+    EXPECT_EQ(binding.Type, D3D_SIT_CBUFFER);
+    EXPECT_EQ(binding.BindPoint, 1u);
+}
+
+TEST(LightingShaderLayoutTest, ObjectMatricesMatchCpuSizeRowMajorLayoutAndBinding)
+{
+    ComPtr<ID3DBlob> bytecode;
+    const auto path = ExecutableDirectory() / "Shader" / "MeshVertexShader.cso";
+    ASSERT_TRUE(SUCCEEDED(D3DReadFileToBlob(path.c_str(), &bytecode)));
+    ComPtr<ID3D11ShaderReflection> reflection;
+    ASSERT_TRUE(SUCCEEDED(D3DReflect(bytecode->GetBufferPointer(), bytecode->GetBufferSize(),
+        IID_ID3D11ShaderReflection, reinterpret_cast<void**>(reflection.GetAddressOf()))));
+    auto* buffer = reflection->GetConstantBufferByName("ObjectConstant");
+    D3D11_SHADER_BUFFER_DESC bufferDesc{};
+    ASSERT_TRUE(SUCCEEDED(buffer->GetDesc(&bufferDesc)));
+    EXPECT_EQ(bufferDesc.Size, 2 * sizeof(Engine::Matrix4));
+    const std::pair<const char*, UINT> matrices[] = {{"world", 0}, {"normal", 64}};
+    for (const auto& [name, offset] : matrices)
+    {
+        auto* variable = buffer->GetVariableByName(name);
+        D3D11_SHADER_VARIABLE_DESC variableDesc{};
+        ASSERT_TRUE(SUCCEEDED(variable->GetDesc(&variableDesc)));
+        EXPECT_EQ(variableDesc.StartOffset, offset);
+        EXPECT_EQ(variableDesc.Size, sizeof(Engine::Matrix4));
+        D3D11_SHADER_TYPE_DESC type{};
+        ASSERT_TRUE(SUCCEEDED(variable->GetType()->GetDesc(&type)));
+        EXPECT_EQ(type.Class, D3D_SVC_MATRIX_ROWS);
+        EXPECT_EQ(type.Rows, 4u);
+        EXPECT_EQ(type.Columns, 4u);
+    }
+    D3D11_SHADER_INPUT_BIND_DESC binding{};
+    ASSERT_TRUE(SUCCEEDED(reflection->GetResourceBindingDescByName("ObjectConstant", &binding)));
     EXPECT_EQ(binding.Type, D3D_SIT_CBUFFER);
     EXPECT_EQ(binding.BindPoint, 1u);
 }

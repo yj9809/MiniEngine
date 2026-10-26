@@ -22,6 +22,9 @@ namespace Engine
 		// 렌더링 요청 함수.
 		virtual void Submit(const RenderCommand& command) = 0;
 
+		// 카메라 위치를 제출하는 함수.
+		virtual void SubmitCameraPosition(const Vector3& position) = 0;
+
 		// DirectionalLightRenderData를 제출하는 함수.
 		// DirectionalLightComponent에서 BuildRenderData()를 통해 생성된 데이터를 제출한다.
 		virtual void SubmitDirectionalLights(const std::vector<DirectionalLightRenderData>& lights) = 0;

@@ -68,6 +68,12 @@ namespace Engine
          */
         Matrix4 GetViewMatrix() const;
         Matrix4 GetProjectionMatrix() const;
+
+        /**
+         * 현재 카메라의 뷰 위치를 반환합니다.
+         * @return 마지막으로 성공적으로 계산한 뷰 위치.
+         */
+        Vector3 GetViewPosition() const;
         
     private:
         /**
@@ -88,6 +94,8 @@ namespace Engine
         mutable Matrix4 cachedViewMatrix = Matrix4::identity;
         mutable Matrix4 cachedProjectionMatrix = Matrix4::identity;
         
+        mutable Vector3 cachedViewPosition{};
+
         mutable bool dirtyView = true;        
         mutable bool dirtyProjection = true;
     };

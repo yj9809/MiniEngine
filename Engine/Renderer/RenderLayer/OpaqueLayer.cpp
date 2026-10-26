@@ -1,4 +1,4 @@
-﻿#include "OpaqueLayer.h"
+#include "OpaqueLayer.h"
 
 #include <d3dcompiler.h>
 #include <stdexcept>
@@ -28,10 +28,17 @@ namespace Engine
             throw std::runtime_error("OpaqueLayer material constant buffer creation failed");
         }
 
-        // 정점 셰이더에 전달할 월드 행렬 상수 버퍼 생성.
-        if (!CreateConstantBuffer(device, sizeof(Matrix4), worldConstantBuffer))
+
+        // 정점 셰이더에 전달할 노말 행렬 상수 버퍼 생성.
+        if (!CreateConstantBuffer(device, sizeof(ObjectConstantBuffer), objectConstantBuffer))
         {
-            throw std::runtime_error("OpaqueLayer world constant buffer creation failed");
+            throw std::runtime_error("OpaqueLayer object constant buffer creation failed");
+        }
+
+        // 픽셀 셰이더에 전달할 카메라 위치 상수 버퍼 생성.
+        if (!CreateConstantBuffer(device, sizeof(CameraConstantBuffer), cameraConstantBuffer))
+        {
+            throw std::runtime_error("OpaqueLayer camera constant buffer creation failed");
         }
 
         // 픽셀 셰이더에 전달할 조명 상수 버퍼 생성.
@@ -61,8 +68,8 @@ namespace Engine
         context->VSSetConstantBuffers(0, 1, wvpConstantBuffer.GetAddressOf());
         // 픽셀 셰이더에 버퍼 등록.
         context->PSSetConstantBuffers(0, 1, materialConstantBuffer.GetAddressOf());
-        // 정점 셰이더에 월드 행렬 상수 버퍼 등록.
-        context->VSSetConstantBuffers(1, 1, worldConstantBuffer.GetAddressOf());
+        // 정점 셰이더에 노말 행렬 상수 버퍼 등록.
+        context->VSSetConstantBuffers(1, 1, objectConstantBuffer.GetAddressOf());
 
         #pragma region Lighting 상수 버퍼 업데이트.
         const LightingConstantBuffer lightingBuffer = BuildLightingConstantBuffer(frameData);
@@ -76,8 +83,21 @@ namespace Engine
         context->Unmap(lightingConstantBuffer.Get(), 0);
         #pragma endregion
 
+        #pragma region Camera 상수 버퍼 업데이트.
+        const CameraConstantBuffer camerabuffer = { Vector4(frameData.cameraPosition, 1.0f) };
+
+        hr = context->Map(cameraConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        FAILCHECK(hr, L"Failed to map camera constant buffer", )
+
+        memcpy(mappedResource.pData, &camerabuffer, sizeof(CameraConstantBuffer));
+
+        context->Unmap(cameraConstantBuffer.Get(), 0);
+        #pragma endregion
+
         // 픽셀 셰이더에 조명 상수 버퍼 등록.
         context->PSSetConstantBuffers(1, 1, lightingConstantBuffer.GetAddressOf());
+        // 픽셀 셰이더에 카메라 위치 상수 버퍼 등록.
+        context->PSSetConstantBuffers(2, 1, cameraConstantBuffer.GetAddressOf());
 
         // InputLayout 등록.
         context->IASetInputLayout(inputLayout.Get());
@@ -95,6 +115,18 @@ namespace Engine
         const RenderCommand& command,
         const std::unordered_map<TextureHandle, ComPtr<ID3D11ShaderResourceView>>& textureMap)
     {
+        Matrix4 inverseWorld;
+        if (!command.worldMatrix.TryInverseGeneral(inverseWorld))
+        {
+            return; // 역행렬 계산 실패 시 드로우 콜을 건너뜀.
+        }
+
+        const ObjectConstantBuffer objectData
+        {
+            command.worldMatrix,
+            inverseWorld.Transpose()
+        };
+
         #pragma region Material 상수 버퍼 업데이트.
         MaterialConstantBuffer materialBuffer{};
         materialBuffer.baseColor = command.baseColor;
@@ -104,18 +136,19 @@ namespace Engine
         HRESULT hr = context->Map(materialConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
         FAILCHECK(hr, L"Failed to map material constant buffer", )
 
-        memcpy(mappedResource.pData, &materialBuffer, sizeof(MaterialConstantBuffer));
+        memcpy(mappedResource.pData, &materialBuffer, sizeof(materialBuffer));
 
         context->Unmap(materialConstantBuffer.Get(), 0);
         #pragma endregion
 
-        #pragma region World 상수 버퍼 업데이트.
-        hr = context->Map(worldConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        FAILCHECK(hr, L"Failed to map world constant buffer", )
 
-        memcpy(mappedResource.pData, &command.worldMatrix, sizeof(Matrix4));
+        #pragma region Object 상수 버퍼 업데이트.
+        hr = context->Map(objectConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        FAILCHECK(hr, L"Failed to map object constant buffer", )
 
-        context->Unmap(worldConstantBuffer.Get(), 0);
+        memcpy(mappedResource.pData, &objectData, sizeof(objectData));
+
+        context->Unmap(objectConstantBuffer.Get(), 0);
         #pragma endregion
 
         // Texture 바인딩.

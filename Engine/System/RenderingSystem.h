@@ -24,7 +24,7 @@ namespace Engine
         void Unregister(MeshRendererComponent* component);
         void Clear();
 
-        void Render(const Matrix4& viewMatrix, const Matrix4& projectionMatrix, const LightingSystem* lightingSystem);
+        void Render(const Matrix4& viewMatrix, const Matrix4& projectionMatrix, const Vector3& viewPosition, const LightingSystem* lightingSystem);
         
     private:
         IRenderer& renderer;

@@ -11,5 +11,6 @@ namespace Engine
     {
         std::vector<DirectionalLightRenderData> directionalLights;
         EnvironmentLightingRenderData environmentLighting{};
+        Vector3 cameraPosition{};
     };
 }

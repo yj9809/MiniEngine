@@ -52,7 +52,7 @@ namespace Engine
         meshRenderers.clear();
     }
 
-    void RenderingSystem::Render(const Matrix4& viewMatrix, const Matrix4& projectionMatrix, const LightingSystem* lightingSystem)
+    void RenderingSystem::Render(const Matrix4& viewMatrix, const Matrix4& projectionMatrix, const Vector3& viewPosition, const LightingSystem* lightingSystem)
     {
         directionalLights.clear();
         EnvironmentLightingRenderData environmentLighting = {};
@@ -67,6 +67,7 @@ namespace Engine
 
         renderer.SubmitDirectionalLights(directionalLights);
         renderer.SubmitEnvironmentLighting(environmentLighting);
+        renderer.SubmitCameraPosition(viewPosition);
 
         for(MeshRendererComponent* component : meshRenderers)
         {

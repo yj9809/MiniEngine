@@ -39,6 +39,7 @@ namespace
         }
         void SubmitDirectionalLights(const std::vector<Engine::DirectionalLightRenderData>&) override {}
         void SubmitEnvironmentLighting(const Engine::EnvironmentLightingRenderData&) override {}
+        void SubmitCameraPosition(const Engine::Vector3&) override {}
         void BeginFrame(float, float, float) override {}
         void EndFrame() override {}
         void Render() override {}
@@ -351,7 +352,7 @@ TEST_F(ResourceManagerTest, ComponentReferencesSurviveCacheClearAndReleaseOnLeve
     EXPECT_EQ(renderer.bufferReleases, 0);
     EXPECT_EQ(renderer.textureReleases, 0);
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
     EXPECT_EQ(renderer.submissions, 1);
     level.EndLevel();
     EXPECT_EQ(renderer.bufferReleases, 2);

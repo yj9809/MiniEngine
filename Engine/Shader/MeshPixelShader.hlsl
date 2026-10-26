@@ -3,6 +3,7 @@ struct VSOutput
 	float4 pos : SV_POSITION;
 	float3 normal : NORMAL;
 	float2 uv : TEXCOORD;
+	float3 worldPosition : TEXCOORD1;
 };
 
 #define MAX_DIRECTIONAL_LIGHTS 4
@@ -17,6 +18,7 @@ cbuffer MaterialConstantBuffer : register(b0)
 {
 	float4 gBaseColor;
 };
+
 cbuffer LightingConstantBuffer : register(b1)
 {
 	DirectionalLightGPUData gDirectionalLights[MAX_DIRECTIONAL_LIGHTS];
@@ -27,6 +29,11 @@ cbuffer LightingConstantBuffer : register(b1)
 	uint gDirectionalLightCount;
 	float3 gLightingPadding;
 };
+
+cbuffer CameraConstantBuffer : register(b2)
+{
+	float4 gCameraPosition;
+}
 
 Texture2D gTexture : register(t0);
 SamplerState gSampler : register(s0);

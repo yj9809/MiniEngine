@@ -50,6 +50,14 @@ namespace
             ++environmentSubmissions;
         }
 
+        void SubmitCameraPosition(const Engine::Vector3& position) override
+        {
+            submittedCameraPosition = position;
+            ++cameraSubmissions;
+        }
+        Engine::Vector3 submittedCameraPosition{};
+        int cameraSubmissions = 0;
+
         void BeginFrame(float, float, float) override {}
         void EndFrame() override {}
         void Render() override {}
@@ -205,7 +213,7 @@ TEST(RenderingSystemTest, RegisteredComponentSubmitsOnceAndDuplicateRegistration
     level.ProcessAddAndDestroyActor();
     level.GetRenderingSystem().Register(actorPtr->GetMeshRenderer());
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
 
     EXPECT_EQ(renderer.submittedCommands.size(), 1);
     level.EndLevel();
@@ -226,9 +234,9 @@ TEST(RenderingSystemTest, DestroyedActorIsUnregisteredBeforeMemoryRelease)
     level.AddNewActor(std::move(actor));
     level.ProcessAddAndDestroyActor();
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
     actorPtr->DestroyForTest();
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
     level.ProcessAddAndDestroyActor();
 
     EXPECT_EQ(renderer.submittedCommands.size(), 1);
@@ -252,7 +260,7 @@ TEST(RenderingSystemTest, ClearBeforeComponentRemovalKeepsUnregisterSafe)
 
     level.GetRenderingSystem().Clear();
     actorPtr->DestroyForTest();
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
     level.ProcessAddAndDestroyActor();
 
     EXPECT_TRUE(renderer.submittedCommands.empty());
@@ -276,8 +284,8 @@ TEST(RenderingSystemTest, ComponentRegistersOnlyWithItsOwnerLevel)
     firstLevel.AddNewActor(std::make_unique<MeshActor>(mesh));
     firstLevel.ProcessAddAndDestroyActor();
 
-    firstLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
-    secondLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    firstLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
+    secondLevel.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
 
     EXPECT_EQ(firstRenderer.submittedCommands.size(), 1);
     EXPECT_TRUE(secondRenderer.submittedCommands.empty());
@@ -295,7 +303,7 @@ TEST(RenderingSystemTest, ComponentWithoutMeshDoesNotSubmit)
     level.AddNewActor(std::make_unique<MeshActor>());
     level.ProcessAddAndDestroyActor();
 
-    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    level.GetRenderingSystem().Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
 
     EXPECT_TRUE(renderer.submittedCommands.empty());
     level.EndLevel();
@@ -310,6 +318,8 @@ TEST(RenderingSystemTest, LevelDrawSubmitsThroughRenderingSystem)
     const auto mesh = resourceManager.LoadMesh(obj.GetPath());
     auto cameraActor = std::make_unique<CameraActor>();
     Engine::CameraComponent* camera = cameraActor->GetCamera();
+    auto* cameraActorPtr = cameraActor.get();
+    cameraActor->SetPosition(Engine::Vector3(3, -2, 5));
 
     ASSERT_NE(mesh, nullptr);
     level.AttachServices(renderer, resourceManager);
@@ -321,6 +331,16 @@ TEST(RenderingSystemTest, LevelDrawSubmitsThroughRenderingSystem)
     level.Draw();
 
     EXPECT_EQ(renderer.submittedCommands.size(), 1);
+    ExpectColor(renderer.submittedCameraPosition, Engine::Vector3(3, -2, 5));
+    EXPECT_EQ(renderer.cameraSubmissions, 1);
+    cameraActorPtr->SetPosition(Engine::Vector3(-4, 1, 2));
+    level.Draw();
+    ExpectColor(renderer.submittedCameraPosition, Engine::Vector3(-4, 1, 2));
+    EXPECT_EQ(renderer.cameraSubmissions, 2);
+    ASSERT_FALSE(renderer.submittedCommands.empty());
+    const auto eyeInView = renderer.submittedCommands.back().viewMatrix.TransformPosition(
+        renderer.submittedCameraPosition);
+    ExpectColor(eyeInView, Engine::Vector3::zero);
     level.EndLevel();
 }
 
@@ -344,7 +364,7 @@ TEST(RenderingSystemTest, EnvironmentIsSubmittedWithoutMeshesAlongsideDirectiona
     lighting.Register(&second);
     lighting.Register(directional);
 
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &lighting);
 
     EXPECT_EQ(renderer.environmentSubmissions, 1);
     EXPECT_TRUE(renderer.submittedCommands.empty());
@@ -363,19 +383,19 @@ TEST(RenderingSystemTest, NullAndEmptyLightingOverwritePreviousEnvironment)
     Engine::LightingSystem populated, empty;
     populated.Register(&sky);
 
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
     EXPECT_EQ(renderer.environmentSubmissions, 1);
     ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
 
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &populated);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &populated);
     ExpectEnvironment(renderer, Engine::Vector3(0.1f, 0.1f, 0.1f), Engine::Vector3(0.1f, 0.1f, 0.1f));
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, nullptr);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, nullptr);
     EXPECT_EQ(renderer.environmentSubmissions, 3);
     ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
 
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &populated);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &populated);
     ExpectEnvironment(renderer, Engine::Vector3(0.1f, 0.1f, 0.1f), Engine::Vector3(0.1f, 0.1f, 0.1f));
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &empty);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &empty);
     EXPECT_EQ(renderer.environmentSubmissions, 5);
     ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
 }
@@ -388,19 +408,19 @@ TEST(RenderingSystemTest, EachRenderReflectsChangesAndUnregistrationWithoutAccum
     Engine::LightingSystem lighting;
     lighting.Register(&sky);
 
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &lighting);
     ExpectEnvironment(renderer, Engine::Vector3(0.1f, 0.1f, 0.1f), Engine::Vector3(0.1f, 0.1f, 0.1f));
     sky.SetSkyColor(Engine::Vector3(2.0f, 3.0f, 4.0f));
     sky.SetGroundColor(Engine::Vector3(6.0f, 2.0f, 1.0f));
     sky.SetIntensity(0.5f);
     for (int frame = 0; frame < 2; ++frame)
     {
-        rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+        rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &lighting);
         ExpectEnvironment(renderer, Engine::Vector3(1.0f, 1.5f, 2.0f), Engine::Vector3(3.0f, 1.0f, 0.5f));
     }
 
     lighting.Unregister(&sky);
-    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, &lighting);
+    rendering.Render(Engine::Matrix4::identity, Engine::Matrix4::identity, Engine::Vector3::zero, &lighting);
     EXPECT_EQ(renderer.environmentSubmissions, 4);
     ExpectEnvironment(renderer, Engine::Vector3::zero, Engine::Vector3::zero);
 }
@@ -452,7 +472,7 @@ TEST(RenderingSystemTest, QuaternionLightDirectionReachesSubmissionAndPackingInW
     {
         ASSERT_TRUE(actor.GetRootComponent()->TrySetLocalRotation(rotations[pose]));
         // Vary the camera view too: lighting must remain in world space.
-        rendering.Render(Matrix4::Rotation(0, 0, pose * PI * 0.5f), Matrix4::identity, &lighting);
+        rendering.Render(Matrix4::Rotation(0, 0, pose * PI * 0.5f), Matrix4::identity, Engine::Vector3::zero, &lighting);
         ASSERT_EQ(renderer.submittedDirectionalLights.size(), 1u);
         const auto& submitted = renderer.submittedDirectionalLights[0];
         EXPECT_NEAR(submitted.direction.x, expected[pose].x, 1e-6f);
@@ -471,6 +491,6 @@ TEST(RenderingSystemTest, QuaternionLightDirectionReachesSubmissionAndPackingInW
         EXPECT_FLOAT_EQ(direction.w, 0.0f);
     }
     lighting.Unregister(light);
-    rendering.Render(Matrix4::identity, Matrix4::identity, &lighting);
+    rendering.Render(Matrix4::identity, Matrix4::identity, Engine::Vector3::zero, &lighting);
     EXPECT_TRUE(renderer.submittedDirectionalLights.empty());
 }

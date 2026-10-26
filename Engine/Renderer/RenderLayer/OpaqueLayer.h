@@ -53,8 +53,20 @@ namespace Engine
         };
         ComPtr<ID3D11Buffer> materialConstantBuffer;
 
-        // 정점 셰이더에 전달한 월드 행렬 상수 버퍼.
-        ComPtr<ID3D11Buffer> worldConstantBuffer;
+        struct ObjectConstantBuffer
+        {
+            Matrix4 world;
+            Matrix4 normal;
+        };
+        // 정점 셰이더에 전달한 노말 행렬 상수 버퍼.
+        ComPtr<ID3D11Buffer> objectConstantBuffer;
+
+        struct CameraConstantBuffer
+        {
+            Vector4 cameraPosition;
+        };
+        // 픽셀 셰이더에 전달할 카메라 위치 상수 버퍼.
+        ComPtr<ID3D11Buffer> cameraConstantBuffer;
 
         ComPtr<ID3D11Buffer> lightingConstantBuffer;
     };
