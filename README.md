@@ -329,7 +329,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 325개 전체 실행 검증 대기 |
 | 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 1-1·1-2 완료 / 관련 범위 테스트·실행 화면 확인 |
 | 2 | Quaternion Transform · Transform 계층 | 2-1 수학 구현 / Transform은 여전히 Euler 원본, 2-2 통합 미완료 |
-| 3 | Forward Lighting 기준선 | 예정 |
+| 3 | Forward Lighting 기준선 | 첫 3개 항목 체크 / 공개 구현·통합·검증 확인 대기 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
 | 5 | Deferred Rendering | 예정 |
 | 6 | Shadow · PBR · glTF 정적 Asset | 예정 |
@@ -343,7 +343,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵의 2-2 체크리스트는 DirectionalLight 이전과 반복 회전·짐벌락 비교 데모까지 전체 항목이 체크돼 있습니다. 로컬에는 2026-10-22에 Quaternion 통합 `1a9782f`와 회전 비교 데모 `0fb4b80`가 커밋됐지만 공개 `main`에는 아직 반영되지 않았습니다. 현재 상태는 **로컬 구현·관련 범위 검증 기록 확인 / 공개 코드 반영 대기**로 구분합니다. 공개 `main`의 `TransformComponent`는 여전히 Euler `Vector3`를 저장하고 Euler 행렬로 World Matrix와 Forward를 계산하며 CameraActor도 Euler 입력 경로를 사용합니다. 로드맵 체크와 로컬 실행 기록을 공개 코드의 통합·전체 회귀 완료 근거로 사용하지 않습니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
-2-3 Transform 계층은 2026-10-23에 SceneComponent 기반 공간 계층의 기본 설계를 합의한 상태이며, 구현·통합·실행 검증은 미착수입니다. 구현 시점은 Scene·Skeleton/Attachment 등 실제 소비 기능에서 필요한 때로 유지하며, 다음 개발 항목인 World Inverse Transpose 기반 Normal Matrix도 미착수입니다.
+2-3 Transform 계층은 2026-10-23에 SceneComponent 기반 공간 계층의 기본 설계를 합의한 상태이며, 구현·통합·실행 검증은 미착수입니다. 구현 시점은 Scene·Skeleton/Attachment 등 실제 소비 기능에서 필요한 때로 유지합니다. 최신 로드맵의 3단계는 Normal Matrix·비균일 스케일 검증·World/Camera Position 전달을 체크했지만, 공개 소스의 MeshVertexShader는 World 행렬로 법선을 변환하고 World Position을 출력하지 않으며 Camera Position의 셰이더 전달도 확인되지 않습니다. 해당 항목의 로컬 구현 범위와 실행 결과는 확인 대기이며 공개 구현·통합·검증 완료로 표시하지 않습니다.
 
 ## 프로젝트 구조
 
