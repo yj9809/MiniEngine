@@ -128,9 +128,9 @@ namespace Engine
 		return Vector3(x, y, z);
 	}
 
-	const Vector4  Vector4::zero = Vector4(0, 0, 0, 0);
-	const Vector4  Vector4::one = Vector4(1, 1, 1, 1);
-	const Vector4  Vector4::unitX = Vector4(1, 0, 0, 0);
-	const Vector4  Vector4::unitY = Vector4(0, 1, 0, 0);
-	const Vector4  Vector4::unitZ = Vector4(0, 0, 1, 0);
+	const Vector4 Vector4::zero = Vector4(0, 0, 0, 0);
+	const Vector4 Vector4::one = Vector4(1, 1, 1, 1);
+	const Vector4 Vector4::unitX = Vector4(1, 0, 0, 0);
+	const Vector4 Vector4::unitY = Vector4(0, 1, 0, 0);
+	const Vector4 Vector4::unitZ = Vector4(0, 0, 1, 0);
 }
