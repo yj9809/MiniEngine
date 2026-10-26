@@ -335,6 +335,75 @@ TEST(TransformEulerTest, PitchYawRollDegreesPreserveWorldBasisAndForward)
 // -----------------------------------------------------------------------
 // Transpose
 // -----------------------------------------------------------------------
+// Four homogeneous basis vectors expose every matrix element via the public API.
+static void ExpectMatrixNear(const Matrix4& actual, const Matrix4& expected)
+{
+    const Vector4 basis[] = {
+        Vector4(1, 0, 0, 0), Vector4(0, 1, 0, 0),
+        Vector4(0, 0, 1, 0), Vector4(0, 0, 0, 1)
+    };
+    for (const Vector4& v : basis)
+    {
+        ExpectVec4Near(actual * v, expected * v);
+    }
+}
+
+TEST(Matrix4Test, TryInverseGeneralRestoresHomogeneousBasisAndPreservesSource)
+{
+    const Matrix4 inputs[] = {
+        Matrix4::identity,
+        Matrix4::Translation(10, -20, 30),
+        Matrix4::Scale(2, -3, 4),
+        Matrix4::Scale(2, 3, 4) * Matrix4::Rotation(0.3f, -0.6f, 0.8f) *
+            Matrix4::Translation(10, -20, 30),
+        Matrix4::PerspectiveFOV(70, 1.5f, 1, 100)
+    };
+    for (const Matrix4& input : inputs)
+    {
+        Matrix4 source = input;
+        Matrix4 inverse = Matrix4::zero;
+        ASSERT_TRUE(source.TryInverseGeneral(inverse));
+        ExpectMatrixNear(source * inverse, Matrix4::identity);
+        ExpectMatrixNear(inverse * source, Matrix4::identity);
+        ExpectMatrixNear(source, input);
+        ExpectMatrixNear(source.InverseGeneral(), inverse);
+    }
+}
+
+TEST(Matrix4Test, TryInverseGeneralSingularInputReturnsFalseAndCopiesSource)
+{
+    const Matrix4 inputs[] = {
+        Matrix4::zero,
+        Matrix4::Scale(0, 2, 3) * Matrix4::Translation(5, 6, 7),
+        Matrix4::Scale(2, 0, 3) * Matrix4::Translation(5, 6, 7),
+        Matrix4::Scale(2, 3, 0) * Matrix4::Translation(5, 6, 7)
+    };
+    for (const Matrix4& input : inputs)
+    {
+        Matrix4 source = input;
+        Matrix4 output = Matrix4::identity;
+        EXPECT_FALSE(source.TryInverseGeneral(output));
+        ExpectMatrixNear(output, input);
+        ExpectMatrixNear(source, input);
+        ExpectMatrixNear(source.InverseGeneral(), input);
+    }
+}
+
+TEST(Matrix4Test, TryInverseGeneralSupportsOutputAliasingSource)
+{
+    const Matrix4 original = Matrix4::Scale(2, 3, 4) *
+        Matrix4::Rotation(0.3f, -0.6f, 0.8f) * Matrix4::Translation(5, 6, 7);
+    Matrix4 inPlace = original;
+    ASSERT_TRUE(inPlace.TryInverseGeneral(inPlace));
+    ExpectMatrixNear(original * inPlace, Matrix4::identity);
+    ExpectMatrixNear(inPlace * original, Matrix4::identity);
+
+    const Matrix4 singular = Matrix4::Scale(0, 2, 3) * Matrix4::Translation(5, 6, 7);
+    inPlace = singular;
+    EXPECT_FALSE(inPlace.TryInverseGeneral(inPlace));
+    ExpectMatrixNear(inPlace, singular);
+}
+
 TEST(Matrix4Test, TransposeTwiceIsIdentity)
 {
     Matrix4 t = Matrix4::Translation(1.0f, 2.0f, 3.0f);

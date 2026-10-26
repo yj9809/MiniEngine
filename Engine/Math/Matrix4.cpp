@@ -95,6 +95,18 @@ namespace Engine
 	Matrix4 Matrix4::InverseGeneral() const
 	{
 		Matrix4 result;
+		TryInverseGeneral(result);
+		return result;
+	}
+
+	Matrix4 Matrix4::Inverse() const
+	{
+		return Transpose(*this);
+	}
+
+	bool Matrix4::TryInverseGeneral(Matrix4& outResult) const
+	{
+		Matrix4 result;
 
 		// 여인수 구하기.
 		float c00 = +det3x3(m11, m12, m13, m21, m22, m23, m31, m32, m33);
@@ -112,10 +124,10 @@ namespace Engine
 		float c22 = +det3x3(m00, m01, m03, m10, m11, m13, m30, m31, m33);
 		float c23 = -det3x3(m00, m01, m02, m10, m11, m12, m30, m31, m32);
 			  
-		float c30 = +det3x3(m01, m02, m03, m11, m12, m13, m21, m22, m23);
-		float c31 = -det3x3(m00, m02, m03, m10, m12, m13, m20, m22, m23);
-		float c32 = +det3x3(m00, m01, m03, m10, m11, m13, m20, m21, m23);
-		float c33 = -det3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22);
+		float c30 = -det3x3(m01, m02, m03, m11, m12, m13, m21, m22, m23);
+		float c31 = +det3x3(m00, m02, m03, m10, m12, m13, m20, m22, m23);
+		float c32 = -det3x3(m00, m01, m03, m10, m11, m13, m20, m21, m23);
+		float c33 = +det3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22);
 
 		// 행렬식.
 		float det = m00 * c00 + m01 * c01 + m02 * c02 + m03 * c03;
@@ -123,7 +135,8 @@ namespace Engine
 		// 역행렬 존재 여부 체크.
 		if (det == 0)
 		{
-			return *this;
+			outResult = *this;
+			return false;
 		}
 
 		// 수반행렬 (여인수 행렬을 전치).
@@ -154,12 +167,8 @@ namespace Engine
 			result.elements[i] *= invDet;
 		}
 
-		return result;
-	}
-
-	Matrix4 Matrix4::Inverse() const
-	{
-		return Transpose(*this);
+		outResult = result;
+		return true;
 	}
 
 	Matrix4 Matrix4::Translation(float x, float y, float z)

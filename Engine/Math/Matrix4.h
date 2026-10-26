@@ -63,6 +63,8 @@ namespace Engine
          */
         Matrix4 Inverse() const;
 
+        bool TryInverseGeneral(Matrix4& outResult) const;
+
         /**
          * 각 축으로 x, y, z만큼 이동하는 행렬을 반환합니다.
          */
