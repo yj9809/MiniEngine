@@ -1,0 +1,16 @@
+[
+  {
+    "condition": "uniform",
+    "changedPixels": 0.0,
+    "totalPixels": 614400,
+    "meanAbsoluteRGB8Difference": 0.0,
+    "maxRGB8Difference": 0.0
+  },
+  {
+    "condition": "nonuniform",
+    "changedPixels": 39942.0,
+    "totalPixels": 614400,
+    "meanAbsoluteRGB8Difference": 1.43248046875,
+    "maxRGB8Difference": 123.0
+  }
+]

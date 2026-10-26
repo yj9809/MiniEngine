@@ -1,0 +1,72 @@
+{
+  "capturedAt": "2026-10-26T09:49:22.7708558+09:00",
+  "baseCommit": "0fb4b809d75c97f0861dc7c664711c5854c705a2",
+  "configuration": "Release x64",
+  "resolution": "960x640",
+  "files": [
+    {
+      "path": "Engine/Math/Matrix4.cpp",
+      "sha256": "C21083FA76881B3C49987CA97E438B38A49E739644C607BDFDE7274B535D0FD9"
+    },
+    {
+      "path": "Engine/Renderer/RenderLayer/OpaqueLayer.cpp",
+      "sha256": "5F75079EEC1FFACD1EAE9AC1D1AB382315185845F8452AACD1522643862165D6"
+    },
+    {
+      "path": "Engine/Shader/MeshVertexShader.hlsl",
+      "sha256": "3900000A533947D1FAEFE628BAADF011C2A66E97E86FF0757FC4DBBF2CB12F44"
+    },
+    {
+      "path": "Game/Actor/TestMeshActor.cpp",
+      "sha256": "67032DEB5E7793A3AD20A1B5261221C725AFB2F079A2A68F5A9341FC4975AA57"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/ComparisonMain.cpp",
+      "sha256": "8F1651DDF821E6A67BFB94703D3B06E0FA6C78AAC2B21EF757A7DFFAE38757C9"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/LegacyOpaqueLayer.cpp",
+      "sha256": "63A6895D4D4285C14016B67B15208892A3E9E3E6D574CFDC50B758F61D939E3F"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/Current/Game.exe",
+      "sha256": "0D05A108A21E1A6F980E6441530EEF1C98C298221D0AD3535D64265491F06EFE"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/Legacy/Game.exe",
+      "sha256": "0D05A108A21E1A6F980E6441530EEF1C98C298221D0AD3535D64265491F06EFE"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/Current/Engine.dll",
+      "sha256": "10149343FC40B5038F2BC73DB29D09DCC7ABEB40940555D0AD0FB1825B1B82CF"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/Legacy/Engine.dll",
+      "sha256": "F18547E92A02C07635C0E218AE2FA84997B28550DDE607CE7611432E73F34B94"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/Current/Shader/MeshVertexShader.cso",
+      "sha256": "BED73A11CD1DD637DDB58D675BCED74B49F7A6A5E066DA11C32A2A6E6CFFEB26"
+    },
+    {
+      "path": "Bin/NormalMatrixComparison/Legacy/Shader/MeshVertexShader.cso",
+      "sha256": "BED73A11CD1DD637DDB58D675BCED74B49F7A6A5E066DA11C32A2A6E6CFFEB26"
+    },
+    {
+      "path": "Docs/NormalMatrixComparison/current-uniform.png",
+      "sha256": "BF51E06763CAE87CD30CB672FA001A552BC597DD7DC976BF0C33D47653A13950"
+    },
+    {
+      "path": "Docs/NormalMatrixComparison/legacy-uniform.png",
+      "sha256": "BF51E06763CAE87CD30CB672FA001A552BC597DD7DC976BF0C33D47653A13950"
+    },
+    {
+      "path": "Docs/NormalMatrixComparison/current-nonuniform.png",
+      "sha256": "9FE2BE2C02BADD9955153CD487566763272A13361E48E8BBC6A95933C0A40536"
+    },
+    {
+      "path": "Docs/NormalMatrixComparison/legacy-nonuniform.png",
+      "sha256": "5D12C4A8CDE4016C295D4DDB0718FB4593DDE4B242311ACBD3FB6CFB98213A67"
+    }
+  ]
+}

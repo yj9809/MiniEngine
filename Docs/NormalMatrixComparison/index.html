@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniEngine · Normal Matrix 비교</title>
+<style>
+body{margin:0;background:#13171c;color:#edf1f5;font:16px/1.6 system-ui,sans-serif}main{max-width:960px;margin:32px auto;padding:0 20px}h1{font-size:28px;margin:0}p{color:#bbc6d1}button{padding:10px 18px;margin:0 8px 16px 0;border:1px solid #546677;border-radius:7px;background:#202b36;color:#fff;cursor:pointer}button[aria-pressed=true]{background:#365775;border-color:#80b7e2}.stage{position:relative;aspect-ratio:3/2;background:#0f0f0f;overflow:hidden;border-radius:8px}.stage img{display:block;position:absolute;width:100%;height:100%}.before{clip-path:inset(0 50% 0 0)}.line{position:absolute;top:0;bottom:0;left:50%;border-left:2px solid #c9e3ff;pointer-events:none}.tag{position:absolute;top:12px;padding:5px 10px;background:#182431dc;border-radius:4px;font-size:13px}.left{left:12px}.right{right:12px}input{width:100%;margin:18px 0;accent-color:#91c9f3}a{color:#91c9f3}.links{display:flex;gap:20px;flex-wrap:wrap}small{color:#9eacba}label{display:block;margin-top:12px}
+</style>
+<main>
+<small>MiniEngine · 실제 Game 캡처 · 2026-10-26</small>
+<h1>Normal Matrix 적용 전 / 후</h1>
+<p>같은 TestMeshActor · 같은 카메라와 광원 · 법선 변환 방식만 비교</p>
+<button id="nonuniform" aria-pressed="true" onclick="selectCase('nonuniform')">비균일 스케일 (2, 1, 0.5)</button>
+<button id="uniform" aria-pressed="false" onclick="selectCase('uniform')">기본 스케일 (1, 1, 1)</button>
+<div class="stage">
+  <img id="after" src="current-nonuniform.png" alt="Normal Matrix 적용 후">
+  <img id="before" class="before" src="legacy-nonuniform.png" alt="기존 World 법선 변환">
+  <div id="line" class="line"></div>
+  <span class="tag left">기존 World 변환</span><span class="tag right">Normal Matrix</span>
+</div>
+<label for="slider">경계를 움직여 같은 표면 위치를 비교하세요.</label>
+<input id="slider" aria-label="적용 전후 비교 경계" type="range" min="0" max="100" value="50" oninput="move(this.value)">
+<p id="result">비균일 스케일: 39,942개 픽셀에서 차이 확인. 표면의 밝기 분포가 달라집니다.</p>
+<div class="links"><a id="oldLink" href="legacy-nonuniform.png">기존 방식 원본 PNG</a><a id="newLink" href="current-nonuniform.png">적용 후 원본 PNG</a><a href="README.md">조건·검증 기록</a></div>
+<p><small>이미지는 실제 창의 원본 캡처입니다. 밝기 차이만으로 수학적 정확성을 판단하지 않으며, 법선 수치는 별도의 GPU 자동 테스트에서 검증했습니다.</small></p>
+</main>
+<script>
+function move(v){document.getElementById('before').style.clipPath=`inset(0 ${100-v}% 0 0)`;document.getElementById('line').style.left=v+'%'}
+function selectCase(kind){for(const id of ['uniform','nonuniform'])document.getElementById(id).setAttribute('aria-pressed',String(id===kind));for(const [id,prefix] of [['before','legacy'],['after','current']])document.getElementById(id).src=`${prefix}-${kind}.png`;document.getElementById('oldLink').href=`legacy-${kind}.png`;document.getElementById('newLink').href=`current-${kind}.png`;document.getElementById('result').textContent=kind==='uniform'?'기본 스케일: 두 캡처의 모든 픽셀이 동일합니다.':'비균일 스케일: 39,942개 픽셀에서 차이 확인. 표면의 밝기 분포가 달라집니다.'}
+</script>
+</html>
