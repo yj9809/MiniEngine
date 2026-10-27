@@ -196,6 +196,18 @@ Pitch 90도 두 GIF의 입력 순서는 사용자 확인 기록의 `9 → 2 → 
 
 별도의 로컬 저장 로그와 XML에는 두 기능 커밋 직전 작업 트리에서 관련 296개 테스트(24 suites)가 Debug / Release x64 각각 통과한 기록이 있습니다. 실패·오류·비활성·건너뜀은 0이며 기존 로컬 변경을 포함한 선택 범위 실행입니다. 각 커밋의 독립 실행 결과나 공개 main의 최신 전체 회귀 결과는 아닙니다.
 
+### 로컬 Normal Matrix 비교 기록 — 공개 main 미반영
+
+2026-10-26 로컬 Normal Matrix 구현 직후의 Release x64 Game 캡처입니다. 기존 지구 메시·텍스처에 같은 카메라·광원을 사용하고 비균일 스케일 (2,1,0.5)을 비교했습니다. 적용 전은 과거 커밋 전체가 아니라 법선 변환에 World 행렬을 넣은 별도 비교 빌드이며, 적용 후는 World Inverse Transpose를 사용합니다.
+
+| 비균일 스케일 · 적용 전 | 비균일 스케일 · 적용 후 | 기본 스케일 (1,1,1) · 전후 공통 |
+|---|---|---|
+| ![World 행렬로 법선을 변환한 비균일 스케일 지구](Docs/NormalMatrixComparison/legacy-nonuniform.png) | ![Normal Matrix로 법선을 변환한 비균일 스케일 지구](Docs/NormalMatrixComparison/current-nonuniform.png) | ![전후 픽셀이 동일한 기본 스케일 대조군](Docs/NormalMatrixComparison/current-uniform.png) |
+
+원본 4장과 로컬 `Docs/NormalMatrixComparison/manifest.json`의 SHA-256이 일치하며, 동일한 기본 스케일 전후 파일은 한 장만 연결했습니다. 당시 픽셀 측정 기록은 960×640 중 기본 스케일 차이 0개, 비균일 스케일 차이 39,942개입니다. 표면 밝기 분포의 변화는 확인되지만 밝기 감소 자체를 법선 계산의 정확성 근거로 삼지는 않습니다. 캡처에는 당시 미커밋 광원 자동 회전 제거가 포함됐고, 이후 World/Camera Position 전달 변경의 Game 실행 결과나 공개 main의 재현·성능 검증은 아닙니다.
+
+로컬 `d0528ca`·`1b86a4e`에서 일반 역행렬 수정, 역전치 법선 변환과 특이 스케일 Draw 생략, World/Camera Position 셰이더 전달을 확인했습니다. `Bin/{Debug,Release}/Tests/position-transfer-results.xml`과 실행 로그에는 두 커밋 직전 작업 트리의 관련 87개 테스트가 2026-10-26에 각 구성에서 통과한 기록이 있습니다. 실패·오류·비활성은 0이며, 오늘 재실행이나 공개 main 전체 회귀 결과가 아닙니다. 위치 데이터는 아직 실제 조명 계산에 사용하지 않으며 View Direction 계산은 미착수입니다.
+
 ## 빌드와 검증
 
 ### 요구 환경
@@ -329,7 +341,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 325개 전체 실행 검증 대기 |
 | 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 1-1·1-2 완료 / 관련 범위 테스트·실행 화면 확인 |
 | 2 | Quaternion Transform · Transform 계층 | 2-1 수학 구현 / Transform은 여전히 Euler 원본, 2-2 통합 미완료 |
-| 3 | Forward Lighting 기준선 | 첫 3개 항목 체크 / 공개 구현·통합·검증 확인 대기 |
+| 3 | Forward Lighting 기준선 | 첫 3개 항목 로컬 구현·관련 검증 기록 확인 / 공개 코드 반영 대기 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
 | 5 | Deferred Rendering | 예정 |
 | 6 | Shadow · PBR · glTF 정적 Asset | 예정 |
@@ -343,7 +355,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 
 Environment Lighting은 로드맵의 1-1·1-2 완료 상태를 유지합니다. Quaternion 2-1 수학 API와 테스트 소스는 구현됐고 다음은 **Transform의 Quaternion 단일 원본 전환 → Local/World 합성·축 계산 → Camera·Light 회전 이전 → 실제 Game 비교 → Forward Lighting 기준선 → RenderTarget / RenderPass → Deferred Rendering → Shadow** 순서입니다. 최신 로드맵의 2-2 체크리스트는 DirectionalLight 이전과 반복 회전·짐벌락 비교 데모까지 전체 항목이 체크돼 있습니다. 로컬에는 2026-10-22에 Quaternion 통합 `1a9782f`와 회전 비교 데모 `0fb4b80`가 커밋됐지만 공개 `main`에는 아직 반영되지 않았습니다. 현재 상태는 **로컬 구현·관련 범위 검증 기록 확인 / 공개 코드 반영 대기**로 구분합니다. 공개 `main`의 `TransformComponent`는 여전히 Euler `Vector3`를 저장하고 Euler 행렬로 World Matrix와 Forward를 계산하며 CameraActor도 Euler 입력 경로를 사용합니다. 로드맵 체크와 로컬 실행 기록을 공개 코드의 통합·전체 회귀 완료 근거로 사용하지 않습니다. 관련 범위의 실행 기록과 최신 SHA 전체 회귀의 확인 범위는 위 검증 현황에서 구분합니다. 방향광 최대 4개 업로드는 연결됐지만 Point/Spot·Normal Matrix·색 공간 등 Forward 기준선 전체는 미완료입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
-2-3 Transform 계층은 2026-10-23에 SceneComponent 기반 공간 계층의 기본 설계를 합의한 상태이며, 구현·통합·실행 검증은 미착수입니다. 구현 시점은 Scene·Skeleton/Attachment 등 실제 소비 기능에서 필요한 때로 유지합니다. 최신 로드맵의 3단계는 Normal Matrix·비균일 스케일 검증·World/Camera Position 전달을 체크했지만, 공개 소스의 MeshVertexShader는 World 행렬로 법선을 변환하고 World Position을 출력하지 않으며 Camera Position의 셰이더 전달도 확인되지 않습니다. 해당 항목의 로컬 구현 범위와 실행 결과는 확인 대기이며 공개 구현·통합·검증 완료로 표시하지 않습니다.
+2-3 Transform 계층은 2026-10-23에 SceneComponent 기반 공간 계층의 기본 설계를 합의한 상태이며, 구현·통합·실행 검증은 미착수입니다. 구현 시점은 Scene·Skeleton/Attachment 등 실제 소비 기능에서 필요한 때로 유지합니다. 최신 로드맵의 3단계는 Normal Matrix·비균일 스케일 검증·World/Camera Position 전달을 체크했지만, 공개 소스의 MeshVertexShader는 World 행렬로 법선을 변환하고 World Position을 출력하지 않으며 Camera Position의 셰이더 전달도 확인되지 않습니다. 로컬 `d0528ca`·`1b86a4e`의 구현과 관련 87개 저장 실행 기록은 위 비교 기록에서 확인했으며, 공개 코드 반영·전체 회귀 완료와 구분합니다. 다음 항목인 View Direction 계산은 미착수입니다.
 
 ## 프로젝트 구조
 
