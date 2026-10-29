@@ -8,7 +8,9 @@
 
 ## 현재 상태
 
-기준 커밋: [`0fc50dc`](https://github.com/yj9809/MiniEngine/commit/0fc50dc5f37299e2cb343cf61846ba8a61da460b) (2026-10-17)
+공개 코드 기준 커밋: [`0fc50dc`](https://github.com/yj9809/MiniEngine/commit/0fc50dc5f37299e2cb343cf61846ba8a61da460b) (2026-10-17)
+
+별도 표시가 없는 구현·조작 설명은 공개 `main` 기준입니다. 미게시 로컬 코드의 Quaternion 통합과 Normal Matrix·위치 전달은 아래 로컬 비교 기록과 로드맵에서 별도로 구분합니다.
 
 개편된 Notion 로드맵은 Bootstrap / Shutdown과 Level 전환을 완료 기준선으로 두고, **1단계 Environment Lighting → 2단계 Quaternion 회전** 순서로 진행합니다. 최신 코드는 시작 Level과 런타임 후보를 같은 활성화 경로로 처리하고, Tick·Draw·Actor 처리·입력 정리가 끝난 프레임 경계에서 Level을 교체합니다. 후보 활성화가 실패하면 후보만 정리하고 기존 Level을 유지하며, 전환·종료 콜백 중 추가 요청은 거부합니다.
 
@@ -150,15 +152,15 @@ Level
 
 빌드 출력 폴더에서 `Game.exe --colored-ambient`로 실행합니다. Visual Studio에서는 Game의 명령 인수에 `--colored-ambient`를 지정합니다. 이 모드는 방향광을 배치하지 않고 SkyColor (0.2, 0.5, 1.0), GroundColor (1.0, 0.2, 0.06), Intensity 0.5의 SkyLight를 배치합니다. 옵션이 없으면 Intensity 0.1의 방향광 데모를 실행합니다.
 
-| 색 환경광 실행 자료 | 무광원 비교 자료 |
-|---|---|
-| ![푸른 하늘색과 붉은 지면색이 보이는 지구](Docs/ColoredEnvironmentLightingDark.png) | ![광원 없이 검게 보이는 지구](Docs/No_Light.png) |
+| 기본 SkyLight 비교 자료 | 색 환경광 실행 자료 | 무광원 비교 자료 |
+|---|---|---|
+| ![기본 SkyLight로 기록한 지구](Docs/Default_Value_Sky_Light.png) | ![푸른 하늘색과 붉은 지면색이 보이는 지구](Docs/ColoredEnvironmentLightingDark.png) | ![광원 없이 검게 보이는 지구](Docs/No_Light.png) |
 
 | 색 환경광 Intensity 0.1 자료 | 색 환경광 Intensity 0.5 자료 |
 |---|---|
 | ![낮은 환경광 강도 비교](Docs/Sky_Light_Intensity_0.1.png) | ![높은 환경광 강도 비교](Docs/Sky_Light_Intensity_0.5.png) |
 
-2026-10-15에 게시된 자료에서 색과 밝기 차이를 확인했습니다. 강도·무광원 조건명은 파일명과 커밋 설명에 근거하며 화면에 실행 SHA·빌드 구성은 없습니다. 현재 main의 기본 옵션은 위 0.5 설정이고, 무광원·0.1 전환용 실행 옵션은 없습니다. 캡처를 최신 SHA 전체 빌드·테스트 통과 또는 동일 조건 재현의 증거로 사용하지 않습니다.
+2026-10-15 실행 자료에서 색과 밝기 차이를 확인했습니다. 기본 SkyLight·강도·무광원 조건명은 파일명과 커밋 설명에 근거하며 화면에 실행 SHA·빌드 구성은 없습니다. 현재 main의 기본 옵션은 위 0.5 설정이고, 무광원·0.1 전환용 실행 옵션은 없습니다. 캡처를 최신 SHA 전체 빌드·테스트 통과 또는 동일 조건 재현의 증거로 사용하지 않습니다.
 
 ### 방향광 데모
 
@@ -282,7 +284,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 |---|---|
 | ![Quaternion 실패 입력 테스트 42개 실행 기록 전반](Docs/QuaternionFailureTestsReleasePart1.png) | ![Quaternion 실패 입력 테스트 42개 실행 기록 후반](Docs/QuaternionFailureTestsReleasePart2.png) |
 
-2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. ResourceManager 화면은 2026-10-17에 별도 게시됐으며 12개 개별 OK를 직접 확인했습니다. 화면에는 실행 SHA와 빌드 경로가 없으므로 이 자료들을 최신 325개 전체 통과 기록으로 분류하지 않습니다.
+2026-10-14 Release 캡처는 아래 각 스위트를 따로 실행한 결과입니다. ResourceManager 원본에서 12개 개별 OK를 확인했지만 개인 사용자 폴더 경로가 포함돼 공개 이미지에서 제외했습니다. 원본은 로컬에 보존합니다. 화면에는 실행 SHA와 빌드 구성이 없으므로 이 자료들을 최신 325개 전체 통과 기록으로 분류하지 않습니다.
 
 | Lifecycle (14, Release, 2026-10-14) | RenderingSystem (6, 2026-10-06) | EngineInitialization (3, Release, 2026-10-11) |
 |---|---|---|
@@ -296,9 +298,9 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 |---|---|---|
 | ![EngineSettingsInitialization Release 테스트 2개 실행 결과](Docs/EngineSettingsInitializationTestsLatest.png) | ![LevelTransitionDeath Release 테스트 6개 실행 결과](Docs/LevelTransitionDeathTestsLatest.png) | ![LevelBoundary Release 테스트 4개 실행 결과](Docs/LevelBoundaryTestsLatest.png) |
 
-| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) | ResourceManager (12, 게시 2026-10-17) |
+| LevelProcessingBoundary (8, Release, 2026-10-14) | LevelCameraBoundary (4, Release, 2026-10-14) | ResourceManager (12, Release, 2026-10-14) |
 |---|---|---|
-| ![LevelProcessingBoundary Release 테스트 8개 실행 결과](Docs/LevelProcessingBoundaryTestsLatest.png) | ![LevelCameraBoundary Release 테스트 4개 실행 결과](Docs/LevelCameraBoundaryTestsLatest.png) | ![ResourceManager Release 테스트 12개 실행 결과](Docs/ResourceManagerTestsLatest.png) |
+| ![LevelProcessingBoundary Release 테스트 8개 실행 결과](Docs/LevelProcessingBoundaryTestsLatest.png) | ![LevelCameraBoundary Release 테스트 4개 실행 결과](Docs/LevelCameraBoundaryTestsLatest.png) | 원본의 12개 개별 OK 확인 · 개인 경로가 포함된 이미지 비게시 |
 
 | Matrix4 (21) | Time (17) | Vector2 (2) |
 |---|---|---|
@@ -340,7 +342,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 |---|---|---|
 | 0 | 완료 기반 유지 · 현재 지원 범위의 제한된 안전성 점검 | 코드 반영 / 최신 325개 전체 실행 검증 대기 |
 | 1 | Environment Lighting 구현과 필요한 데이터 경계 정리 | 1-1·1-2 완료 / 관련 범위 테스트·실행 화면 확인 |
-| 2 | Quaternion Transform · Transform 계층 | 2-1 수학 구현 / Transform은 여전히 Euler 원본, 2-2 통합 미완료 |
+| 2 | Quaternion Transform · Transform 계층 | 2-1 수학 공개 / 2-2 로컬 구현·296개 저장 검증 확인, 공개 반영 대기 / 2-3 기본 설계 합의 |
 | 3 | Forward Lighting 기준선 | 첫 3개 항목 로컬 구현·관련 검증 기록 확인 / 공개 코드 반영 대기 |
 | 4 | RenderTarget · RenderPass · HDR · 공용 DebugDraw | 예정 |
 | 5 | Deferred Rendering | 예정 |
