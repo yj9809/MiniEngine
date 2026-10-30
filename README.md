@@ -355,7 +355,7 @@ OBJ + Texture + Camera 데모와 Lambert / Ambient 결과는 실행 이미지와
 | 12 | 최소 Audio · Runtime HUD · 선택 VFX | 예정 |
 | 13 | Renderer Lab · Action Combat Arena 통합 검증 | 예정 |
 
-Environment Lighting은 로드맵 1-1·1-2 완료 상태를 유지합니다. 2-2의 Quaternion 단일 자세·회전 합성·축·Matrix·Camera·Light·비교 데모와 3단계의 Normal Matrix·World/Camera Position 전달은 공개 코드에서 연결을 확인했습니다. 최신 Notion에는 공개 반영 대기라는 과거 설명이 남아 있어 이번 코드 상태와 차이가 있습니다. 로드맵 상태는 임의로 바꾸지 않았습니다. 과거 296개·87개 저장 실행 결과와 비교 화면은 최신 전체 회귀를 증명하지 않습니다. 다음 기능은 **View Direction → Point/Spot·Specular·색 공간 등 Forward 기준선 → RenderTarget/RenderPass → Deferred Rendering → Shadow** 순서입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
+Environment Lighting은 로드맵 1-1·1-2 완료 상태를 유지합니다. 2-2의 Quaternion 단일 자세·회전 합성·축·Matrix·Camera·Light·비교 데모와 3단계의 Normal Matrix·World/Camera Position 전달은 공개 코드에서 연결을 확인했습니다. 최신 Notion의 2026-10-30 후속 기록도 공개 구현·코드 연결 확인을 반영합니다. 기존 완료 체크는 유지하며 최신 SHA의 빌드·전체 회귀·Game/HLSL 실행 검증은 별도로 대기합니다. 과거 296개·87개 저장 실행 결과와 비교 화면은 최신 전체 회귀를 증명하지 않습니다. 다음 기능은 **View Direction → Point/Spot·Specular·색 공간 등 Forward 기준선 → RenderTarget/RenderPass → Deferred Rendering → Shadow** 순서입니다. Logging은 관련 실패 경로부터 점진적으로 적용하며 전체 완성을 기능 진입 조건으로 두지 않습니다.
 
 2-3 Transform 계층은 2026-10-23에 SceneComponent 기반 공간 계층의 기본 설계를 합의했으며 구현·통합·실행 검증은 미착수입니다. 구현 시점은 Scene·Skeleton/Attachment 등 실제 소비 기능에서 필요한 때로 유지합니다. 현재 Local/World 회전 API는 부모 계층이 없는 자세 합성이며, 계층 전체 구현을 Forward/Deferred의 선행 조건으로 추가하지 않습니다.
 
